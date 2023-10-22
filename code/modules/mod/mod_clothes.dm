@@ -3,7 +3,8 @@
 	desc = "A helmet for a MODsuit."
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-helmet"
-	base_icon_state = "helmet"
+	var/base_icon_state
+	base_icon_state = icon_state
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
@@ -22,7 +23,8 @@
 	desc = "A chestplate for a MODsuit."
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-chestplate"
-	base_icon_state = "chestplate"
+	var/base_icon_state
+	base_icon_state = icon_state
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	blood_overlay_type = "armor"
@@ -48,7 +50,8 @@
 	desc = "A pair of gauntlets for a MODsuit."
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-gauntlets"
-	base_icon_state = "gauntlets"
+	var/base_icon_state
+	base_icon_state = icon_state
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
@@ -67,7 +70,8 @@
 	desc = "A pair of boots for a MODsuit."
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-boots"
-	base_icon_state = "boots"
+	var/base_icon_state
+	base_icon_state = icon_state
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
