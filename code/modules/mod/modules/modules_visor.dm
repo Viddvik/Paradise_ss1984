@@ -70,7 +70,7 @@
 		technology, used by construction workers and miners across the galaxy to see basic structural and terrain layouts \
 		through walls, regardless of lighting conditions. They say these also let you see behind you."
 	icon_state = "meson_visor"
-	visor_trait = TRAIT_MESON_VISION
+	visor_trait = SEE_TURFS
 
 //Thermal Visor - Gives you thermal vision.
 /obj/item/mod/module/visor/thermal
@@ -80,7 +80,7 @@
 		small as a rodent, it still produces irritating red overlay. They say these also let you see behind you."
 	icon_state = "thermal_visor"
 	origin_tech = "combat=6;engineering=6;syndicate=2"
-	visor_trait = TRAIT_THERMAL_VISION
+	visor_trait = SEE_MOBS
 
 //Night Visor - Gives you night vision.
 /obj/item/mod/module/visor/night
@@ -90,4 +90,5 @@
 		yet brightening everything into a spooky green glow. They say these also let you see behind you."
 	icon_state = "night_visor"
 	origin_tech = "combat=5;engineering=5;syndicate=1"
-	visor_trait = TRAIT_NIGHT_VISION
+	see_in_dark = 8
+	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE

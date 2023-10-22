@@ -265,7 +265,7 @@
 				for(var/obj/item/part as anything in mod_parts)
 					if(part.loc != src)
 						to_chat(user, "<span class='warning'>Retract parts first!</span>")
-						playsound(src, 'sound/machines/scanbuzz.ogg', 25, FALSE, SILENCED_SOUND_EXTRARANGE)
+						playsound(src, 'sound/machines/buzz-sigh.ogg', 25, FALSE, SILENCED_SOUND_EXTRARANGE)
 						return
 				if(!user.unEquip(src, silent = TRUE))
 					return
@@ -301,7 +301,7 @@
 		return TRUE
 	if(active || activating || locate(/mob/living/silicon/ai) in src)
 		to_chat(user, "<span class='warning'>Deactivate the suit first!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	to_chat(user, "<span class='notice'>[open ? "Closing" : "Opening"] cover...</span>")
 	screwdriver.play_tool_sound(src, 100)
@@ -317,16 +317,16 @@
 	. = ..()
 	if(!open)
 		to_chat(user, "<span class='warning'>Open the cover first!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(!allowed(user))
 		to_chat(user, "<span class='warning'>Insufficient access!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	if(seconds_electrified && get_charge() && shock(user))
 		return FALSE
 	if(SEND_SIGNAL(src, COMSIG_MOD_MODULE_REMOVAL, user) & MOD_CANCEL_REMOVAL)
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(length(modules))
 		var/list/removable_modules = list()
@@ -343,14 +343,14 @@
 		SEND_SIGNAL(src, COMSIG_MOD_MODULE_REMOVED, user)
 		return TRUE
 	to_chat(user, "<span class='warning'>No modules!</span>")
-	playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+	playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 	return FALSE
 
 /obj/item/mod/control/attackby(obj/item/attacking_item, mob/living/user, params)
 	if(istype(attacking_item, /obj/item/mod/module))
 		if(!open)
 			to_chat(user, "<span class='warning'>Open the cover first!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 		install(attacking_item, user)
 		SEND_SIGNAL(src, COMSIG_MOD_MODULE_ADDED, user)
@@ -358,11 +358,11 @@
 	else if(istype(attacking_item, /obj/item/mod/core))
 		if(!open)
 			to_chat(user, "<span class='warning'>Open the cover first!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 		if(core)
 			to_chat(user, "<span class='warning'>Core already installed!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 		var/obj/item/mod/core/attacking_core = attacking_item
 		playsound(src, 'sound/machines/click.ogg', 50, TRUE, SILENCED_SOUND_EXTRARANGE)
@@ -381,13 +381,13 @@
 	else if(istype(attacking_item, /obj/item/stock_parts/cell))
 		if(!core)
 			to_chat(user, "<span class='warning'>There is no core installed!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 		core.on_attackby(attacking_item, user, params)
 	else if(istype(attacking_item, /obj/item/stack/ore/plasma) || istype(attacking_item, /obj/item/stack/sheet/mineral/plasma))
 		if(!core)
 			to_chat(user, "<span class='warning'>There is no core installed!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 		core.on_attackby(attacking_item, user, params)
 	else if(istype(attacking_item, /obj/item/mod/skin_applier))
@@ -564,19 +564,19 @@
 		if(is_type_in_list(new_module, old_module.incompatible_modules) || is_type_in_list(old_module, new_module.incompatible_modules))
 			if(user)
 				to_chat(user, "<span class='warning'>[new_module] incompatible with [old_module]!")
-				playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+				playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return
 	var/complexity_with_module = complexity
 	complexity_with_module += new_module.complexity
 	if(complexity_with_module > complexity_max)
 		if(user)
 			to_chat(user, "<span class='warning'>[new_module] would make [src] too complex!")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	if(user)
 		if(!user.drop_item_ground())
 			to_chat(user, "<span class='warning'>[new_module] is stuck to your hand!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return
 	new_module.forceMove(src)
 	modules += new_module
@@ -607,7 +607,7 @@
 /obj/item/mod/control/proc/update_access(mob/user, obj/item/card/id/card)
 	if(!allowed(user))
 		to_chat(user, "<span class='warning'>Insufficient access!")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	req_access = card.access.Copy()
 	to_chat(user, "<span class='notice'>Access updated!")

@@ -4,8 +4,6 @@
 	icon = 'icons/obj/clothing/modsuit/mod_construction.dmi'
 	icon_state = "mod-core"
 	item_state = "electronic"
-	lefthand_file = 'icons/mob/inhands/items/devices_lefthand.dmi'
-	righthand_file = 'icons/mob/inhands/items/devices_righthand.dmi'
 	/// MOD unit we are powering.
 	var/obj/item/mod/control/mod
 
@@ -200,11 +198,11 @@
 	if(istype(attacking_item, /obj/item/stock_parts/cell))
 		if(!mod.open)
 			to_chat(user, "<span class='warning'>Open the cover first!</span>")
-			playsound(mod, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(mod, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return NONE
 		if(cell)
 			to_chat(user, "<span class='warning'>Cell already installed!</span>")
-			playsound(mod, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(mod, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return COMPONENT_NO_AFTERATTACK
 		user.drop_item_ground()
 		install_cell(attacking_item)

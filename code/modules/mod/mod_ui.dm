@@ -56,7 +56,7 @@
 		return
 	if(locked && !allowed(usr))
 		to_chat(usr, "<span class='warning'>Insufficient access!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	if(malfunctioning && prob(75))
 		to_chat(usr, "<span class='warning'>ERROR!</span>")

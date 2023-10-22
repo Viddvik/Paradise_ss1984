@@ -19,7 +19,7 @@
 		return
 	if(active || activating)
 		to_chat(user, "<span class='warning'>Deactivate the suit first!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	var/parts_to_check = mod_parts - part
 	if(part.loc == src)
@@ -43,7 +43,7 @@
 /obj/item/mod/control/proc/quick_deploy(mob/user)
 	if(active || activating)
 		to_chat(user, "<span class='warning'>Deactivate the suit first!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	var/deploy = TRUE
 	for(var/obj/item/part as anything in mod_parts)
@@ -72,7 +72,7 @@
 		if(!user)
 			return FALSE
 		to_chat(user, "<span class='warning'>[part.name] already deployed!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 	if(part in overslotting_parts)
 		var/obj/item/overslot = user.get_item_by_slot(slot_bitfield_to_slot(part.slot_flags))
 		if(overslot)
@@ -93,7 +93,7 @@
 		if(!user)
 			return FALSE
 		to_chat(user, "<span class='warning'>You already have clothing there!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 	return FALSE
 
 /// Retract a part of the suit from the user.
@@ -102,7 +102,7 @@
 		if(!user)
 			return FALSE
 		to_chat(user, "<span class='warning'>You already have retracted there!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 	part.flags &= ~NODROP
 	user.unEquip(part, TRUE)
 	part.forceMove(src)
@@ -124,32 +124,32 @@
 	if(!user)
 		if(!force_deactivate)
 			to_chat(user, "<span class='warning'>Equip your suit first!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(!force_deactivate && (SEND_SIGNAL(src, COMSIG_MOD_ACTIVATE, user) & MOD_CANCEL_ACTIVATE))
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	for(var/obj/item/part as anything in mod_parts)
 		if(!force_deactivate && part.loc == src)
 			to_chat(user, "<span class='warning'>Deploy all parts first!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return FALSE
 	if(locked && !active && !allowed(user) && !force_deactivate)
 		to_chat(user, "<span class='warning'>Insufficient access!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(!get_charge() && !force_deactivate)
 		to_chat(user, "<span class='warning'>Suit is not powered!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(open && !force_deactivate)
 		to_chat(user, "<span class='warning'>Close the suit panel!</span>")
-		playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+		playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	if(activating)
 		if(!force_deactivate)
 			to_chat(user, "<span class='warning'>Suit is already [active ? "shutting down" : "starting up"]!</span>")
-			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
+			playsound(src, 'sound/machines/buzz-sigh.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return FALSE
 	for(var/obj/item/mod/module/module as anything in modules)
 		if(!module.active || (module.allow_flags & MODULE_ALLOW_INACTIVE))
