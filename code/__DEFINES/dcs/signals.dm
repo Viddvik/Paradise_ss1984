@@ -76,6 +76,8 @@
 #define COMSIG_ATOM_UPDATE_ICON "atom_update_icon"
 	#define COMSIG_ATOM_NO_UPDATE_ICON_STATE	(1<<0)
 	#define COMSIG_ATOM_NO_UPDATE_OVERLAYS		(1<<1)
+///Sent after [atom/update_icon_state] is called by [/atom/update_icon]: ()
+#define COMSIG_ATOM_UPDATE_ICON_STATE "atom_update_icon_state"
 ///from base of atom/update_overlays(): (list/new_overlays)
 #define COMSIG_ATOM_UPDATE_OVERLAYS "atom_update_overlays"
 ///from base of atom/update_icon(): (signalOut, did_anything)

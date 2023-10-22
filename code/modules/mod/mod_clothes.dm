@@ -4,7 +4,7 @@
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-helmet"
 	var/base_icon_state
-	base_icon_state = icon_state
+	base_icon_state = "helmet"
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
@@ -24,7 +24,7 @@
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-chestplate"
 	var/base_icon_state
-	base_icon_state = icon_state
+	base_icon_state = "chestplate"
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	blood_overlay_type = "armor"
@@ -51,7 +51,7 @@
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-gauntlets"
 	var/base_icon_state
-	base_icon_state = icon_state
+	base_icon_state = "gauntlets"
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
@@ -71,7 +71,7 @@
 	icon = 'icons/obj/clothing/modsuit/mod_clothing.dmi'
 	icon_state = "standard-boots"
 	var/base_icon_state
-	base_icon_state = icon_state
+	base_icon_state = "boots"
 	item_state = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	icon_override = 'icons/mob/clothing/modsuit/mod_clothing.dmi'
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
