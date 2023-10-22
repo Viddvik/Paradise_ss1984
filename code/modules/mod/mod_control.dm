@@ -13,7 +13,7 @@
 	item_state = "mod_control"
 	base_icon_state = "control"
 	w_class = WEIGHT_CLASS_BULKY
-	slot_flags = SLOT_FLAG_BACK
+	slot_flags = SLOT_BACK
 	strip_delay = 10 SECONDS
 	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
 	actions_types = list(
@@ -223,14 +223,14 @@
 
 /obj/item/mod/control/equipped(mob/user, slot)
 	..()
-	if(slot == SLOT_HUD_BACK)
+	if(slot == SLOT_BACK)
 		set_wearer(user)
 	else if(wearer)
 		unset_wearer()
 
 
 /obj/item/mod/control/item_action_slot_check(slot)
-	if(slot == SLOT_HUD_BACK)
+	if(slot == SLOT_BACK)
 		return TRUE
 
 /obj/item/mod/control/on_mob_move(direction, mob/user)
@@ -366,7 +366,7 @@
 			return FALSE
 		var/obj/item/mod/core/attacking_core = attacking_item
 		playsound(src, 'sound/machines/click.ogg', 50, TRUE, SILENCED_SOUND_EXTRARANGE)
-		user.drop_item()
+		user.drop_item_ground()
 		attacking_core.install(src)
 		update_charge_alert()
 		return TRUE
@@ -574,7 +574,7 @@
 			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 		return
 	if(user)
-		if(!user.drop_item())
+		if(!user.drop_item_ground())
 			to_chat(user, "<span class='warning'>[new_module] is stuck to your hand!</span>")
 			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return
@@ -749,18 +749,6 @@
 	if(QDELETED(src))
 		return
 	qdel(src)
-
-
-/obj/item/mod/control/water_act(volume, temperature, source, method)
-	if(HAS_TRAIT(src, TRAIT_OIL_SLICKED)) //Overide base to work right
-		slowdown_active = theme.slowdown_active
-		slowdown_inactive = theme.slowdown_inactive
-		update_speed()
-		remove_atom_colour(FIXED_COLOUR_PRIORITY)
-		REMOVE_TRAIT(src, TRAIT_OIL_SLICKED, "potion")
-		if(ishuman(loc))
-			var/mob/living/carbon/human/H = loc
-			H.regenerate_icons()
 
 /obj/item/mod/control/extinguish_light(force)
 	. = ..()

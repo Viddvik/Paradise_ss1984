@@ -401,7 +401,7 @@
 		if(core)
 			to_chat(user, "<span class='warning'>A core is already installed!</span>")
 			return
-		if(!user.drop_item())
+		if(!user.drop_item_ground())
 			return
 		core = item
 		to_chat(user, "<span class='notice'>You install [item].</span>")

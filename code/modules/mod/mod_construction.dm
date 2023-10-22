@@ -126,7 +126,7 @@
 		if(START_STEP)
 			if(!istype(part, /obj/item/mod/core))
 				return
-			if(!user.drop_item())
+			if(!user.drop_item_ground())
 				to_chat(user, "<span class='warning'>[part] is stuck to you and cannot be placed into [src].</span>")
 				return
 			playsound(src, 'sound/machines/click.ogg', 30, TRUE)
@@ -146,7 +146,7 @@
 				construction_step = START_STEP
 		if(SCREWED_CORE_STEP)
 			if(istype(part, /obj/item/mod/construction/helmet)) //Construct
-				if(!user.drop_item())
+				if(!user.drop_item_ground())
 					to_chat(user, "<span class='warning'>[part] is stuck to you and cannot be placed into [src].</span>")
 					return
 				playsound(src, 'sound/machines/click.ogg', 30, TRUE)
@@ -160,7 +160,7 @@
 					construction_step = CORE_STEP
 		if(HELMET_STEP)
 			if(istype(part, /obj/item/mod/construction/chestplate)) //Construct
-				if(!user.drop_item())
+				if(!user.drop_item_ground())
 					to_chat(user, "<span class='warning'>[part] is stuck to you and cannot be placed into [src].</span>")
 					return
 				playsound(src, 'sound/machines/click.ogg', 30, TRUE)
@@ -177,7 +177,7 @@
 					construction_step = SCREWED_CORE_STEP
 		if(CHESTPLATE_STEP)
 			if(istype(part, /obj/item/mod/construction/gauntlets)) //Construct
-				if(!user.drop_item())
+				if(!user.drop_item_ground())
 					to_chat(user, "<span class='warning'>[part] is stuck to you and cannot be placed into [src].</span>")
 					return
 				playsound(src, 'sound/machines/click.ogg', 30, TRUE)
@@ -193,7 +193,7 @@
 					construction_step = HELMET_STEP
 		if(GAUNTLETS_STEP)
 			if(istype(part, /obj/item/mod/construction/boots)) //Construct
-				if(!user.drop_item())
+				if(!user.drop_item_ground())
 					to_chat(user, "<span class='warning'>[part] is stuck to you and cannot be placed into [src].</span>")
 					return
 				playsound(src, 'sound/machines/click.ogg', 30, TRUE)
@@ -230,7 +230,7 @@
 		if(SCREWED_ASSEMBLY_STEP)
 			if(istype(part, /obj/item/mod/construction/plating)) //Construct
 				var/obj/item/mod/construction/plating/external_plating = part
-				if(!user.drop_item())
+				if(!user.drop_item_ground())
 					return
 				playsound(src, 'sound/machines/click.ogg', 30, TRUE)
 				var/obj/item/mod = new /obj/item/mod/control(drop_location(), external_plating.theme, null, core)

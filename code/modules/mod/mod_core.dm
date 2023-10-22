@@ -206,7 +206,7 @@
 			to_chat(user, "<span class='warning'>Cell already installed!</span>")
 			playsound(mod, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)
 			return COMPONENT_NO_AFTERATTACK
-		user.drop_item()
+		user.drop_item_ground()
 		install_cell(attacking_item)
 		to_chat(user, "<span class='notice'>You install the cell.</span>")
 		playsound(mod, 'sound/machines/click.ogg', 50, TRUE, SILENCED_SOUND_EXTRARANGE)
