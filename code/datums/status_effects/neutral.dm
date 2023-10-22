@@ -57,3 +57,7 @@
 /datum/status_effect/charging
 	id = "charging"
 	alert_type = null
+
+/datum/status_effect/impact_immune
+	id = "impact_immune"
+	alert_type = null
