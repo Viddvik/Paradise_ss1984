@@ -270,21 +270,6 @@
 		/obj/item/mod/module/jetpack/advanced,
 	)
 
-/obj/item/mod/control/pre_equipped/prototype
-	theme = /datum/mod_theme/prototype
-	req_access = list()
-	applied_modules = list(
-		/obj/item/mod/module/storage,
-		/obj/item/mod/module/welding,
-		/obj/item/mod/module/rad_protection,
-		/obj/item/mod/module/flashlight,
-		/obj/item/mod/module/tether,
-	)
-	default_pins = list(
-		/obj/item/mod/module/tether,
-		/obj/item/mod/module/anomaly_locked/kinesis/prebuilt/prototype,
-	)
-
 /obj/item/mod/control/pre_equipped/responsory
 	theme = /datum/mod_theme/responsory
 	applied_cell = /obj/item/stock_parts/cell/hyper
@@ -321,7 +306,7 @@
 
 /obj/item/mod/control/pre_equipped/responsory/engineer
 	insignia_type = /obj/item/mod/module/insignia/engineer
-	additional_module = /obj/item/mod/module/anomaly_locked/kinesis/prebuilt //This can only end well.
+	additional_module = /obj/item/mod/module/magboot/advanced
 
 /obj/item/mod/control/pre_equipped/responsory/medic
 	insignia_type = /obj/item/mod/module/insignia/medic
@@ -400,11 +385,9 @@
 		/obj/item/mod/module/storage/bluespace,
 		/obj/item/mod/module/dna_lock/emp_shield,
 		/obj/item/mod/module/status_readout,
-		/obj/item/mod/module/anomaly_locked/kinesis/plus,
 		/obj/item/mod/module/magboot/advanced,
 	)
 	default_pins = list(
-		/obj/item/mod/module/anomaly_locked/kinesis/plus,
 		/obj/item/mod/module/magboot/advanced,
 	)
 

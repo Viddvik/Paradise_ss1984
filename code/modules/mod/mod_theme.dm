@@ -992,62 +992,6 @@
 	//laser = 35 //50 same as
 	//energy = 15 // 25
 
-/datum/mod_theme/prototype
-	name = "prototype"
-	desc = "A prototype modular suit powered by locomotives. While it is comfortable and has a big capacity, it remains very bulky and power-inefficient."
-	extended_desc = "This is a prototype powered exoskeleton, a design not seen in hundreds of years, the first \
-		post-void war era modular suit to ever be safely utilized by an operator. This ancient clunker is still functional, \
-		though it's missing several modern-day luxuries from updated Cybersun Industries designs. \
-		Primarily, the suit's myoelectric suit layer is entirely non-existant, and the servos do very little to \
-		help distribute the weight evenly across the user's body, making it slow and bulky to move in. \
-		The internal heads-up display is rendered in nearly unreadable cyan, as the visor suggests, \
-		leaving the user unable to see long distances. However, the way the helmet retracts is pretty cool."
-	default_skin = "prototype"
-	armor_type_1 = /obj/item/mod/armor/mod_theme_prototype
-	resistance_flags = FIRE_PROOF
-	siemens_coefficient = 0
-	complexity_max = DEFAULT_MAX_COMPLEXITY + 5
-	charge_drain = DEFAULT_CHARGE_DRAIN * 2
-	slowdown_inactive = 2
-	slowdown_active = 0.95
-	ui_theme = "hackerman"
-	inbuilt_modules = list(/obj/item/mod/module/anomaly_locked/kinesis/prebuilt/prototype)
-	allowed_suit_storage = list(
-		/obj/item/analyzer,
-		/obj/item/t_scanner,
-		/obj/item/rpd,
-		/obj/item/rcd,
-	)
-	skins = list(
-		"prototype" = list(
-			HELMET_FLAGS = list(
-				UNSEALED_LAYER = null,
-				UNSEALED_CLOTHING = THICKMATERIAL,
-				SEALED_CLOTHING = STOPSPRESSUREDMAGE | BLOCKHAIR,
-				UNSEALED_INVISIBILITY = HIDENAME | HIDEMASK | HIDEGLASSES,
-				UNSEALED_COVER = HEADCOVERSMOUTH | HEADCOVERSEYES,
-			),
-			CHESTPLATE_FLAGS = list(
-				UNSEALED_CLOTHING = THICKMATERIAL,
-				SEALED_CLOTHING = STOPSPRESSUREDMAGE,
-				SEALED_INVISIBILITY = HIDEJUMPSUIT | HIDETAIL,
-			),
-			GAUNTLETS_FLAGS = list(
-				UNSEALED_CLOTHING = THICKMATERIAL,
-				SEALED_CLOTHING = STOPSPRESSUREDMAGE,
-				CAN_OVERSLOT = TRUE,
-			),
-			BOOTS_FLAGS = list(
-				UNSEALED_CLOTHING = THICKMATERIAL,
-				SEALED_CLOTHING = STOPSPRESSUREDMAGE,
-				CAN_OVERSLOT = TRUE,
-			),
-		),
-	)
-
-/obj/item/mod/armor/mod_theme_prototype
-	armor = list(MELEE = 20, BULLET = 5, LASER = 10, ENERGY = 10, BOMB = 50, RAD = 50, FIRE = 150, ACID = 150)
-
 /datum/mod_theme/responsory
 	name = "responsory"
 	desc = "A high-speed rescue suit by Nanotrasen, intended for its' emergency response teams."

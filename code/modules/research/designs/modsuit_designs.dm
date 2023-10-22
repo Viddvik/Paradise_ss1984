@@ -351,10 +351,3 @@
 	req_tech = list("combat" = 5, "engineering" = 5, "bluespace" = 7, "plasmatech" = 6)
 	materials = list(MAT_METAL = 12000, MAT_GLASS = 2000, MAT_SILVER = 4000, MAT_PLASMA = 4000, MAT_TITANIUM = 4000, MAT_BLUESPACE = 6000) //Requires bluespace anomaly core to function.
 	build_path = /obj/item/mod/module/anomaly_locked/teleporter
-
-/datum/design/module/mod_kinesis
-	name = "Kinesis Module"
-	id = "mod_kinesis"
-	req_tech = list("combat" = 5, "engineering" = 5, "bluespace" = 7, "plasmatech" = 6)
-	materials = list(MAT_METAL = 12000, MAT_GLASS = 2000, MAT_SILVER = 4000, MAT_PLASMA = 4000, MAT_TITANIUM = 4000, MAT_BLUESPACE = 6000) //Requires Gravitational anomaly core to function.
-	build_path = /obj/item/mod/module/anomaly_locked/kinesis
