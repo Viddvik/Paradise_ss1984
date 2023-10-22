@@ -1139,6 +1139,17 @@ GLOBAL_LIST_INIT(all_supply_groups, list(SUPPLY_EMERGENCY,SUPPLY_SECURITY,SUPPLY
 	access = ACCESS_TOX_STORAGE
 	group = SUPPLY_SCIENCE
 
+/datum/supply_packs/science/mod_core
+	name = "MOD core Crate"
+	contains = list(/obj/item/mod/core/standard,
+					/obj/item/mod/core/standard,
+					/obj/item/mod/core/standard)
+	cost = 200
+	containertype = /obj/structure/closet/crate/secure/scisec
+	containername = "MOD Suits core crate"
+	access = ACCESS_ROBOTICS
+	announce_beacons = list("Research Division" = list("Robotics"))
+
 /datum/supply_packs/science/shieldwalls
 	name = "Shield Generators Crate"
 	contains = list(/obj/machinery/shieldwallgen,

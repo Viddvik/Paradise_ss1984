@@ -122,3 +122,5 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 #define isclient(A) istype(A, /client)
 #define ispill(A) istype(A, /obj/item/reagent_containers/food/pill)
 
+// Modsuits
+#define ismodcontrol(A) istype(A, /obj/item/mod/control)

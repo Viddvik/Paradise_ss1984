@@ -75,3 +75,8 @@
 
 // Tesla coil
 #define WIRE_TESLACOIL_ZAP "Zap"
+
+// MODsuits
+#define WIRE_HACK "Hack"
+#define WIRE_DISABLE "Disable"
+#define WIRE_INTERFACE "Interface"
