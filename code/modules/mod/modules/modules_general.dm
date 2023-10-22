@@ -144,7 +144,7 @@
 	cooldown_time = 0.5 SECONDS
 	overlay_state_inactive = "module_jetpack"
 	overlay_state_active = "module_jetpack_on"
-	/// Do we stop the wearer from gliding in space.
+	/// Do we stop the user from gliding in space.
 	var/stabilizers = FALSE
 
 /obj/item/mod/module/jetpack/proc/set_stabilizers(new_stabilizers)
@@ -169,7 +169,7 @@
 	return TRUE
 
 /obj/item/mod/module/jetpack/proc/get_user()
-	return mod.wearer
+	return mod.user
 
 /obj/item/mod/module/jetpack/on_activation()
 	. = ..()
@@ -239,7 +239,7 @@
 
 /obj/item/mod/module/flashlight/on_activation()
 	if(!COOLDOWN_FINISHED(src, activation_cooldown))
-		to_chat(mod.wearer, "<span class='warning'>[src] isn't ready after being shut down!</span>")
+		to_chat(mod.user, "<span class='warning'>[src] isn't ready after being shut down!</span>")
 		return
 	. = ..()
 	if(!.)
@@ -272,10 +272,10 @@
 			if(!value)
 				return
 			if(is_color_dark(value, 50))
-				to_chat(mod.wearer, ("<span class='warning'>That is too dark</span>"))
+				to_chat(mod.user, ("<span class='warning'>That is too dark</span>"))
 				return
 			light_color = value
-			mod.wearer.regenerate_icons()
+			mod.user.regenerate_icons()
 		if("light_range")
 			mod_light_range = (clamp(text2num(value), min_range, max_range))
 	mod.set_light(0, mod_light_power, light_color)
@@ -287,14 +287,14 @@
 	on_deactivation(FALSE)
 	COOLDOWN_START(src, activation_cooldown, 20 SECONDS)
 
-	to_chat(mod.wearer, "<span class='warning'>Your [name] shuts off!</span>")
+	to_chat(mod.user, "<span class='warning'>Your [name] shuts off!</span>")
 
 ///Dispenser - Dispenses an item after a time passes.
 /obj/item/mod/module/dispenser
 	name = "MOD burger dispenser module"
 	desc = "A rare piece of technology reverse-engineered from a prototype found in a Donk Corporation vessel. \
 		This can draw incredible amounts of power from the suit's charge to create edible organic matter in the \
-		palm of the wearer's glove; however, research seemed to have entirely stopped at cheeseburgers. \
+		palm of the user's glove; however, research seemed to have entirely stopped at cheeseburgers. \
 		Notably, all attempts to get it to dispense Earl Grey tea have failed."
 	icon_state = "dispenser"
 	module_type = MODULE_USABLE
@@ -311,15 +311,15 @@
 	. = ..()
 	if(!.)
 		return
-	if(dispense_time && !do_after(mod.wearer, dispense_time, target = mod.wearer))
+	if(dispense_time && !do_after(mod.user, dispense_time, target = mod.user))
 		return FALSE
-	var/obj/item/dispensed = new dispense_type(mod.wearer.loc)
-	mod.wearer.put_in_hands(dispensed)
+	var/obj/item/dispensed = new dispense_type(mod.user.loc)
+	mod.user.put_in_hands(dispensed)
 	playsound(src, 'sound/machines/click.ogg', 100, TRUE)
 	drain_power(use_power_cost)
 	return dispensed
 
-///Thermal Regulator - Regulates the wearer's core temperature.
+///Thermal Regulator - Regulates the user's core temperature.
 /obj/item/mod/module/thermal_regulator
 	name = "MOD thermal regulator module"
 	desc = "Advanced climate control, using an inner body glove interwoven with thousands of tiny, \
@@ -348,10 +348,10 @@
 			temperature_setting = clamp(text2num(value) + T0C, min_temp, max_temp)
 
 /obj/item/mod/module/thermal_regulator/on_active_process()
-	if(mod.wearer.bodytemperature > temperature_setting)
-		mod.wearer.bodytemperature = max(temperature_setting, mod.wearer.bodytemperature - (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
-	else if(mod.wearer.bodytemperature < temperature_setting)
-		mod.wearer.bodytemperature = min(temperature_setting, mod.wearer.bodytemperature + (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
+	if(mod.user.bodytemperature > temperature_setting)
+		mod.user.bodytemperature = max(temperature_setting, mod.user.bodytemperature - (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
+	else if(mod.user.bodytemperature < temperature_setting)
+		mod.user.bodytemperature = min(temperature_setting, mod.user.bodytemperature + (40 * TEMPERATURE_DAMAGE_COEFFICIENT))
 
 /obj/item/mod/module/dna_lock
 	name = "MOD DNA lock module"
@@ -384,7 +384,7 @@
 	. = ..()
 	if(!.)
 		return
-	dna = mod.wearer.dna.unique_enzymes
+	dna = mod.user.dna.unique_enzymes
 	drain_power(use_power_cost)
 
 /obj/item/mod/module/dna_lock/emp_act(severity)
@@ -402,7 +402,7 @@
 		return FALSE
 	if(!dna)
 		return TRUE
-	if(dna == mod.wearer.dna.unique_enzymes)
+	if(dna == mod.user.dna.unique_enzymes)
 		return TRUE
 	return FALSE
 
@@ -461,7 +461,7 @@
 	overlay_state_inactive = "module_plasma"
 
 /obj/item/mod/module/plasma_stabilizer/on_equip()
-	ADD_TRAIT(mod.wearer, TRAIT_NOSELFIGNITION_HEAD_ONLY, MODSUIT_TRAIT)
+	ADD_TRAIT(mod.user, TRAIT_NOSELFIGNITION_HEAD_ONLY, MODSUIT_TRAIT)
 
 /obj/item/mod/module/plasma_stabilizer/on_unequip()
-	REMOVE_TRAIT(mod.wearer, TRAIT_NOSELFIGNITION_HEAD_ONLY, MODSUIT_TRAIT)
+	REMOVE_TRAIT(mod.user, TRAIT_NOSELFIGNITION_HEAD_ONLY, MODSUIT_TRAIT)

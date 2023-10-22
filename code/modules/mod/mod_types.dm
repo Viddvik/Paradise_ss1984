@@ -23,15 +23,15 @@
 		module = new module(src)
 		install(module)
 
-/obj/item/mod/control/pre_equipped/set_wearer(mob/living/carbon/human/user)
+/obj/item/mod/control/pre_equipped/set_user(mob/living/carbon/human/user)
 	. = ..()
 	for(var/obj/item/mod/module/module as anything in modules)
 		if(!default_pins[module.type]) //this module isnt meant to be pinned by default
 			continue
-		if(UID(wearer) in default_pins[module.type]) //if we already had pinned once to this user, don care anymore
+		if(UID(user) in default_pins[module.type]) //if we already had pinned once to this user, don care anymore
 			continue
-		default_pins[module.type] += UID(wearer)
-		module.pin(wearer)
+		default_pins[module.type] += UID(user)
+		module.pin(user)
 
 /obj/item/mod/control/pre_equipped/uninstall(obj/item/mod/module/old_module, deleting)
 	. = ..()

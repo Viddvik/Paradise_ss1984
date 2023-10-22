@@ -39,14 +39,14 @@
 	. = ..()
 	if(!.)
 		return
-	if(!mod.wearer.Adjacent(target))
+	if(!mod.user.Adjacent(target))
 		return
 	if(istype(target, /obj/structure/closet/crate))
 		var/obj/structure/closet/crate/picked_crate = target
 		if(!check_crate_pickup(picked_crate))
 			return
 		playsound(src, 'sound/mecha/hydraulic.ogg', 25, TRUE)
-		if(!do_after(mod.wearer, load_time, target = target))
+		if(!do_after(mod.user, load_time, target = target))
 			return
 		if(!check_crate_pickup(picked_crate))
 			return
@@ -58,7 +58,7 @@
 		if(target_turf.density)
 			return
 		playsound(src, 'sound/mecha/hydraulic.ogg', 25, TRUE)
-		if(!do_after(mod.wearer, load_time, target = target))
+		if(!do_after(mod.user, load_time, target = target))
 			return
 		if(target_turf.density)
 			return
@@ -66,7 +66,7 @@
 		dropped_crate.forceMove(target_turf)
 		drain_power(use_power_cost)
 	else
-		to_chat(mod.wearer, "<span class='warning'>Invalid target!</span>")
+		to_chat(mod.user, "<span class='warning'>Invalid target!</span>")
 
 /obj/item/mod/module/clamp/on_suit_deactivation(deleting = FALSE)
 	if(deleting)
@@ -77,12 +77,12 @@
 
 /obj/item/mod/module/clamp/proc/check_crate_pickup(atom/movable/target)
 	if(length(stored_crates) >= max_crates)
-		to_chat(mod.wearer, "<span class='warning'>Too many crates!</span>")
+		to_chat(mod.user, "<span class='warning'>Too many crates!</span>")
 		return FALSE
 	for(var/mob/living/mob in target.client_mobs_in_contents)
 		if(mob.mob_size < MOB_SIZE_HUMAN)
 			continue
-		to_chat(mod.wearer, "<span class='warning'>Too heavy!</span>")
+		to_chat(mod.user, "<span class='warning'>Too heavy!</span>")
 		return FALSE
 	return TRUE
 
@@ -114,23 +114,23 @@
 	. = ..()
 	if(!.)
 		return
-	RegisterSignal(mod.wearer, COMSIG_MOVABLE_BUMP, PROC_REF(bump_mine))
+	RegisterSignal(mod.user, COMSIG_MOVABLE_BUMP, PROC_REF(bump_mine))
 
 /obj/item/mod/module/drill/on_deactivation(display_message = TRUE, deleting = FALSE)
 	. = ..()
 	if(!.)
 		return
-	UnregisterSignal(mod.wearer, COMSIG_MOVABLE_BUMP)
+	UnregisterSignal(mod.user, COMSIG_MOVABLE_BUMP)
 
 /obj/item/mod/module/drill/on_select_use(atom/target)
 	. = ..()
 	if(!.)
 		return
-	if(!mod.wearer.Adjacent(target))
+	if(!mod.user.Adjacent(target))
 		return
 	if(ismineralturf(target))
 		var/turf/simulated/mineral/mineral_turf = target
-		mineral_turf.gets_drilled(mod.wearer)
+		mineral_turf.gets_drilled(mod.user)
 		drain_power(use_power_cost)
 
 /obj/item/mod/module/drill/proc/bump_mine(mob/living/carbon/human/bumper, atom/bumped_into, proximity)
@@ -138,7 +138,7 @@
 	if(!ismineralturf(bumped_into) || !drain_power(use_power_cost))
 		return
 	var/turf/simulated/mineral/mineral_turf = bumped_into
-	mineral_turf.gets_drilled(mod.wearer)
+	mineral_turf.gets_drilled(mod.user)
 	return COMPONENT_CANCEL_ATTACK_CHAIN
 
 ///Ore Bag - Lets you pick up ores and drop them from the suit.
@@ -156,17 +156,17 @@
 	allow_flags = MODULE_ALLOW_INACTIVE
 
 /obj/item/mod/module/orebag/on_equip()
-	RegisterSignal(mod.wearer, COMSIG_MOVABLE_MOVED, PROC_REF(ore_pickup))
+	RegisterSignal(mod.user, COMSIG_MOVABLE_MOVED, PROC_REF(ore_pickup))
 	..()
 
 /obj/item/mod/module/orebag/on_unequip()
-	UnregisterSignal(mod.wearer, COMSIG_MOVABLE_MOVED)
+	UnregisterSignal(mod.user, COMSIG_MOVABLE_MOVED)
 	..()
 
 /obj/item/mod/module/orebag/proc/ore_pickup(atom/movable/source, atom/old_loc, dir, forced)
 	SIGNAL_HANDLER
 
-	for(var/obj/item/stack/ore/ore in get_turf(mod.wearer))
+	for(var/obj/item/stack/ore/ore in get_turf(mod.user))
 		INVOKE_ASYNC(src, PROC_REF(move_ore), ore)
 
 /obj/item/mod/module/orebag/proc/move_ore(obj/item/stack/ore)
@@ -205,27 +205,27 @@
 	. = ..()
 	if(!.)
 		return
-	if(mod.wearer.buckled)
+	if(mod.user.buckled)
 		return
 	var/current_time = world.time
-	var/atom/movable/plane_master_controller/pm_controller = mod.wearer.hud_used.plane_master_controllers[PLANE_MASTERS_GAME]
+	var/atom/movable/plane_master_controller/pm_controller = mod.user.hud_used.plane_master_controllers[PLANE_MASTERS_GAME]
 	for(var/key in pm_controller.controlled_planes)
 		animate(pm_controller.controlled_planes[key], launch_time, transform = matrix(1.25, MATRIX_SCALE))
-	mod.wearer.visible_message("<span class='warning'>[mod.wearer] starts whirring!</span>")
+	mod.user.visible_message("<span class='warning'>[mod.user] starts whirring!</span>")
 	playsound(src, 'sound/items/modsuit/loader_charge.ogg', 75, TRUE)
-	mod.wearer.add_overlay(charge_up_overlay)
+	mod.user.add_overlay(charge_up_overlay)
 	var/power = launch_time
-	if(!do_after(mod.wearer, launch_time, target = mod.wearer))
+	if(!do_after(mod.user, launch_time, target = mod.user))
 		power = world.time - current_time
 	drain_power(use_power_cost)
 	for(var/key in pm_controller.controlled_planes)
 		animate(pm_controller.controlled_planes[key], 0.1 SECONDS, transform = matrix(1, MATRIX_SCALE))
 	playsound(src, 'sound/items/modsuit/loader_launch.ogg', 75, TRUE)
-	var/angle = get_angle(mod.wearer, target)
-	mod.wearer.transform = mod.wearer.transform.Turn(mod.wearer.transform, angle)
-	mod.wearer.throw_at(get_ranged_target_turf_direct(mod.wearer, target, power), \
-		range = power, speed = max(round(0.2*power), 1), thrower = mod.wearer, spin = FALSE, \
-		callback = CALLBACK(src, PROC_REF(on_throw_end), mod.wearer, -angle))
+	var/angle = get_angle(mod.user, target)
+	mod.user.transform = mod.user.transform.Turn(mod.user.transform, angle)
+	mod.user.throw_at(get_ranged_target_turf_direct(mod.user, target, power), \
+		range = power, speed = max(round(0.2*power), 1), thrower = mod.user, spin = FALSE, \
+		callback = CALLBACK(src, PROC_REF(on_throw_end), mod.user, -angle))
 
 /obj/item/mod/module/hydraulic/proc/on_throw_end(mob/user, angle)
 	if(!user)
@@ -249,35 +249,35 @@
 	. = ..()
 	if(!.)
 		return
-	if(istype(mod.wearer.pulling, /obj/structure/closet))
-		var/obj/structure/closet/locker = mod.wearer.pulling
+	if(istype(mod.user.pulling, /obj/structure/closet))
+		var/obj/structure/closet/locker = mod.user.pulling
 		playsound(locker, 'sound/effects/gravhit.ogg', 75, TRUE)
-		locker.forceMove(mod.wearer.loc)
-		locker.throw_at(target, range = 7, speed = 4, thrower = mod.wearer)
+		locker.forceMove(mod.user.loc)
+		locker.throw_at(target, range = 7, speed = 4, thrower = mod.user)
 		return
-	if(!istype(target, /obj/structure/closet) || !(target in view(mod.wearer)))
-		to_chat(mod.wearer, "<span class='warning'>Invalid target!</span>")
+	if(!istype(target, /obj/structure/closet) || !(target in view(mod.user)))
+		to_chat(mod.user, "<span class='warning'>Invalid target!</span>")
 		return
 	var/obj/structure/closet/locker = target
 	if(locker.anchored || locker.move_resist >= MOVE_FORCE_OVERPOWERING)
 		return
 	playsound(locker, 'sound/effects/gravhit.ogg', 75, TRUE)
-	locker.throw_at(get_step_towards(mod.wearer, target), range = 7, speed = 3, force = MOVE_FORCE_WEAK, \
+	locker.throw_at(get_step_towards(mod.user, target), range = 7, speed = 3, force = MOVE_FORCE_WEAK, \
 		callback = CALLBACK(src, PROC_REF(check_locker), locker))
 
 /obj/item/mod/module/magnet/on_deactivation(display_message = TRUE, deleting = FALSE)
 	. = ..()
 	if(!.)
 		return
-	if(istype(mod.wearer.pulling, /obj/structure/closet))
-		mod.wearer.stop_pulling()
+	if(istype(mod.user.pulling, /obj/structure/closet))
+		mod.user.stop_pulling()
 
 /obj/item/mod/module/magnet/proc/check_locker(obj/structure/closet/locker)
-	if(!mod?.wearer)
+	if(!mod?.user)
 		return
-	if(!locker.Adjacent(mod.wearer) || !isturf(locker.loc) || !isturf(mod.wearer.loc))
+	if(!locker.Adjacent(mod.user) || !isturf(locker.loc) || !isturf(mod.user.loc))
 		return
-	mod.wearer.start_pulling(locker)
+	mod.user.start_pulling(locker)
 
 /obj/item/mod/module/ash_accretion
 	name = "MOD ash accretion module"
@@ -329,10 +329,10 @@
 			))
 
 /obj/item/mod/module/ash_accretion/on_suit_activation()
-	RegisterSignal(mod.wearer, COMSIG_MOVABLE_MOVED, PROC_REF(on_move))
+	RegisterSignal(mod.user, COMSIG_MOVABLE_MOVED, PROC_REF(on_move))
 
 /obj/item/mod/module/ash_accretion/on_suit_deactivation(deleting = FALSE)
-	UnregisterSignal(mod.wearer, COMSIG_MOVABLE_MOVED)
+	UnregisterSignal(mod.user, COMSIG_MOVABLE_MOVED)
 	if(!traveled_tiles)
 		return
 	var/list/parts = mod.mod_parts + mod
@@ -347,35 +347,35 @@
 			part.slowdown += speed_added / 5
 		qdel(A)
 	traveled_tiles = 0
-	mod.wearer.weather_immunities -= "ash"
+	mod.user.weather_immunities -= "ash"
 
 /obj/item/mod/module/ash_accretion/generate_worn_overlay(user, mutable_appearance/standing)
 	overlay_state_inactive = "[initial(overlay_state_inactive)]-[mod.skin]"
 	return ..()
 
 /obj/item/mod/module/ash_accretion/proc/on_move(atom/source, atom/oldloc, dir, forced)
-	if(!isturf(mod.wearer.loc)) //dont lose ash from going in a locker
+	if(!isturf(mod.user.loc)) //dont lose ash from going in a locker
 		return
 	if(traveled_tiles) //leave ash every tile
 		new /obj/effect/temp_visual/light_ash(get_turf(src))
-	if(is_type_in_typecache(mod.wearer.loc, accretion_turfs))
+	if(is_type_in_typecache(mod.user.loc, accretion_turfs))
 		if(traveled_tiles >= max_traveled_tiles)
 			return
 		traveled_tiles++
 		var/list/parts = mod.mod_parts + mod
 		var/speed_up = FALSE
 		if(traveled_tiles >= max_traveled_tiles)
-			to_chat(mod.wearer, "<span class='notice'>You are fully covered in ash!</span>")
-			mod.wearer.color = list(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,3) //make them super light
-			animate(mod.wearer, 1 SECONDS, color = null, flags = ANIMATION_PARALLEL)
+			to_chat(mod.user, "<span class='notice'>You are fully covered in ash!</span>")
+			mod.user.color = list(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,3) //make them super light
+			animate(mod.user, 1 SECONDS, color = null, flags = ANIMATION_PARALLEL)
 			playsound(src, 'sound/effects/sparks1.ogg', 100, TRUE)
 			actual_speed_added = max(0, min(mod.slowdown_active, speed_added / 5))
-			mod.wearer.weather_immunities |= "ash"
+			mod.user.weather_immunities |= "ash"
 		for(var/obj/item/part as anything in parts)
 			part.armor = part.armor.attachArmor(armor_mod_2.armor)
 			if(speed_up)
 				part.slowdown -= speed_added / 5
-	else if(is_type_in_typecache(mod.wearer.loc, keep_turfs))
+	else if(is_type_in_typecache(mod.user.loc, keep_turfs))
 		return
 	else
 		if(traveled_tiles <= 0)
@@ -390,8 +390,8 @@
 			if(speed_up)
 				part.slowdown += actual_speed_added
 		if(traveled_tiles <= 0)
-			to_chat(mod.wearer, "<span class='warning'>You have ran out of ash!</span>")
-			mod.wearer.weather_immunities -= "ash"
+			to_chat(mod.user, "<span class='warning'>You have ran out of ash!</span>")
+			mod.user.weather_immunities -= "ash"
 
 /obj/effect/temp_visual/light_ash
 	icon_state = "light_ash"
@@ -416,22 +416,22 @@
 
 /obj/item/mod/module/sphere_transform/on_activation()
 	if(!has_gravity(get_turf(src)))
-		to_chat(mod.wearer, "<span class='warning'>ERROR, NO GRAVITY!</span>")
+		to_chat(mod.user, "<span class='warning'>ERROR, NO GRAVITY!</span>")
 		return FALSE
 	. = ..()
 	if(!.)
 		return
 	playsound(src, 'sound/items/modsuit/ballin.ogg', 100, TRUE)
-	mod.wearer.add_filter("mod_ball", 1, alpha_mask_filter(icon = icon('icons/mob/clothing/modsuit/mod_modules.dmi', "ball_mask"), flags = MASK_INVERSE))
-	mod.wearer.add_filter("mod_blur", 2, angular_blur_filter(size = 15))
-	mod.wearer.add_filter("mod_outline", 3, outline_filter(color = "#000000AA"))
-	animate(mod.wearer, animate_time, pixel_y = mod.wearer.pixel_y - 4, flags = ANIMATION_PARALLEL)
-	mod.wearer.SpinAnimation(1.5)
+	mod.user.add_filter("mod_ball", 1, alpha_mask_filter(icon = icon('icons/mob/clothing/modsuit/mod_modules.dmi', "ball_mask"), flags = MASK_INVERSE))
+	mod.user.add_filter("mod_blur", 2, angular_blur_filter(size = 15))
+	mod.user.add_filter("mod_outline", 3, outline_filter(color = "#000000AA"))
+	animate(mod.user, animate_time, pixel_y = mod.user.pixel_y - 4, flags = ANIMATION_PARALLEL)
+	mod.user.SpinAnimation(1.5)
 	// todo, someone get balance approval to add TRAIT_FORCED_STANDING here, like it is on tg.
 	// Or, register a signal on floored trait signal
-	ADD_TRAIT(mod.wearer, TRAIT_HANDS_BLOCKED, "metriod[UID()]")
-	ADD_TRAIT(mod.wearer, TRAIT_GOTTAGOFAST, "metroid[UID()]")
-	RegisterSignal(mod.wearer, COMSIG_MOB_STATCHANGE, PROC_REF(on_statchange))
+	ADD_TRAIT(mod.user, TRAIT_HANDS_BLOCKED, "metriod[UID()]")
+	ADD_TRAIT(mod.user, TRAIT_GOTTAGOFAST, "metroid[UID()]")
+	RegisterSignal(mod.user, COMSIG_MOB_STATCHANGE, PROC_REF(on_statchange))
 
 /obj/item/mod/module/sphere_transform/on_deactivation(display_message = TRUE, deleting = FALSE)
 	. = ..()
@@ -439,15 +439,15 @@
 		return
 	if(!deleting)
 		playsound(src, 'sound/items/modsuit/ballin.ogg', 100, TRUE, frequency = -1)
-	animate(mod.wearer, animate_time, pixel_y = 0)
-	addtimer(CALLBACK(mod.wearer, TYPE_PROC_REF(/atom, remove_filter), list("mod_ball", "mod_blur", "mod_outline")), animate_time)
-	REMOVE_TRAIT(mod.wearer, TRAIT_HANDS_BLOCKED, "metriod[UID()]")
-	REMOVE_TRAIT(mod.wearer, TRAIT_GOTTAGOFAST, "metroid[UID()]")
-	UnregisterSignal(mod.wearer, COMSIG_MOB_STATCHANGE)
+	animate(mod.user, animate_time, pixel_y = 0)
+	addtimer(CALLBACK(mod.user, TYPE_PROC_REF(/atom, remove_filter), list("mod_ball", "mod_blur", "mod_outline")), animate_time)
+	REMOVE_TRAIT(mod.user, TRAIT_HANDS_BLOCKED, "metriod[UID()]")
+	REMOVE_TRAIT(mod.user, TRAIT_GOTTAGOFAST, "metroid[UID()]")
+	UnregisterSignal(mod.user, COMSIG_MOB_STATCHANGE)
 
 /obj/item/mod/module/sphere_transform/on_use()
 	if(!lavaland_equipment_pressure_check(get_turf(src)))
-		to_chat(mod.wearer, "<span class='warning'>ERROR, OVER PRESSURE!</span>")
+		to_chat(mod.user, "<span class='warning'>ERROR, OVER PRESSURE!</span>")
 		playsound(src, 'sound/weapons/gun_interactions/dry_fire.ogg', 25, TRUE)
 		return FALSE
 	return ..()
@@ -456,23 +456,23 @@
 	. = ..()
 	if(!.)
 		return
-	var/obj/item/projectile/bomb = new /obj/item/projectile/bullet/reusable/mining_bomb(get_turf(mod.wearer))
+	var/obj/item/projectile/bomb = new /obj/item/projectile/bullet/reusable/mining_bomb(get_turf(mod.user))
 	bomb.original = target
-	bomb.firer = mod.wearer
-	bomb.preparePixelProjectile(target, get_turf(target), mod.wearer)
+	bomb.firer = mod.user
+	bomb.preparePixelProjectile(target, get_turf(target), mod.user)
 	bomb.fire()
 	playsound(src, 'sound/weapons/grenadelaunch.ogg', 75, TRUE)
 	drain_power(use_power_cost)
 
 /obj/item/mod/module/sphere_transform/on_active_process()
-	animate(mod.wearer) //stop the animation
-	mod.wearer.SpinAnimation(1.5) //start it back again
+	animate(mod.user) //stop the animation
+	mod.user.SpinAnimation(1.5) //start it back again
 	if(!has_gravity(get_turf(src)))
 		on_deactivation() //deactivate in no grav
 
 /obj/item/mod/module/sphere_transform/proc/on_statchange(datum/source)
 	SIGNAL_HANDLER
-	if(!mod.wearer.stat)
+	if(!mod.user.stat)
 		return
 	on_deactivation()
 

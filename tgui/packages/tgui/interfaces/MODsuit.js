@@ -497,8 +497,8 @@ const ParametersSection = (props, context) => {
     selected_module,
     complexity,
     complexity_max,
-    wearer_name,
-    wearer_job,
+    user_name,
+    user_job,
   } = data;
   const status = malfunctioning
     ? 'Malfunctioning'
@@ -542,7 +542,7 @@ const ParametersSection = (props, context) => {
           {complexity} ({complexity_max})
         </LabeledList.Item>
         <LabeledList.Item label="Occupant">
-          {wearer_name}, {wearer_job}
+          {user_name}, {user_job}
         </LabeledList.Item>
       </LabeledList>
     </Section>

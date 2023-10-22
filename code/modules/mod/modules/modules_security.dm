@@ -22,22 +22,22 @@
 		return
 	var/msg = "[holstered]"
 	if(!holstered)
-		var/obj/item/gun/holding = mod.wearer.get_active_hand()
+		var/obj/item/gun/holding = mod.user.get_active_hand()
 		if(!holding)
-			to_chat(mod.wearer, "<span class='warning'>Nothing to holster!</span>")
+			to_chat(mod.user, "<span class='warning'>Nothing to holster!</span>")
 			return
 		if(!istype(holding) || holding.w_class > WEIGHT_CLASS_NORMAL) //god no holstering a BSG / combat shotgun
-			to_chat(mod.wearer, "<span class='warning'>It's too big to fit!</span>")
+			to_chat(mod.user, "<span class='warning'>It's too big to fit!</span>")
 			return
 		holstered = holding
-		mod.wearer.visible_message("<span class='notice'>[mod.wearer] holsters [holstered].</span>", "<span class='notice'>You holster [holstered].</span>")
-		mod.wearer.unEquip(mod.wearer.get_active_hand())
+		mod.user.visible_message("<span class='notice'>[mod.user] holsters [holstered].</span>", "<span class='notice'>You holster [holstered].</span>")
+		mod.user.unEquip(mod.user.get_active_hand())
 		holstered.forceMove(src)
-	else if(mod.wearer.put_in_active_hand(holstered))
-		mod.wearer.visible_message("<span class='warning'>[mod.wearer] draws [msg], ready to shoot!</span>", \
+	else if(mod.user.put_in_active_hand(holstered))
+		mod.user.visible_message("<span class='warning'>[mod.user] draws [msg], ready to shoot!</span>", \
 			"<span class='warning'>You draw [msg], ready to shoot!</span>")
 	else
-		to_chat(mod.wearer, "<span class='warning'>You need an empty hand to draw [holstered]!</span>")
+		to_chat(mod.user, "<span class='warning'>You need an empty hand to draw [holstered]!</span>")
 
 /obj/item/mod/module/holster/on_uninstall(deleting = FALSE)
 	if(holstered)
@@ -66,7 +66,7 @@
 	if(!.)
 		return
 	var/obj/item/grenade/mirage/grenade = .
-	grenade.attack_self(mod.wearer)
+	grenade.attack_self(mod.user)
 
 /obj/item/grenade/mirage
 	name = "mirage grenade"
@@ -117,17 +117,17 @@
 	. = ..()
 	if(!.)
 		return
-	playsound(mod.wearer, 'sound/mecha/skyfall_power_up.ogg', vol = 20, vary = TRUE, extrarange = SHORT_RANGE_SOUND_EXTRARANGE)
-	if(!do_after(mod.wearer, 1.1 SECONDS, target = mod.wearer))
+	playsound(mod.user, 'sound/mecha/skyfall_power_up.ogg', vol = 20, vary = TRUE, extrarange = SHORT_RANGE_SOUND_EXTRARANGE)
+	if(!do_after(mod.user, 1.1 SECONDS, target = mod.user))
 		return
 	var/creatures_detected = 0
-	for(var/mob/living/creature in range(9, mod.wearer))
-		if(creature == mod.wearer || creature.stat == DEAD)
+	for(var/mob/living/creature in range(9, mod.user))
+		if(creature == mod.user || creature.stat == DEAD)
 			continue
-		new /obj/effect/temp_visual/sonar_ping(mod.wearer.loc, mod.wearer, creature)
+		new /obj/effect/temp_visual/sonar_ping(mod.user.loc, mod.user, creature)
 		creatures_detected++
-	playsound(mod.wearer, 'sound/effects/ping_hit.ogg', vol = 75, vary = TRUE, extrarange = 9) // Should be audible for the radius of the sonar
-	to_chat(mod.wearer, ("<span class='notice'>You slam your fist into the ground, sending out a sonic wave that detects [creatures_detected] living beings nearby!</span>"))
+	playsound(mod.user, 'sound/effects/ping_hit.ogg', vol = 75, vary = TRUE, extrarange = 9) // Should be audible for the radius of the sonar
+	to_chat(mod.user, ("<span class='notice'>You slam your fist into the ground, sending out a sonic wave that detects [creatures_detected] living beings nearby!</span>"))
 
 /obj/effect/temp_visual/sonar_ping
 	duration = 3 SECONDS
@@ -159,10 +159,10 @@
 	modsuit_image = null
 	return ..()
 
-/// Add the image to the modsuit wearer's screen
+/// Add the image to the modsuit user's screen
 /obj/effect/temp_visual/sonar_ping/proc/add_mind(mob/living/looker)
 	looker?.client?.images |= modsuit_image
 
-/// Remove the image from the modsuit wearer's screen
+/// Remove the image from the modsuit user's screen
 /obj/effect/temp_visual/sonar_ping/proc/remove_mind(mob/living/looker)
 	looker?.client?.images -= modsuit_image

@@ -81,7 +81,7 @@
 	/// Currently used module.
 	var/obj/item/mod/module/selected_module
 	/// Person wearing the MODsuit.
-	var/mob/living/carbon/human/wearer
+	var/mob/living/carbon/human/user
 	/// Internal storage in a modsuit
 	var/obj/item/storage/backpack/modstorage/bag
 	/// Is it EMP proof?
@@ -177,7 +177,7 @@
 	if(core)
 		QDEL_NULL(core)
 	QDEL_NULL(wires)
-	wearer = null
+	user = null
 	selected_module = null
 	bag = null
 	modules = null
@@ -190,7 +190,7 @@
 		. += "Charge: [core ? "[get_charge_percent()]%" : "No core"]."
 		. += "Selected module: [selected_module || "None"]."
 	if(!open && !active)
-		if(!wearer)
+		if(!user)
 			. += "You could equip it to turn it on."
 		. += "You could open the cover with a <b>screwdriver</b>."
 	else if(open)
@@ -224,9 +224,9 @@
 /obj/item/mod/control/equipped(mob/user, slot)
 	..()
 	if(slot == SLOT_BACK)
-		set_wearer(user)
-	else if(wearer)
-		unset_wearer()
+		set_user(user)
+	else if(user)
+		unset_user()
 
 
 /obj/item/mod/control/item_action_slot_check(slot)
@@ -242,7 +242,7 @@
 
 /obj/item/mod/control/Moved(atom/old_loc, movement_dir, forced, list/old_locs, momentum_change = TRUE)
 	. = ..()
-	if(!wearer || old_loc != wearer || loc == wearer)
+	if(!user || old_loc != user || loc == user)
 		return
 	clean_up()
 
@@ -264,10 +264,10 @@
 			if(istype(over_object, /obj/screen/inventory/hand))
 				for(var/obj/item/part as anything in mod_parts)
 					if(part.loc != src)
-						to_chat(wearer, "<span class='warning'>Retract parts first!</span>")
+						to_chat(user, "<span class='warning'>Retract parts first!</span>")
 						playsound(src, 'sound/machines/scanbuzz.ogg', 25, FALSE, SILENCED_SOUND_EXTRARANGE)
 						return
-				if(!M.unEquip(src, silent = TRUE))
+				if(!user.unEquip(src, silent = TRUE))
 					return
 				M.put_in_active_hand(src)
 			else if(bag)
@@ -444,16 +444,16 @@
 
 /obj/item/mod/control/emp_act(severity)
 	. = ..()
-	if(!active || !wearer)
+	if(!active || !user)
 		return
-	to_chat(wearer, "<span class='warning'>[severity > 1 ? "Light" : "Strong"] electromagnetic pulse detected!")
+	to_chat(user, "<span class='warning'>[severity > 1 ? "Light" : "Strong"] electromagnetic pulse detected!")
 	if(emp_proof)
 		return
 	selected_module?.on_deactivation(display_message = TRUE)
-	wearer.apply_damage(10 / severity, BURN, spread_damage = TRUE) //Test this with ion shotguns.
-	to_chat(wearer, "<span class='danger'>You feel [src] heat up from the EMP, burning you slightly!")
-	if(wearer.stat < UNCONSCIOUS && prob(10))
-		wearer.emote("scream")
+	user.apply_damage(10 / severity, BURN, spread_damage = TRUE) //Test this with ion shotguns.
+	to_chat(user, "<span class='danger'>You feel [src] heat up from the EMP, burning you slightly!")
+	if(user.stat < UNCONSCIOUS && prob(10))
+		user.emote("scream")
 	core.emp_act(severity)
 	if(prob(50 / severity))
 		wires.emp_pulse() //3 wires get pulsed. Dangerous to a mod user.
@@ -465,7 +465,7 @@
 
 /obj/item/mod/control/dropped(mob/user)
 	. = ..()
-	if(!wearer)
+	if(!user)
 		return
 	clean_up()
 	update_mod_overlays(TRUE)
@@ -481,33 +481,33 @@
 	icon_state = "[skin]-[base_icon_state][active ? "-sealed" : ""]"
 	return ..()
 
-/obj/item/mod/control/proc/set_wearer(mob/living/carbon/human/user)
-	if(wearer == user)
+/obj/item/mod/control/proc/set_user(mob/living/carbon/human/user)
+	if(user == user)
 		// This should also not happen.
 		// This path is hit when equipping an outfit with visualsOnly, but only sometimes, and this eventually gets called twice.
 		// I'm not sure this proc should ever be being called by visualsOnly, but it is,
 		// and this was an emergency patch.
 		return
-	else if(!isnull(wearer))
-		stack_trace("set_wearer() was called with a new wearer without unset_wearer() being called")
+	else if(!isnull(user))
+		stack_trace("set_user() was called with a new user without unset_user() being called")
 
-	wearer = user
-	SEND_SIGNAL(src, COMSIG_MOD_WEARER_SET, wearer)
-	RegisterSignal(wearer, COMSIG_ATOM_EXITED, PROC_REF(on_exit))
+	user = user
+	SEND_SIGNAL(src, COMSIG_MOD_USER_SET, user)
+	RegisterSignal(user, COMSIG_ATOM_EXITED, PROC_REF(on_exit))
 	update_charge_alert()
 	for(var/obj/item/clothing/C in mod_parts)
-		C.refit_for_species(wearer.dna.species.sprite_sheet_name)
+		C.refit_for_species(user.dna.species.sprite_sheet_name)
 	update_mod_overlays()
 	for(var/obj/item/mod/module/module as anything in modules)
 		module.on_equip()
 
-/obj/item/mod/control/proc/unset_wearer()
+/obj/item/mod/control/proc/unset_user()
 	for(var/obj/item/mod/module/module as anything in modules)
 		module.on_unequip()
-	UnregisterSignal(wearer, list(COMSIG_ATOM_EXITED, COMSIG_SPECIES_GAIN))
-	wearer.clear_alert("mod_charge")
-	SEND_SIGNAL(src, COMSIG_MOD_WEARER_UNSET, wearer)
-	wearer = null
+	UnregisterSignal(user, list(COMSIG_ATOM_EXITED, COMSIG_SPECIES_GAIN))
+	user.clear_alert("mod_charge")
+	SEND_SIGNAL(src, COMSIG_MOD_USER_UNSET, user)
+	user = null
 
 /obj/item/mod/control/proc/clean_up()
 	if(active || activating)
@@ -521,9 +521,9 @@
 		retract(null, part)
 	if(active)
 		finish_activation(on = FALSE)
-	var/mob/old_wearer = wearer
-	unset_wearer()
-	old_wearer.drop_item()
+	var/mob/old_user = user
+	unset_user()
+	old_user.drop_item()
 
 /obj/item/mod/control/proc/quick_module(mob/user)
 	if(!length(modules))
@@ -583,7 +583,7 @@
 	complexity += new_module.complexity
 	new_module.mod = src
 	new_module.on_install()
-	if(wearer)
+	if(user)
 		new_module.on_equip()
 	if(active)
 		new_module.on_suit_activation()
@@ -594,7 +594,7 @@
 /obj/item/mod/control/proc/uninstall(obj/item/mod/module/old_module, deleting = FALSE)
 	modules -= old_module
 	complexity -= old_module.complexity
-	if(wearer)
+	if(user)
 		old_module.on_unequip()
 	if(active)
 		old_module.on_suit_deactivation(deleting = deleting)
@@ -613,15 +613,15 @@
 	to_chat(user, "<span class='notice'>Access updated!")
 
 /obj/item/mod/control/proc/update_mod_overlays(full_removal = FALSE)
-	if(!wearer)
+	if(!user)
 		return
 	for(var/I in mod_overlays)
-		wearer.cut_overlay(I)
+		user.cut_overlay(I)
 		mod_overlays -= I
 	if(full_removal)
 		return
 	for(var/obj/item/mod/module/M in modules)
-		M.add_module_overlay(wearer)
+		M.add_module_overlay(user)
 
 /obj/item/mod/control/proc/get_charge_source()
 	return core?.charge_source()
@@ -645,10 +645,10 @@
 	return core?.check_charge(amount) || FALSE
 
 /obj/item/mod/control/proc/update_charge_alert()
-	if(!wearer)
+	if(!user)
 		return
 	if(!core)
-		wearer.throw_alert("mod_charge", /obj/screen/alert/nocell)
+		user.throw_alert("mod_charge", /obj/screen/alert/nocell)
 		return
 	core.update_charge_alert()
 
@@ -658,15 +658,15 @@
 		part.slowdown = (active ? slowdown_active : slowdown_inactive) / length(all_parts)
 
 /obj/item/mod/control/proc/power_off()
-	to_chat(wearer, "<span class='warning'>Power cells depleted!")
-	toggle_activate(wearer, force_deactivate = TRUE)
+	to_chat(user, "<span class='warning'>Power cells depleted!")
+	toggle_activate(user, force_deactivate = TRUE)
 
 /obj/item/mod/control/proc/set_mod_color(new_color)
 	var/list/all_parts = mod_parts + src
 	for(var/obj/item/part as anything in all_parts)
 		part.remove_atom_colour(WASHABLE_COLOUR_PRIORITY)
 		part.add_atom_colour(new_color, FIXED_COLOUR_PRIORITY)
-	wearer?.regenerate_icons()
+	user?.regenerate_icons()
 
 /obj/item/mod/control/proc/set_mod_skin(new_skin)
 	if(active)
@@ -701,7 +701,7 @@
 			overslotting_parts -= part
 			continue
 		overslotting_parts |= part
-	wearer?.regenerate_icons()
+	user?.regenerate_icons()
 
 /obj/item/mod/control/proc/on_exit(datum/source, atom/movable/part, direction)
 	SIGNAL_HANDLER
@@ -712,18 +712,18 @@
 		core.uninstall()
 		update_charge_alert()
 		return
-	if(part.loc == wearer)
+	if(part.loc == user)
 		return
 	if(part in modules)
 		uninstall(part)
 		return
 	if(part in mod_parts)
-		if(!wearer)
+		if(!user)
 			part.forceMove(src)
 			return
-		retract(wearer, part, TRUE)
+		retract(user, part, TRUE)
 		if(active)
-			INVOKE_ASYNC(src, PROC_REF(toggle_activate), wearer, TRUE)
+			INVOKE_ASYNC(src, PROC_REF(toggle_activate), user, TRUE)
 
 /obj/item/mod/control/proc/on_part_destruction(obj/item/part, damage_flag)
 	SIGNAL_HANDLER

@@ -26,13 +26,13 @@
 	mod.activation_step_time *= activation_step_time_booster
 
 /obj/item/mod/module/springlock/on_suit_activation()
-	RegisterSignal(mod.wearer, COMSIG_ATOM_EXPOSE_REAGENTS, PROC_REF(on_wearer_exposed))
+	RegisterSignal(mod.user, COMSIG_ATOM_EXPOSE_REAGENTS, PROC_REF(on_user_exposed))
 	if(dont_let_you_come_back)
 		RegisterSignal(mod, COMSIG_MOD_ACTIVATE, PROC_REF(on_activate_spring_block))
 		addtimer(CALLBACK(src, PROC_REF(remove_retraction_block)), 10 SECONDS)
 
 /obj/item/mod/module/springlock/on_suit_deactivation(deleting = FALSE)
-	UnregisterSignal(mod.wearer, COMSIG_ATOM_EXPOSE_REAGENTS)
+	UnregisterSignal(mod.user, COMSIG_ATOM_EXPOSE_REAGENTS)
 
 /obj/item/mod/module/springlock/multitool_act(mob/living/user, obj/item/I)
 	if(!nineteen_eighty_seven_edition)
@@ -46,21 +46,21 @@
 	dont_let_you_come_back = TRUE
 
 
-///Signal fired when wearer is exposed to reagents
-/obj/item/mod/module/springlock/proc/on_wearer_exposed(atom/source, list/reagents, datum/reagents/source_reagents, methods, volume_modifier, show_message)
+///Signal fired when user is exposed to reagents
+/obj/item/mod/module/springlock/proc/on_user_exposed(atom/source, list/reagents, datum/reagents/source_reagents, methods, volume_modifier, show_message)
 	SIGNAL_HANDLER
 	remove_retraction_block() //No double signals
-	to_chat(mod.wearer, "<span class='danger'>[src] makes an ominous click sound...</span>")
+	to_chat(mod.user, "<span class='danger'>[src] makes an ominous click sound...</span>")
 	incoming_jumpscare = TRUE
 	playsound(src, 'sound/items/modsuit/springlock.ogg', 75, TRUE)
 	addtimer(CALLBACK(src, PROC_REF(snap_shut)), rand(3 SECONDS, 5 SECONDS))
 	RegisterSignal(mod, COMSIG_MOD_ACTIVATE, PROC_REF(on_activate_spring_block))
 
-///Signal fired when wearer attempts to activate/deactivate suits
+///Signal fired when user attempts to activate/deactivate suits
 /obj/item/mod/module/springlock/proc/on_activate_spring_block(datum/source, user)
 	SIGNAL_HANDLER
 
-	to_chat(mod.wearer, "<span class='userdanger'>The springlocks aren't responding...?</span>")
+	to_chat(mod.user, "<span class='userdanger'>The springlocks aren't responding...?</span>")
 	return MOD_CANCEL_ACTIVATE
 
 ///Removes the retraction blocker from the springlock so long as they are not about to be killed
@@ -68,16 +68,16 @@
 	if(!incoming_jumpscare)
 		UnregisterSignal(mod, COMSIG_MOD_ACTIVATE)
 
-///Delayed death proc of the suit after the wearer is exposed to reagents
+///Delayed death proc of the suit after the user is exposed to reagents
 /obj/item/mod/module/springlock/proc/snap_shut()
 	UnregisterSignal(mod, COMSIG_MOD_ACTIVATE)
-	if(!mod.wearer) //while there is a guaranteed user when on_wearer_exposed() fires, that isn't the same case for this proc
+	if(!mod.user) //while there is a guaranteed user when on_user_exposed() fires, that isn't the same case for this proc
 		return
-	mod.wearer.visible_message("<span class='danger'>[src] inside [mod.wearer]'s [mod.name] snaps shut, mutilating the user inside!</span>", "<span class='biggerdanger'><b>*SNAP*</b></span>")
-	mod.wearer.emote("scream")
-	playsound(mod.wearer, 'sound/effects/snap.ogg', 75, TRUE, frequency = 0.5)
-	playsound(mod.wearer, 'sound/effects/splat.ogg', 50, TRUE, frequency = 0.5)
-	mod.wearer.adjustBruteLoss(1987) //boggers, bogchamp, etc //why not just poggers, also this caps at 595 damage but comedy
+	mod.user.visible_message("<span class='danger'>[src] inside [mod.user]'s [mod.name] snaps shut, mutilating the user inside!</span>", "<span class='biggerdanger'><b>*SNAP*</b></span>")
+	mod.user.emote("scream")
+	playsound(mod.user, 'sound/effects/snap.ogg', 75, TRUE, frequency = 0.5)
+	playsound(mod.user, 'sound/effects/splat.ogg', 50, TRUE, frequency = 0.5)
+	mod.user.adjustBruteLoss(1987) //boggers, bogchamp, etc //why not just poggers, also this caps at 595 damage but comedy
 	incoming_jumpscare = FALSE
 
 ///Balloon Blower - Blows a balloon.
@@ -95,12 +95,12 @@
 	. = ..()
 	if(!.)
 		return
-	if(!do_after(mod.wearer, 10 SECONDS, target = mod.wearer))
+	if(!do_after(mod.user, 10 SECONDS, target = mod.user))
 		return FALSE
-	mod.wearer.adjustOxyLoss(20)
+	mod.user.adjustOxyLoss(20)
 	playsound(src, 'sound/items/modsuit/inflate_bloon.ogg', 50, TRUE)
 	var/obj/item/toy/balloon/balloon = new(get_turf(src))
-	mod.wearer.put_in_hands(balloon)
+	mod.user.put_in_hands(balloon)
 	drain_power(use_power_cost)
 
 

@@ -42,7 +42,7 @@
 	return FALSE
 
 /obj/item/mod/core/proc/update_charge_alert()
-	mod.wearer.clear_alert("mod_charge")
+	mod.user.clear_alert("mod_charge")
 
 /obj/item/mod/core/infinite //Admin only.
 	name = "MOD infinite core"
@@ -86,16 +86,16 @@
 		install_cell(cell)
 	RegisterSignal(mod, COMSIG_PARENT_EXAMINE, PROC_REF(on_examine))
 	RegisterSignal(mod, COMSIG_ATOM_ATTACK_HAND, PROC_REF(on_attack_hand))
-	RegisterSignal(mod, COMSIG_MOD_WEARER_SET, PROC_REF(on_wearer_set))
-	if(mod.wearer)
-		on_wearer_set(mod, mod.wearer)
+	RegisterSignal(mod, COMSIG_MOD_USER_SET, PROC_REF(on_user_set))
+	if(mod.user)
+		on_user_set(mod, mod.user)
 
 /obj/item/mod/core/standard/uninstall()
 	if(!QDELETED(cell))
 		cell.forceMove(drop_location())
-	UnregisterSignal(mod, list(COMSIG_PARENT_EXAMINE, COMSIG_ATOM_ATTACK_HAND, COMSIG_MOD_WEARER_SET))
-	if(mod.wearer)
-		on_wearer_unset(mod, mod.wearer)
+	UnregisterSignal(mod, list(COMSIG_PARENT_EXAMINE, COMSIG_ATOM_ATTACK_HAND, COMSIG_MOD_USER_SET))
+	if(mod.user)
+		on_user_unset(mod, mod.user)
 	return ..()
 
 /obj/item/mod/core/proc/on_attackby(obj/item/attacking_item, mob/user, params)
@@ -130,20 +130,20 @@
 /obj/item/mod/core/standard/update_charge_alert()
 	var/obj/item/stock_parts/cell/charge_source = charge_source()
 	if(!charge_source)
-		mod.wearer.throw_alert("mod_charge", /obj/screen/alert/nocell)
+		mod.user.throw_alert("mod_charge", /obj/screen/alert/nocell)
 		return
 	var/remaining_cell = charge_amount() / max_charge_amount()
 	switch(remaining_cell)
 		if(0.75 to INFINITY)
-			mod.wearer.clear_alert("mod_charge")
+			mod.user.clear_alert("mod_charge")
 		if(0.5 to 0.75)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 1)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 1)
 		if(0.25 to 0.5)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 2)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 2)
 		if(0.01 to 0.25)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 3)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 3)
 		else
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/emptycell)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/emptycell)
 
 /obj/item/mod/core/standard/emp_act(severity)
 	cell?.emp_act(severity)
@@ -214,17 +214,17 @@
 		return COMPONENT_NO_AFTERATTACK
 	return NONE
 
-/obj/item/mod/core/standard/proc/on_wearer_set(datum/source, mob/user)
+/obj/item/mod/core/standard/proc/on_user_set(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	RegisterSignal(mod.wearer, COMSIG_PROCESS_BORGCHARGER_OCCUPANT, PROC_REF(on_borg_charge))
-	RegisterSignal(mod, COMSIG_MOD_WEARER_UNSET, PROC_REF(on_wearer_unset))
+	RegisterSignal(mod.user, COMSIG_PROCESS_BORGCHARGER_OCCUPANT, PROC_REF(on_borg_charge))
+	RegisterSignal(mod, COMSIG_MOD_USER_UNSET, PROC_REF(on_user_unset))
 
-/obj/item/mod/core/standard/proc/on_wearer_unset(datum/source, mob/user)
+/obj/item/mod/core/standard/proc/on_user_unset(datum/source, mob/user)
 	SIGNAL_HANDLER
 
-	UnregisterSignal(mod.wearer, COMSIG_PROCESS_BORGCHARGER_OCCUPANT)
-	UnregisterSignal(mod, COMSIG_MOD_WEARER_UNSET)
+	UnregisterSignal(mod.user, COMSIG_PROCESS_BORGCHARGER_OCCUPANT)
+	UnregisterSignal(mod, COMSIG_MOD_USER_UNSET)
 
 /obj/item/mod/core/standard/proc/on_borg_charge(datum/source, amount)
 	SIGNAL_HANDLER
@@ -273,15 +273,15 @@
 	var/remaining_plasma = charge_amount() / max_charge_amount()
 	switch(remaining_plasma)
 		if(0.75 to INFINITY)
-			mod.wearer.clear_alert("mod_charge")
+			mod.user.clear_alert("mod_charge")
 		if(0.5 to 0.75)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 1)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 1)
 		if(0.25 to 0.5)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 2)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 2)
 		if(0.01 to 0.25)
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/lowcell, 3)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/lowcell, 3)
 		else
-			mod.wearer.throw_alert("mod_charge", /obj/screen/alert/emptycell)
+			mod.user.throw_alert("mod_charge", /obj/screen/alert/emptycell)
 
 /obj/item/mod/core/plasma/on_attackby(obj/item/attacking_item, mob/user, params)
 	charge_plasma(attacking_item, user)

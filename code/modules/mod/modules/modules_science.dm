@@ -4,7 +4,7 @@
 /obj/item/mod/module/reagent_scanner
 	name = "MOD reagent scanner module"
 	desc = "A module based off research-oriented Nanotrasen HUDs, this is capable of scanning the contents of \
-		containers and projecting the information in an easy-to-read format on the wearer's display. \
+		containers and projecting the information in an easy-to-read format on the user's display. \
 		It cannot detect flavors, so that's up to you."
 	icon_state = "scanner"
 	module_type = MODULE_TOGGLE
@@ -57,7 +57,7 @@
 		distance = dy
 	if(distance > explosion_detection_dist)
 		return
-	to_chat(mod.wearer, "<span class='notice'>Explosion detected! Epicenter: [devastation_range], Outer: [heavy_impact_range], Shock: [light_impact_range]</span>")
+	to_chat(mod.user, "<span class='notice'>Explosion detected! Epicenter: [devastation_range], Outer: [heavy_impact_range], Shock: [light_impact_range]</span>")
 
 ///Teleporter - Lets the user teleport to a nearby location.
 /obj/item/mod/module/anomaly_locked/teleporter
@@ -77,18 +77,18 @@
 	if(!.)
 		return
 	var/turf/target_turf = get_turf(target)
-	if(!istype(target_turf) || target_turf.density || !(target_turf in view(9, mod.wearer))) //No. No camera bug shenanigins.
+	if(!istype(target_turf) || target_turf.density || !(target_turf in view(9, mod.user))) //No. No camera bug shenanigins.
 		return
 	var/matrix/pre_matrix = matrix()
 	pre_matrix.Scale(4, 0.25)
 	var/matrix/post_matrix = matrix()
 	post_matrix.Scale(0.25, 4)
-	animate(mod.wearer, teleport_time, color = COLOR_CYAN, transform = pre_matrix.Multiply(mod.wearer.transform), easing = SINE_EASING|EASE_OUT)
-	if(!do_after(mod.wearer, teleport_time, target = mod.wearer))
-		animate(mod.wearer, teleport_time * 0.1, color = null, transform = post_matrix.Multiply(mod.wearer.transform), easing = SINE_EASING|EASE_IN)
+	animate(mod.user, teleport_time, color = COLOR_CYAN, transform = pre_matrix.Multiply(mod.user.transform), easing = SINE_EASING|EASE_OUT)
+	if(!do_after(mod.user, teleport_time, target = mod.user))
+		animate(mod.user, teleport_time * 0.1, color = null, transform = post_matrix.Multiply(mod.user.transform), easing = SINE_EASING|EASE_IN)
 		return
-	animate(mod.wearer, teleport_time * 0.1, color = null, transform = post_matrix.Multiply(mod.wearer.transform), easing = SINE_EASING|EASE_IN)
-	if(!do_teleport(mod.wearer, target_turf, sound_in = 'sound/effects/phasein.ogg'))
+	animate(mod.user, teleport_time * 0.1, color = null, transform = post_matrix.Multiply(mod.user.transform), easing = SINE_EASING|EASE_IN)
+	if(!do_teleport(mod.user, target_turf, sound_in = 'sound/effects/phasein.ogg'))
 		return
 	drain_power(use_power_cost)
 

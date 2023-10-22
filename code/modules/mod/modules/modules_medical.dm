@@ -31,7 +31,7 @@
 		The user places their palms above the patient. Onboard computers in the suit calculate the necessary voltage, \
 		and a modded targeting computer determines the best position for the user to push. \
 		Twenty five pounds of force are applied to the patient's skin. Shocks travel from the suit's gloves \
-		and counter-shock the heart, and the wearer returns to Medical a hero. Don't you even think about using it as a weapon; \
+		and counter-shock the heart, and the user returns to Medical a hero. Don't you even think about using it as a weapon; \
 		regulations on manufacture and software locks expressly forbid it."
 	icon_state = "defibrillator"
 	module_type = MODULE_ACTIVE
@@ -96,7 +96,7 @@
 		The user places their palms above the patient. Onboard computers in the suit calculate the necessary voltage, \
 		and a modded targeting computer determines the best position for the user to push. \
 		Twenty five pounds of force are applied to the patient's skin. Shocks travel from the suit's gloves \
-		and counter-shock the heart, and the wearer returns to Medical a hero. \
+		and counter-shock the heart, and the user returns to Medical a hero. \
 		Interdyne Pharmaceutics marketed the domestic version of the Healing Hands as foolproof and unusable as a weapon. \
 		But when it came time to provide their operatives with usable medical equipment, they didn't hesitate to remove \
 		those in-built safeties. Operatives in the field can benefit from what they dub as 'Stun Gloves', able to apply shocks \

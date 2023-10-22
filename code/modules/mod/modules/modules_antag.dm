@@ -53,7 +53,7 @@
 	if(!.)
 		return
 	playsound(src, 'sound/mecha/mechmove03.ogg', 25, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
-	to_chat(mod.wearer, "<span class='notice'>Armor deployed, EVA disabled, speed increased.</span>")
+	to_chat(mod.user, "<span class='notice'>Armor deployed, EVA disabled, speed increased.</span>")
 	actual_speed_added = max(0, min(mod.slowdown_active, speed_added / 5))
 	var/list/parts = mod.mod_parts + mod
 	for(var/obj/item/part as anything in parts)
@@ -72,7 +72,7 @@
 		return
 	if(!deleting)
 		playsound(src, 'sound/mecha/mechmove03.ogg', 25, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
-	to_chat(mod.wearer, "<span class='notice'>Armor retracted, EVA enabled, speed decreased.</span>")
+	to_chat(mod.user, "<span class='notice'>Armor retracted, EVA enabled, speed decreased.</span>")
 	var/list/parts = mod.mod_parts + mod
 	for(var/obj/item/part as anything in parts)
 		part.armor = part.armor.detachArmor(armor_mod_2.armor)
@@ -93,7 +93,7 @@
 /obj/item/mod/module/insignia
 	name = "MOD insignia module"
 	desc = "Despite the existence of IFF systems, radio communique, and modern methods of deductive reasoning involving \
-		the wearer's own eyes, colorful paint jobs remain a popular way for different factions in the galaxy to display who \
+		the user's own eyes, colorful paint jobs remain a popular way for different factions in the galaxy to display who \
 		they are. This system utilizes a series of tiny moving paint sprayers to both apply and remove different \
 		color patterns to and from the suit."
 	icon_state = "insignia"
@@ -191,23 +191,23 @@
 	. = ..()
 	if(!.)
 		return
-	if(mod.wearer.buckled)
+	if(mod.user.buckled)
 		return
-	mod.wearer.visible_message("<span class='warning'>[mod.wearer] starts charging a kick!</span>")
+	mod.user.visible_message("<span class='warning'>[mod.user] starts charging a kick!</span>")
 	playsound(src, 'sound/items/modsuit/loader_charge.ogg', 75, TRUE)
-	animate(mod.wearer, 0.3 SECONDS, pixel_z = 16, flags = ANIMATION_RELATIVE, easing = SINE_EASING|EASE_OUT)
-	addtimer(CALLBACK(mod.wearer, TYPE_PROC_REF(/atom, SpinAnimation), 3, 2), 0.3 SECONDS)
-	if(!do_after(mod.wearer, 1 SECONDS, target = mod.wearer))
-		animate(mod.wearer, 0.2 SECONDS, pixel_z = -16, flags = ANIMATION_RELATIVE, easing = SINE_EASING|EASE_IN)
+	animate(mod.user, 0.3 SECONDS, pixel_z = 16, flags = ANIMATION_RELATIVE, easing = SINE_EASING|EASE_OUT)
+	addtimer(CALLBACK(mod.user, TYPE_PROC_REF(/atom, SpinAnimation), 3, 2), 0.3 SECONDS)
+	if(!do_after(mod.user, 1 SECONDS, target = mod.user))
+		animate(mod.user, 0.2 SECONDS, pixel_z = -16, flags = ANIMATION_RELATIVE, easing = SINE_EASING|EASE_IN)
 		return
-	animate(mod.wearer)
+	animate(mod.user)
 	drain_power(use_power_cost)
 	playsound(src, 'sound/items/modsuit/loader_launch.ogg', 75, TRUE)
-	var/angle = get_angle(mod.wearer, target) + 180
-	mod.wearer.transform = mod.wearer.transform.Turn(angle)
-	RegisterSignal(mod.wearer, COMSIG_MOVABLE_IMPACT, PROC_REF(on_throw_impact))
-	mod.wearer.apply_status_effect(STATUS_EFFECT_IMPACT_IMMUNE)
-	mod.wearer.throw_at(target, range = 7, speed = 2, thrower = mod.wearer, spin = FALSE, callback = CALLBACK(src, PROC_REF(on_throw_end), mod.wearer, -angle))
+	var/angle = get_angle(mod.user, target) + 180
+	mod.user.transform = mod.user.transform.Turn(angle)
+	RegisterSignal(mod.user, COMSIG_MOVABLE_IMPACT, PROC_REF(on_throw_impact))
+	mod.user.apply_status_effect(STATUS_EFFECT_IMPACT_IMMUNE)
+	mod.user.throw_at(target, range = 7, speed = 2, thrower = mod.user, spin = FALSE, callback = CALLBACK(src, PROC_REF(on_throw_end), mod.user, -angle))
 
 /obj/item/mod/module/power_kick/proc/on_throw_end(mob/living/user, angle)
 	if(!user)
@@ -220,17 +220,17 @@
 	SIGNAL_HANDLER
 
 	UnregisterSignal(source, COMSIG_MOVABLE_IMPACT)
-	if(!mod?.wearer)
+	if(!mod?.user)
 		return
 	if(isliving(target))
 		var/mob/living/living_target = target
-		living_target.apply_damage(damage, BRUTE, mod.wearer.zone_selected)
-		add_attack_logs(mod.wearer, target, "[target] was charged by [mod.wearer]'s [src]", ATKLOG_ALMOSTALL)
+		living_target.apply_damage(damage, BRUTE, mod.user.zone_selected)
+		add_attack_logs(mod.user, target, "[target] was charged by [mod.user]'s [src]", ATKLOG_ALMOSTALL)
 		living_target.KnockDown(knockdown_time)
-		mod.wearer.visible_message("<span class='danger'>[mod.wearer] crashes into [target], knocking them over!</span>", "<span class='userdanger'>You violently crash into [target]!</span>")
+		mod.user.visible_message("<span class='danger'>[mod.user] crashes into [target], knocking them over!</span>", "<span class='userdanger'>You violently crash into [target]!</span>")
 	else
 		return
-	mod.wearer.do_attack_animation(target, ATTACK_EFFECT_SMASH)
+	mod.user.do_attack_animation(target, ATTACK_EFFECT_SMASH)
 
 ///Plate Compression - Compresses the suit to normal size
 /obj/item/mod/module/plate_compression
@@ -284,11 +284,11 @@
 	if(!.)
 		return
 	if(bumpoff)
-		RegisterSignal(mod.wearer, COMSIG_LIVING_MOB_BUMP, PROC_REF(unstealth))
-	RegisterSignal(mod.wearer, COMSIG_HUMAN_MELEE_UNARMED_ATTACK, PROC_REF(on_unarmed_attack))
-	RegisterSignal(mod.wearer, COMSIG_ATOM_BULLET_ACT, PROC_REF(on_bullet_act)) //TODO QWERTY: A LOT OF THESE SIGNALS AINT TRIGGERING. or at least this one.
-	RegisterSignals(mod.wearer, list(COMSIG_MOB_ITEM_ATTACK, COMSIG_PARENT_ATTACKBY, COMSIG_ATOM_ATTACK_HAND, COMSIG_ATOM_HITBY, COMSIG_ATOM_HULK_ATTACK, COMSIG_ATOM_ATTACK_PAW), PROC_REF(unstealth))
-	animate(mod.wearer, alpha = stealth_alpha, time = 1.5 SECONDS)
+		RegisterSignal(mod.user, COMSIG_LIVING_MOB_BUMP, PROC_REF(unstealth))
+	RegisterSignal(mod.user, COMSIG_HUMAN_MELEE_UNARMED_ATTACK, PROC_REF(on_unarmed_attack))
+	RegisterSignal(mod.user, COMSIG_ATOM_BULLET_ACT, PROC_REF(on_bullet_act)) //TODO QWERTY: A LOT OF THESE SIGNALS AINT TRIGGERING. or at least this one.
+	RegisterSignals(mod.user, list(COMSIG_MOB_ITEM_ATTACK, COMSIG_PARENT_ATTACKBY, COMSIG_ATOM_ATTACK_HAND, COMSIG_ATOM_HITBY, COMSIG_ATOM_HULK_ATTACK, COMSIG_ATOM_ATTACK_PAW), PROC_REF(unstealth))
+	animate(mod.user, alpha = stealth_alpha, time = 1.5 SECONDS)
 	drain_power(use_power_cost)
 
 /obj/item/mod/module/stealth/on_deactivation(display_message = TRUE, deleting = FALSE)
@@ -296,14 +296,14 @@
 	if(!.)
 		return
 	if(bumpoff)
-		UnregisterSignal(mod.wearer, COMSIG_LIVING_MOB_BUMP)
-	UnregisterSignal(mod.wearer, list(COMSIG_HUMAN_MELEE_UNARMED_ATTACK, COMSIG_MOB_ITEM_ATTACK, COMSIG_PARENT_ATTACKBY, COMSIG_ATOM_ATTACK_HAND, COMSIG_ATOM_BULLET_ACT, COMSIG_ATOM_HITBY, COMSIG_ATOM_HULK_ATTACK, COMSIG_ATOM_ATTACK_PAW))
-	animate(mod.wearer, alpha = 255, time = 1.5 SECONDS)
+		UnregisterSignal(mod.user, COMSIG_LIVING_MOB_BUMP)
+	UnregisterSignal(mod.user, list(COMSIG_HUMAN_MELEE_UNARMED_ATTACK, COMSIG_MOB_ITEM_ATTACK, COMSIG_PARENT_ATTACKBY, COMSIG_ATOM_ATTACK_HAND, COMSIG_ATOM_BULLET_ACT, COMSIG_ATOM_HITBY, COMSIG_ATOM_HULK_ATTACK, COMSIG_ATOM_ATTACK_PAW))
+	animate(mod.user, alpha = 255, time = 1.5 SECONDS)
 
 /obj/item/mod/module/stealth/proc/unstealth(datum/source)
 	SIGNAL_HANDLER
 
-	to_chat(mod.wearer, "<span class='warning'>[src] gets discharged from contact!</span>")
+	to_chat(mod.user, "<span class='warning'>[src] gets discharged from contact!</span>")
 	do_sparks(2, TRUE, src)
 	drain_power(use_power_cost)
 	on_deactivation(display_message = TRUE, deleting = FALSE)
@@ -340,7 +340,7 @@
 	name = "MOD status readout module"
 	desc = "A once-common module, this technology went unfortunately out of fashion; \
 		and right into the arachnid grip of the Spider Clan. This hooks into the suit's spine, \
-		capable of capturing and displaying all possible biometric data of the wearer; sleep, nutrition, fitness, fingerprints, \
+		capable of capturing and displaying all possible biometric data of the user; sleep, nutrition, fitness, fingerprints, \
 		and even useful information such as their overall health and wellness. \
 		The syndicate has been seen using this module of late, with NT as well getting into the technology on their elitest of suits."
 	icon_state = "status"
@@ -354,21 +354,21 @@
 	. = ..()
 	.["statustime"] = station_time_timestamp()
 	.["statusid"] = GLOB.round_id
-	.["statushealth"] = mod.wearer?.health || 0
-	.["statusmaxhealth"] = mod.wearer?.getMaxHealth() || 0
-	.["statusbrute"] = mod.wearer?.getBruteLoss() || 0
-	.["statusburn"] = mod.wearer?.getFireLoss() || 0
-	.["statustoxin"] = mod.wearer?.getToxLoss() || 0
-	.["statusoxy"] = mod.wearer?.getOxyLoss() || 0
-	.["statustemp"] = mod.wearer?.bodytemperature || 0
-	.["statusnutrition"] = mod.wearer?.nutrition || 0
-	.["statusfingerprints"] = mod.wearer ? md5(mod.wearer.dna.unique_enzymes) : null
-	.["statusdna"] = mod.wearer?.dna.unique_enzymes
+	.["statushealth"] = mod.user?.health || 0
+	.["statusmaxhealth"] = mod.user?.getMaxHealth() || 0
+	.["statusbrute"] = mod.user?.getBruteLoss() || 0
+	.["statusburn"] = mod.user?.getFireLoss() || 0
+	.["statustoxin"] = mod.user?.getToxLoss() || 0
+	.["statusoxy"] = mod.user?.getOxyLoss() || 0
+	.["statustemp"] = mod.user?.bodytemperature || 0
+	.["statusnutrition"] = mod.user?.nutrition || 0
+	.["statusfingerprints"] = mod.user ? md5(mod.user.dna.unique_enzymes) : null
+	.["statusdna"] = mod.user?.dna.unique_enzymes
 	.["statusviruses"] = null
-	if(!length(mod.wearer?.viruses))
+	if(!length(mod.user?.viruses))
 		return
 	var/list/viruses = list()
-	for(var/datum/disease/virus as anything in mod.wearer.viruses)
+	for(var/datum/disease/virus as anything in mod.user.viruses)
 		var/list/virus_data = list()
 		virus_data["name"] = virus.name
 		virus_data["type"] = virus.spread_text
@@ -390,16 +390,16 @@
 	var/obj/machinery/camera/portable/camera
 
 /obj/item/mod/module/ert_camera/on_suit_activation()
-	if(ishuman(mod.wearer))
-		register_camera(mod.wearer)
+	if(ishuman(mod.user))
+		register_camera(mod.user)
 
-/obj/item/mod/module/ert_camera/proc/register_camera(mob/wearer)
+/obj/item/mod/module/ert_camera/proc/register_camera(mob/user)
 	if(camera)
 		return
 	camera = new /obj/machinery/camera/portable(src, FALSE)
 	camera.network = list("ERT")
-	camera.c_tag = wearer.name
-	to_chat(wearer, "<span class='notice'>User scanned as [camera.c_tag]. Camera activated.</span>")
+	camera.c_tag = user.name
+	to_chat(user, "<span class='notice'>User scanned as [camera.c_tag]. Camera activated.</span>")
 
 /obj/item/mod/module/ert_camera/Destroy()
 	QDEL_NULL(camera)

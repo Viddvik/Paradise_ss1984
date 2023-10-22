@@ -34,9 +34,9 @@
 
 /obj/item/mod/module/waddle/on_suit_activation()
 	mod.boots.AddComponent(/datum/component/squeak, list('sound/effects/clownstep1.ogg' = 1, 'sound/effects/clownstep2.ogg' = 1), 50, falloff_exponent = 20) //die off quick please
-	mod.wearer.AddElement(/datum/element/waddling)
+	mod.user.AddElement(/datum/element/waddling)
 
 /obj/item/mod/module/waddle/on_suit_deactivation(deleting = FALSE)
 	if(!deleting)
 		qdel(mod.boots.GetComponent(/datum/component/squeak))
-	mod.wearer.RemoveElement(/datum/element/waddling)
+	mod.user.RemoveElement(/datum/element/waddling)

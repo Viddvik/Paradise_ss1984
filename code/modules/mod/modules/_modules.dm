@@ -85,8 +85,8 @@
 /// Called when the module is selected from the TGUI, radial or the action button
 /obj/item/mod/module/proc/on_select()
 	if(((!mod.active || mod.activating) && !(allow_flags & MODULE_ALLOW_INACTIVE)) || module_type == MODULE_PASSIVE)
-		if(mod.wearer)
-			to_chat(mod.wearer, "<span class='warning'>Module is not active!</span>")
+		if(mod.user)
+			to_chat(mod.user, "<span class='warning'>Module is not active!</span>")
 		return
 	if(module_type != MODULE_USABLE)
 		if(active)
@@ -100,10 +100,10 @@
 /// Called when the module is activated
 /obj/item/mod/module/proc/on_activation()
 	if(!COOLDOWN_FINISHED(src, cooldown_timer))
-		to_chat(mod.wearer, "<span class='warning'>Module is on cooldown!</span>")
+		to_chat(mod.user, "<span class='warning'>Module is on cooldown!</span>")
 		return FALSE
 	if(!mod.active || mod.activating || !mod.get_charge())
-		to_chat(mod.wearer, "<span class='warning'>Module is unpowered!</span>")
+		to_chat(mod.user, "<span class='warning'>Module is unpowered!</span>")
 		return FALSE
 	if(SEND_SIGNAL(src, COMSIG_MODULE_TRIGGERED) & MOD_ABORT_USE)
 		return FALSE
@@ -112,26 +112,25 @@
 			return FALSE
 		mod.selected_module = src
 		if(device)
-			if(mod.wearer.put_in_hands(device))
-				to_chat(mod.wearer, "<span class='notice'>[device] extended.</span>")
-				RegisterSignal(mod.wearer, COMSIG_ATOM_EXITED, PROC_REF(on_exit))
-				RegisterSignal(mod.wearer, COMSIG_MOB_WILLINGLY_DROP, PROC_REF(dropkey))
+			if(mod.user.put_in_hands(device))
+				to_chat(mod.user, "<span class='notice'>[device] extended.</span>")
+				RegisterSignal(mod.user, COMSIG_ATOM_EXITED, PROC_REF(on_exit))
 			else
-				to_chat(mod.wearer, "<span class='warning'>You can not extend the [device]!</span>")
-				mod.wearer.drop_item()
+				to_chat(mod.user, "<span class='warning'>You can not extend the [device]!</span>")
+				mod.user.drop_item()
 				return FALSE
 		else
 			var/used_button = "Middle Click"
-			if(!mod.wearer || !(mod.wearer.client.prefs.toggles2 & PREFTOGGLE_2_MOD_ACTIVATION_METHOD))
+			if(!mod.user || !(mod.user.client.prefs.toggles2 & PREFTOGGLE_2_MOD_ACTIVATION_METHOD))
 				used_button = "Alt Click"
 			update_signal(used_button)
-			to_chat(mod.wearer, "<span class='notice'>[src] activated, [used_button] to use.</span>")
+			to_chat(mod.user, "<span class='notice'>[src] activated, [used_button] to use.</span>")
 	else
 		COOLDOWN_START(src, cooldown_timer, cooldown_time) //We don't want to put active modules on cooldown when selected
-		to_chat(mod.wearer, "<span class='notice'>[src] activated.</span>")
+		to_chat(mod.user, "<span class='notice'>[src] activated.</span>")
 	active = TRUE
 	mod.update_mod_overlays()
-	//mod.wearer.update_clothing(mod.slot_flags)
+	//mod.user.update_clothing(mod.slot_flags)
 	SEND_SIGNAL(src, COMSIG_MODULE_ACTIVATED)
 	return TRUE
 
@@ -141,21 +140,20 @@
 	if(module_type == MODULE_ACTIVE)
 		mod.selected_module = null
 		if(display_message && device)
-			to_chat(mod.wearer, "<span class='notice'>[device] retracted.</span>")
+			to_chat(mod.user, "<span class='notice'>[device] retracted.</span>")
 		else if(display_message)
-			to_chat(mod.wearer, "<span class='notice'>[src] deactivated.</span>")
+			to_chat(mod.user, "<span class='notice'>[src] deactivated.</span>")
 
 		if(device)
-			mod.wearer.unEquip(device, 1)
+			mod.user.unEquip(device, 1)
 			device.forceMove(src)
-			UnregisterSignal(mod.wearer, COMSIG_ATOM_EXITED)
-			UnregisterSignal(mod.wearer, COMSIG_MOB_WILLINGLY_DROP)
+			UnregisterSignal(mod.user, COMSIG_ATOM_EXITED)
 		else
-			UnregisterSignal(mod.wearer, used_signal)
+			UnregisterSignal(mod.user, used_signal)
 			used_signal = null
 	else if(display_message)
-		to_chat(mod.wearer, "<span class='notice'>[src] deactivated.</span>")
-	//mod.wearer.update_clothing(mod.slot_flags)
+		to_chat(mod.user, "<span class='notice'>[src] deactivated.</span>")
+	//mod.user.update_clothing(mod.slot_flags)
 	SEND_SIGNAL(src, COMSIG_MODULE_DEACTIVATED)
 	mod.update_mod_overlays()
 	return TRUE
@@ -163,24 +161,24 @@
 /// Called when the module is used
 /obj/item/mod/module/proc/on_use()
 	if(!COOLDOWN_FINISHED(src, cooldown_timer))
-		to_chat(mod.wearer, "<span class='warning'>Module is on cooldown!</span>")
+		to_chat(mod.user, "<span class='warning'>Module is on cooldown!</span>")
 		return FALSE
 	if(!check_power(use_power_cost))
-		to_chat(mod.wearer, "<span class='warning'>Module costs too much power to use!</span>")
+		to_chat(mod.user, "<span class='warning'>Module costs too much power to use!</span>")
 		return FALSE
 	if(SEND_SIGNAL(src, COMSIG_MODULE_TRIGGERED) & MOD_ABORT_USE)
 		return FALSE
 	COOLDOWN_START(src, cooldown_timer, cooldown_time)
-	//addtimer(CALLBACK(mod.wearer, TYPE_PROC_REF(/mob, update_clothing), mod.slot_flags), cooldown_time+1) //need to run it a bit after the cooldown starts to avoid conflicts
-	//mod.wearer.update_clothing(mod.slot_flags)
+	//addtimer(CALLBACK(mod.user, TYPE_PROC_REF(/mob, update_clothing), mod.slot_flags), cooldown_time+1) //need to run it a bit after the cooldown starts to avoid conflicts
+	//mod.user.update_clothing(mod.slot_flags)
 	SEND_SIGNAL(src, COMSIG_MODULE_USED)
 	return TRUE
 
 /// Called when an activated module without a device is used
 /obj/item/mod/module/proc/on_select_use(atom/target)
-	if(!(allow_flags & MODULE_ALLOW_INCAPACITATED) && mod.wearer.incapacitated())
+	if(!(allow_flags & MODULE_ALLOW_INCAPACITATED) && mod.user.incapacitated())
 		return FALSE
-	mod.wearer.face_atom(target)
+	mod.user.face_atom(target)
 	if(!on_use())
 		return FALSE
 	return TRUE
@@ -270,7 +268,7 @@
 		return
 	if(part.loc == src)
 		return
-	if(part.loc == mod.wearer)
+	if(part.loc == mod.user)
 		return
 	if(part == device)
 		on_deactivation(display_message = FALSE)
@@ -318,7 +316,7 @@
 			mod.selected_module.used_signal = COMSIG_MOB_MIDDLECLICKON
 		if("Alt Click")
 			mod.selected_module.used_signal = COMSIG_MOB_ALTCLICKON
-	RegisterSignal(mod.wearer, mod.selected_module.used_signal, TYPE_PROC_REF(/obj/item/mod/module, on_special_click))
+	RegisterSignal(mod.user, mod.selected_module.used_signal, TYPE_PROC_REF(/obj/item/mod/module, on_special_click))
 
 /// Pins the module to the user's action buttons
 /obj/item/mod/module/proc/pin(mob/user)
@@ -382,7 +380,7 @@
 
 /obj/item/mod/module/anomaly_locked/on_select()
 	if(!core)
-		to_chat(mod.wearer, "<span class='warning'>ERROR. NO CORE INSTALLED!</span>")
+		to_chat(mod.user, "<span class='warning'>ERROR. NO CORE INSTALLED!</span>")
 		return
 	return ..()
 

@@ -59,17 +59,17 @@
 	. = ..()
 	if(!.)
 		return
-	if(!mod.wearer.client)
+	if(!mod.user.client)
 		return
 	if(grabbed_atom)
 		launch()
 		clear_grab(playsound = FALSE)
 		return
 	if(!range_check(target))
-		to_chat(mod.wearer, "<span class='warning'>[target] is too far away!</span>")
+		to_chat(mod.user, "<span class='warning'>[target] is too far away!</span>")
 		return
 	if(!can_grab(target))
-		to_chat(mod.wearer, "<span class='warning'>[target] can not be grabbed!</span>")
+		to_chat(mod.user, "<span class='warning'>[target] can not be grabbed!</span>")
 		return
 	drain_power(use_power_cost)
 	grabbed_atom = target
@@ -77,14 +77,14 @@
 		var/mob/living/grabbed_mob = grabbed_atom
 		grabbed_mob.Stun(mob_stun_time)
 	playsound(grabbed_atom, 'sound/weapons/contractorbatonhit.ogg', 75, TRUE)
-	beam = new /obj/effect/abstract/kinesis(get_turf(mod.wearer))
+	beam = new /obj/effect/abstract/kinesis(get_turf(mod.user))
 	kinesis_icon.layer = grabbed_atom.layer - 0.1
 	grabbed_atom.add_overlay(kinesis_icon)
 	pre_pixel_x = grabbed_atom.pixel_x
 	pre_pixel_y = grabbed_atom.pixel_y
 	beam.chain = beam.Beam(grabbed_atom, icon_state = "kinesis", icon='icons/effects/beam.dmi', time = 100 SECONDS, maxdistance = 15, beam_type = /obj/effect/ebeam, beam_sleep_time = 3)
-	kinesis_catcher = mod.wearer.overlay_fullscreen("kinesis", /obj/screen/fullscreen/cursor_catcher/kinesis, 0)
-	kinesis_catcher.assign_to_mob(mod.wearer)
+	kinesis_catcher = mod.user.overlay_fullscreen("kinesis", /obj/screen/fullscreen/cursor_catcher/kinesis, 0)
+	kinesis_catcher.assign_to_mob(mod.user)
 	soundloop.start()
 	START_PROCESSING(SSfastprocess, src)
 
@@ -95,20 +95,20 @@
 	clear_grab(playsound = !deleting)
 
 /obj/item/mod/module/anomaly_locked/kinesis/process()
-	if(!mod.wearer.client || mod.wearer.incapacitated(ignore_grab = TRUE))
+	if(!mod.user.client || mod.user.incapacitated(ignore_grab = TRUE))
 		clear_grab()
 		return
 	if(!range_check(grabbed_atom))
-		to_chat(mod.wearer, "<span class='warning'>[grabbed_atom] is too far away!</span>")
+		to_chat(mod.user, "<span class='warning'>[grabbed_atom] is too far away!</span>")
 		clear_grab()
 		return
-	beam.forceMove(get_turf(mod.wearer))
+	beam.forceMove(get_turf(mod.user))
 	drain_power(use_power_cost / 10)
 	if(kinesis_catcher.mouse_params)
 		kinesis_catcher.calculate_params()
 	if(!kinesis_catcher.given_turf)
 		return
-	mod.wearer.setDir(get_dir(mod.wearer, grabbed_atom))
+	mod.user.setDir(get_dir(mod.user, grabbed_atom))
 	if(grabbed_atom.loc == kinesis_catcher.given_turf)
 		if(grabbed_atom.pixel_x == kinesis_catcher.given_x - world.icon_size/2 && grabbed_atom.pixel_y == kinesis_catcher.given_y - world.icon_size/2)
 			return //spare us redrawing if we are standing still
@@ -119,11 +119,11 @@
 	animate(grabbed_atom, 0.2 SECONDS, pixel_x = pre_pixel_x + kinesis_catcher.given_x - world.icon_size/2, pixel_y = pre_pixel_y + kinesis_catcher.given_y - world.icon_size/2)
 	var/turf/next_turf = get_step_towards(grabbed_atom, kinesis_catcher.given_turf)
 	if(grabbed_atom.Move(next_turf, get_dir(grabbed_atom, next_turf), 8))
-		if(isitem(grabbed_atom) && (mod.wearer in next_turf))
+		if(isitem(grabbed_atom) && (mod.user in next_turf))
 			var/obj/item/grabbed_item = grabbed_atom
 			clear_grab()
-			grabbed_item.pickup(mod.wearer)
-			mod.wearer.put_in_hands(grabbed_item)
+			grabbed_item.pickup(mod.user)
+			mod.user.put_in_hands(grabbed_item)
 		return
 	var/pixel_x_change = 0
 	var/pixel_y_change = 0
@@ -151,11 +151,11 @@
 			hitting_atom = movable_content
 			break
 	var/obj/item/grabbed_item = grabbed_atom
-	grabbed_item.melee_attack_chain(mod.wearer, hitting_atom)
+	grabbed_item.melee_attack_chain(mod.user, hitting_atom)
 	COOLDOWN_START(src, hit_cooldown, hit_cooldown_time)
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/can_grab(atom/target)
-	if(mod.wearer == target)
+	if(mod.user == target)
 		return FALSE
 	if(!ismovable(target))
 		return FALSE
@@ -191,7 +191,7 @@
 		playsound(grabbed_atom, 'sound/effects/empulse.ogg', 75, TRUE)
 	STOP_PROCESSING(SSfastprocess, src)
 	kinesis_catcher = null
-	mod.wearer.clear_fullscreen("kinesis")
+	mod.user.clear_fullscreen("kinesis")
 	grabbed_atom.cut_overlay(kinesis_icon)
 	QDEL_NULL(beam)
 	if(!isitem(grabbed_atom))
@@ -200,19 +200,19 @@
 	soundloop.stop()
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/range_check(atom/target)
-	if(!isturf(mod.wearer.loc))
+	if(!isturf(mod.user.loc))
 		return FALSE
 	if(ismovable(target) && !isturf(target.loc))
 		return FALSE
-	if(!can_see(mod.wearer, target, grab_range))
+	if(!can_see(mod.user, target, grab_range))
 		return FALSE
 	return TRUE
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/launch()
 	playsound(grabbed_atom, 'sound/magic/repulse.ogg', 100, TRUE)
 	RegisterSignal(grabbed_atom, COMSIG_MOVABLE_IMPACT, PROC_REF(launch_impact))
-	var/turf/target_turf = get_turf_in_angle(get_angle(mod.wearer, grabbed_atom), get_turf(src), 10)
-	grabbed_atom.throw_at(target_turf, range = grab_range, speed = grabbed_atom.density ? 3 : 4, thrower = mod.wearer, spin = isitem(grabbed_atom))
+	var/turf/target_turf = get_turf_in_angle(get_angle(mod.user, grabbed_atom), get_turf(src), 10)
+	grabbed_atom.throw_at(target_turf, range = grab_range, speed = grabbed_atom.density ? 3 : 4, thrower = mod.user, spin = isitem(grabbed_atom))
 
 /obj/item/mod/module/anomaly_locked/kinesis/proc/launch_impact(atom/movable/source, atom/hit_atom, datum/thrownthing/thrownthing)
 	UnregisterSignal(source, COMSIG_MOVABLE_IMPACT)

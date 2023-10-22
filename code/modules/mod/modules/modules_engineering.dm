@@ -35,7 +35,7 @@
 	var/range = 4
 
 /obj/item/mod/module/t_ray/on_active_process()
-	t_ray_scan(mod.wearer, 0.8 SECONDS, range)
+	t_ray_scan(mod.user, 0.8 SECONDS, range)
 
 ///Magnetic Stability - Gives the user a slowdown but makes them negate gravity and be immune to slips.
 /obj/item/mod/module/magboot
@@ -88,9 +88,9 @@
 
 /obj/item/mod/module/rad_protection/add_ui_data()
 	. = ..()
-	.["userradiated"] = mod.wearer?.radiation || 0
-	.["usertoxins"] = mod.wearer?.getToxLoss() || 0
-	.["usermaxtoxins"] = mod.wearer?.getMaxHealth() || 0
+	.["userradiated"] = mod.user?.radiation || 0
+	.["usertoxins"] = mod.user?.getToxLoss() || 0
+	.["usermaxtoxins"] = mod.user?.getMaxHealth() || 0
 
 
 ///Emergency Tether - Shoots a grappling hook projectile in 0g that throws the user towards it.
@@ -108,7 +108,7 @@
 
 /obj/item/mod/module/tether/on_use()
 	if(has_gravity(get_turf(src)))
-		to_chat(mod.wearer, "<span class='warning'>Too much gravity to use the tether!</span>")
+		to_chat(mod.user, "<span class='warning'>Too much gravity to use the tether!</span>")
 		playsound(src, 'sound/weapons/gun_interactions/dry_fire.ogg', 25, TRUE)
 		return FALSE
 	return ..()
@@ -117,10 +117,10 @@
 	. = ..()
 	if(!.)
 		return
-	var/obj/item/projectile/tether = new /obj/item/projectile/tether(get_turf(mod.wearer))
+	var/obj/item/projectile/tether = new /obj/item/projectile/tether(get_turf(mod.user))
 	tether.original = target
-	tether.firer = mod.wearer
-	tether.preparePixelProjectile(target, get_turf(target), mod.wearer)
+	tether.firer = mod.user
+	tether.preparePixelProjectile(target, get_turf(target), mod.user)
 	tether.fire()
 	playsound(src, 'sound/weapons/batonextend.ogg', 25, TRUE)
 	INVOKE_ASYNC(tether, TYPE_PROC_REF(/obj/item/projectile/tether, make_chain))

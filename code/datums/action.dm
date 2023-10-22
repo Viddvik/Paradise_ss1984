@@ -96,6 +96,8 @@
 /datum/action/proc/IsAvailable()// returns 1 if all checks pass
 	if(!owner)
 		return FALSE
+	if(HAS_TRAIT(owner, TRAIT_HANDS_BLOCKED))
+		return FALSE
 	if(check_flags & AB_CHECK_RESTRAINED)
 		if(owner.restrained())
 			return FALSE

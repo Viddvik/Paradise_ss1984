@@ -683,7 +683,7 @@
 	extended_desc = "A Shellguard Munitions advanced security suit, and their latest model. This variant has \
 		ditched the presence of a reinforced glass visor entirely, replacing it with a 'blast visor' utilizing a \
 		small camera on the left side to display the outside to the user. The plating on the suit has been \
-		dramatically increased, especially in the pauldrons, giving the wearer an imposing silhouette. \
+		dramatically increased, especially in the pauldrons, giving the user an imposing silhouette. \
 		Heatsinks line the sides of the suit, and greater technology has been used in insulating it against \
 		both corrosive environments and sudden impacts to the user's joints."
 	default_skin = "safeguard"
@@ -999,7 +999,7 @@
 		post-void war era modular suit to ever be safely utilized by an operator. This ancient clunker is still functional, \
 		though it's missing several modern-day luxuries from updated Cybersun Industries designs. \
 		Primarily, the suit's myoelectric suit layer is entirely non-existant, and the servos do very little to \
-		help distribute the weight evenly across the wearer's body, making it slow and bulky to move in. \
+		help distribute the weight evenly across the user's body, making it slow and bulky to move in. \
 		The internal heads-up display is rendered in nearly unreadable cyan, as the visor suggests, \
 		leaving the user unable to see long distances. However, the way the helmet retracts is pretty cool."
 	default_skin = "prototype"
@@ -1054,7 +1054,7 @@
 	extended_desc = "A streamlined suit of Nanotrasen design, these sleek black suits are only worn by \
 		elite emergency response personnel to help save the day. While the slim and nimble design of the suit \
 		cuts the ceramics and ablatives in it down, dropping the protection, \
-		it keeps the wearer safe from the harsh void of space while sacrificing no speed whatsoever. \
+		it keeps the user safe from the harsh void of space while sacrificing no speed whatsoever. \
 		While wearing it you feel an extreme deference to darkness. "
 	default_skin = "responsory"
 	armor_type_1 = /obj/item/mod/armor/mod_theme_responsory
@@ -1133,8 +1133,8 @@
 	extended_desc = "A bulky and only legal by technicality suit, this ominous black and red MODsuit is only worn by \
 		Nanotrasen Black Ops teams. If you can see this suit, you fucked up. A collaborative joint effort between \
 		Shellguard and Nanotrasen, the construction and modules gives the user robust protection against \
-		anything that can be thrown at it, along with acute combat awareness tools for it's wearer. \
-		Whether the wearer uses it or not is up to them. \
+		anything that can be thrown at it, along with acute combat awareness tools for it's user. \
+		Whether the user uses it or not is up to them. \
 		There seems to be a little inscription on the wrist that reads; \'squiddie', d'aww."
 	default_skin = "apocryphal"
 	armor_type_1 = /obj/item/mod/armor/mod_theme_apocryphal

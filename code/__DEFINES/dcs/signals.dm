@@ -839,6 +839,6 @@
 /// Called when a module is used, after all checks have passed and cooldown started.
 #define COMSIG_MODULE_USED "mod_module_used"
 /// Called when the MODsuit wearer is set.
-#define COMSIG_MOD_WEARER_SET "mod_wearer_set"
+#define COMSIG_MOD_USER_SET "mod_wearer_set"
 /// Called when the MODsuit wearer is unset.
-#define COMSIG_MOD_WEARER_UNSET "mod_wearer_unset"
+#define COMSIG_MOD_USER_UNSET "mod_wearer_unset"

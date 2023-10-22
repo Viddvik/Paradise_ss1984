@@ -158,6 +158,7 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_GOTTAGONOTSOFAST	"gottagonotsofast"
 #define TRAIT_CHUNKYFINGERS		"chunkyfingers" //means that you can't use weapons with normal trigger guards.
 #define TRAIT_FORCE_DOORS 		"force_doors"
+#define TRAIT_NOSELFIGNITION_HEAD_ONLY "no_selfignition_head_only"
 
 //item traits
 #define TRAIT_CMAGGED "cmagged"
@@ -197,3 +198,7 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 
 //traits that should be properly converted to genetic mutations one day
 #define TRAIT_LASEREYES "laser_eyes"
+
+//status effec traits
+/// Prevents usage of manipulation appendages (picking, holding or using items, manipulating storage).
+#define TRAIT_HANDS_BLOCKED "handsblocked"
