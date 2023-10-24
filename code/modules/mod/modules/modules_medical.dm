@@ -54,7 +54,7 @@
 /obj/item/mod_defib
 	name = "defibrillator gauntlets"
 	desc = "A pair of paddles with flat metal surfaces that are used to deliver powerful electric shocks."
-	icon = 'icons/obj/defib.dmi'
+	icon = 'icons/obj/items.dmi'
 	icon_state = "defibgauntlets0" //Inhands handled by the module overlays
 	flags = NODROP
 	force = 0
