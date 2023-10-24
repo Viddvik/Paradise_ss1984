@@ -26,7 +26,7 @@
 	max_heat_protection_temperature = SPACE_SUIT_MAX_TEMP_PROTECT
 	min_cold_protection_temperature = SPACE_SUIT_MIN_TEMP_PROTECT
 	siemens_coefficient = 0.5
-	var/datum/wires/mod/wires
+	var/datum/wires/modsuits/wires
 
 	/// The MOD's theme, decides on some stuff like armor and statistics.
 	var/datum/mod_theme/theme = /datum/mod_theme/standard
@@ -120,7 +120,7 @@
 	complexity_max = theme.complexity_max
 	ui_theme = theme.ui_theme
 	charge_drain = theme.charge_drain
-	wires = new/datum/wires/mod(src)
+	wires = new/datum/wires/modsuits(src)
 	if(length(req_access))
 		locked = TRUE
 	new_core?.install(src)

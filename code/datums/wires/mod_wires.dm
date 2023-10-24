@@ -1,33 +1,34 @@
-/datum/wires/mod
+// Wires for modsuits
+
+/datum/wires/modsuits/secure
+	randomize = TRUE
+
+/datum/wires/modsuits
 	holder_type = /obj/item/mod/control
-	randomize = TRUE //Every modsuit is personalised
 	wire_count = 6 // 4 actual, 2 duds
 	proper_name = "MOD control unit"
 	window_x = 345
 	window_y = 90
 
-/datum/wires/mod/New(atom/holder)
+/datum/wires/modsuits/New(atom/_holder)
 	wires = list(WIRE_HACK, WIRE_DISABLE, WIRE_ELECTRIFY, WIRE_INTERFACE)
-	..()
+	return ..()
 
-/datum/wires/mod/interactable(mob/user)
-	if(!..())
-		return FALSE
+/datum/wires/modsuits/interactable(mob/user)
 	var/obj/item/mod/control/mod = holder
-	if(mod.seconds_electrified && mod.shock(user))
+	if(mod.seconds_electrified && mod.shock(user, 100)))
 		return FALSE
-	return mod.open
+	return FALSE
 
-/datum/wires/mod/get_status()
+/datum/wires/modsuits/get_status()
+. = ..()
 	var/obj/item/mod/control/mod = holder
-	var/list/status = list()
-	status += "The orange light is [mod.seconds_electrified ? "on" : "off"]."
-	status += "The red light is [mod.malfunctioning ? "off" : "blinking"]."
-	status += "The green light is [mod.locked ? "on" : "off"]."
-	status += "The yellow light is [mod.interface_break ? "off" : "on"]."
-	return status
+	+= "The orange light is [mod.seconds_electrified ? "on" : "off"]."
+	+= "The red light is [mod.malfunctioning ? "off" : "blinking"]."
+	+= "The green light is [mod.locked ? "on" : "off"]."
+	+= "The yellow light is [mod.interface_break ? "off" : "on"]."
 
-/datum/wires/mod/on_pulse(wire)
+/datum/wires/modsuits/on_pulse(wire)
 	var/obj/item/mod/control/mod = holder
 	switch(wire)
 		if(WIRE_HACK)
@@ -39,7 +40,7 @@
 		if(WIRE_INTERFACE)
 			mod.interface_break = !mod.interface_break
 
-/datum/wires/mod/on_cut(wire, mend)
+/datum/wires/modsuits/on_cut(wire, mend)
 	var/obj/item/mod/control/mod = holder
 	switch(wire)
 		if(WIRE_HACK)
@@ -54,10 +55,3 @@
 				mod.seconds_electrified = -1
 		if(WIRE_INTERFACE)
 			mod.interface_break = !mend
-
-/datum/wires/mod/ui_act(action, params)
-	var/obj/item/mod/control/mod = holder
-	if(!issilicon(usr) && mod.seconds_electrified && mod.shock(usr))
-		return FALSE
-	return ..()
-
