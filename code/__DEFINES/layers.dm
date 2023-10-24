@@ -121,3 +121,6 @@
 
 // This should always be on top. No exceptions.
 #define HUD_PLANE_DEBUGVIEW 40
+
+///Plane master controller keys
+#define PLANE_MASTERS_GAME "plane_masters_game"

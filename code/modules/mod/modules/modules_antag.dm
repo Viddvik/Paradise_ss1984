@@ -41,7 +41,7 @@
 	armor = list(MELEE = 25, BULLET = 30, LASER = 15, ENERGY = 15, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
 
 /obj/item/mod/module/armor_booster/on_suit_activation()
-	mod.helmet.flash_protect = FLASH_PROTECTION_WELDER
+	mod.helmet.flash_protect = VISOR_FLASHPROTECT
 
 /obj/item/mod/module/armor_booster/on_suit_deactivation(deleting = FALSE)
 	if(deleting)
