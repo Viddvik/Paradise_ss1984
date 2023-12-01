@@ -272,9 +272,9 @@
 	if(A && yes)
 		SEND_SIGNAL(src, COMSIG_MOVABLE_BUMP, A)
 		if(throwing)
-			throwing.hit_atom(A)
-			. = 1
-			if(!A || QDELETED(A))
+			throwing.finalize(A)
+			. = TRUE
+			if(QDELETED(A))
 				return
 		A.Bumped(src)
 
@@ -330,6 +330,7 @@
 	for(var/item in src) // Notify contents of Z-transition. This can be overridden if we know the items contents do not care.
 		var/atom/movable/AM = item
 		AM.onTransitZ(old_z,new_z)
+	SEND_SIGNAL(src, COMSIG_MOVABLE_Z_CHANGED)
 
 /mob/living/forceMove(atom/destination)
 	if(buckled)

@@ -300,6 +300,8 @@
 	storage_slots = 50
 	max_combined_w_class = 50
 	display_contents_with_number = TRUE
+	pickup_sound = 'sound/items/handling/pillbottle_pickup.ogg'
+	drop_sound = 'sound/items/handling/pillbottle_drop.ogg'
 	var/base_name = ""
 	var/label_text = ""
 	var/applying_meds = FALSE //To Prevent spam clicking and generating runtimes from apply a deleting pill multiple times.
@@ -383,6 +385,13 @@
 	rapid_intake_message = "flips the lid of the patch pack open and begins rapidly stamping patches on themselves!"
 	rapid_post_instake_message = "stamps the entire contents of the patch pack all over their entire body!"
 	wrapper_state = "patch_pack_wrap"
+
+/obj/item/storage/pill_bottle/patch_pack/filled/populate_contents()
+	for(var/I in 1 to 10)
+		new /obj/item/reagent_containers/food/pill/patch/silver_sulf(src)
+
+	for(var/I in 1 to 10)
+		new /obj/item/reagent_containers/food/pill/patch/styptic(src)
 
 /obj/item/storage/pill_bottle/charcoal
 	name = "Pill bottle (Charcoal)"

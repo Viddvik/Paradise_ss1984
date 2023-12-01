@@ -106,8 +106,9 @@ GLOBAL_VAR_INIT(nologevent, 0)
 		body += "<a href='?src=[usr.UID()];priv_msg=[M.client.ckey]'>PM</a> - "
 		body += "[ADMIN_SM(M,"SM")] - "
 	if(ishuman(M) && M.mind)
-		body += "<a href='?_src_=holder;HeadsetMessage=[M.UID()]'>HM</a> -"
-	body += "[admin_jump_link(M)]\] </b><br>"
+		body += "<a href='?_src_=holder;HeadsetMessage=[M.UID()]'>HM</a> - "
+	body += "[admin_jump_link(M)] - "
+	body += "<a href='?_src_=holder;adminalert=[M.UID()]'>SEND ALERT</a>\]</b><br>"
 	body += "<b>Mob type:</b> [M.type]<br>"
 	if(M.client)
 		if(M.client.prefs.discord_id)
@@ -144,7 +145,9 @@ GLOBAL_VAR_INIT(nologevent, 0)
 			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_OOC]'><font color='[(muted & MUTE_OOC)?"red":"#6685f5"]'>OOC</font></a> |
 			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_PRAY]'><font color='[(muted & MUTE_PRAY)?"red":"#6685f5"]'>PRAY</font></a> |
 			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_ADMINHELP]'><font color='[(muted & MUTE_ADMINHELP)?"red":"#6685f5"]'>ADMINHELP</font></a> |
-			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_DEADCHAT]'><font color='[(muted & MUTE_DEADCHAT)?"red":"#6685f5"]'>DEADCHAT</font></a>\]
+			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_DEADCHAT]'><font color='[(muted & MUTE_DEADCHAT)?"red":"#6685f5"]'>DEADCHAT</font></a> |
+			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_TTS]'><font color='[(muted & MUTE_TTS)?"red":"#6685f5"]'>TTS</font></a> |
+			<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_EMOTE]'><font color='[(muted & MUTE_EMOTE)?"red":"#6685f5"]'>EMOTE</font></a>\]
 			(<A href='?_src_=holder;mute=[M.UID()];mute_type=[MUTE_ALL]'><font color='[(muted & MUTE_ALL)?"red":"#6685f5"]'>toggle all</font></a>)
 		"}
 		body += {"<br><b>Mob Manipulation:</b>
@@ -350,6 +353,8 @@ GLOBAL_VAR_INIT(nologevent, 0)
 		"}
 	if(GLOB.master_mode == "secret")
 		dat += "<A href='?src=[UID()];f_secret=1'>(Force Secret Mode)</A><br>"
+	if(GLOB.master_mode == "antag-paradise" || GLOB.secret_force_mode == "antag-paradise")
+		dat += "<A href='?src=[UID()];change_weights=1'>Change Antag Weights</A><br>"
 
 	dat += {"
 		<BR>
@@ -577,7 +582,7 @@ GLOBAL_VAR_INIT(nologevent, 0)
 		return
 
 	CONFIG_SET(flag/allow_ai, !CONFIG_GET(flag/allow_ai))
-	if(!( CONFIG_GET(flag/allow_ai) ))
+	if(!CONFIG_GET(flag/allow_ai))
 		to_chat(world, "<B>The AI job is no longer chooseable.</B>")
 	else
 		to_chat(world, "<B>The AI job is chooseable now.</B>")
