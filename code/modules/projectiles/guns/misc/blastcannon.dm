@@ -23,33 +23,55 @@
 		user.put_in_hands(bomb)
 		user.visible_message("<span class='warning'>[user] detaches [bomb] from [src].</span>")
 		bomb = null
-	update_icon()
+	update_appearance(UPDATE_NAME|UPDATE_DESC|UPDATE_ICON_STATE)
 	return ..()
 
-/obj/item/gun/blastcannon/update_icon()
+
+/obj/item/gun/blastcannon/update_name(updates = ALL)
+	. = ..()
 	if(bomb)
-		icon_state = icon_state_loaded
 		name = "blast cannon"
+	else
+		name = initial(name)
+
+
+/obj/item/gun/blastcannon/update_desc(updates = ALL)
+	. = ..()
+	if(bomb)
 		desc = "A makeshift device used to concentrate a bomb's blast energy to a narrow wave."
 	else
-		icon_state = initial(icon_state)
-		name = initial(name)
 		desc = initial(desc)
 
-/obj/item/gun/blastcannon/attackby(obj/O, mob/user)
-	if(istype(O, /obj/item/transfer_valve))
-		var/obj/item/transfer_valve/T = O
-		if(!T.tank_one || !T.tank_two)
-			to_chat(user, "<span class='warning'>What good would an incomplete bomb do?</span>")
-			return FALSE
-		if(!user.drop_transfer_item_to_loc(T, src))
-			to_chat(user, "<span class='warning'>[T] seems to be stuck to your hand!</span>")
-			return FALSE
-		user.visible_message("<span class='warning'>[user] attaches [T] to [src]!</span>")
-		bomb = T
-		update_icon()
-		return TRUE
+
+/obj/item/gun/blastcannon/update_icon_state()
+	if(bomb)
+		icon_state = icon_state_loaded
+	else
+		icon_state = initial(icon_state)
+
+
+/obj/item/gun/blastcannon/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/transfer_valve))
+		add_fingerprint(user)
+		var/obj/item/transfer_valve/valve = I
+		if(bomb)
+			to_chat(user, span_warning("The [name] already has [bomb] attached."))
+			return ATTACK_CHAIN_PROCEED
+		if(!valve.tank_one || !valve.tank_two)
+			to_chat(user, span_warning("What good would an incomplete bomb do?"))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(valve, src))
+			return ..()
+		user.visible_message(
+			span_warning("[user] has attached [valve] to [src]."),
+			span_notice("You have attached [valve] to [src]."),
+		)
+		bomb = valve
+		update_appearance(UPDATE_NAME|UPDATE_DESC|UPDATE_ICON_STATE)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 /obj/item/gun/blastcannon/proc/calculate_bomb()
 	if(!istype(bomb)||!istype(bomb.tank_one)||!istype(bomb.tank_two))
@@ -71,7 +93,7 @@
 		return ..()
 	var/power = calculate_bomb()
 	QDEL_NULL(bomb)
-	update_icon()
+	update_appearance(UPDATE_NAME|UPDATE_DESC|UPDATE_ICON_STATE)
 	var/heavy = power * 0.2
 	var/medium = power * 0.5
 	var/light = power

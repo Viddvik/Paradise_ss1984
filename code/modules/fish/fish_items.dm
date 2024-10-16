@@ -8,7 +8,7 @@
 	desc = "A small scoop to collect fish eggs with."
 	icon = 'icons/obj/fish_items.dmi'
 	icon_state = "egg_scoop"
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 0
 	w_class = WEIGHT_CLASS_SMALL
 	throw_speed = 3
@@ -19,7 +19,7 @@
 	desc = "A tiny net to capture fish with. It's a death sentence!"
 	icon = 'icons/obj/fish_items.dmi'
 	icon_state = "net"
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 0
 	w_class = WEIGHT_CLASS_SMALL
 	throw_speed = 3
@@ -44,7 +44,7 @@
 	desc = "A brush for cleaning the inside of aquariums. Contains a built-in odor neutralizer."
 	icon = 'icons/obj/fish_items.dmi'
 	icon_state = "brush"
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 0
 	w_class = WEIGHT_CLASS_SMALL
 	throw_speed = 3
@@ -67,6 +67,8 @@
 		/obj/item/fish,
 		/obj/item/fish_eggs,
 		/obj/item/reagent_containers/food/snacks/shrimp,
+		/obj/item/reagent_containers/food/snacks/crayfish_raw,
+		/obj/item/reagent_containers/food/snacks/crayfish_raw_small,
 	)
 	resistance_flags = FLAMMABLE
 
@@ -113,10 +115,10 @@
 	name = "glofish"
 	desc = "A small bio-luminescent fish. Not very bright, but at least it's pretty!"
 	icon_state = "glofish"
-
-/obj/item/fish/glofish/New()
-	..()
-	set_light(2,1,"#99FF66")
+	light_system = MOVABLE_LIGHT
+	light_range = 2
+	light_power = 1
+	light_color = "#99FF66"
 
 /obj/item/fish/electric_eel
 	name = "electric eel"
@@ -130,14 +132,20 @@
 	hitsound = 'sound/weapons/bite.ogg'
 	force = 3
 
-/obj/item/fish/shark/attackby(var/obj/item/O, var/mob/user as mob)
-	if(istype(O, /obj/item/wirecutters))
-		to_chat(user, "You rip out the teeth of \the [src.name]!")
-		new /obj/item/fish/toothless_shark(get_turf(src))
-		new /obj/item/shard/shark_teeth(get_turf(src))
-		qdel(src)
-		return
-	..()
+
+/obj/item/fish/shark/wirecutter_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!I.use_tool(src, user, 2 SECONDS, volume = I.tool_volume))
+		return .
+	to_chat(user, span_notice("You rip out the teeth of [src]!"))
+	var/atom/drop_loc = drop_location()
+	var/obj/item/fish/toothless_shark/shark = new(drop_loc)
+	var/obj/item/shard/shark_teeth/teeth = new(drop_loc)
+	transfer_fingerprints_to(shark)
+	shark.add_fingerprint(user)
+	teeth.add_fingerprint(user)
+	qdel(src)
+
 
 /obj/item/fish/toothless_shark
 	name = "toothless shark"
@@ -164,14 +172,17 @@
 	desc = "Apparently, catfish don't purr like you might have expected them to. Such a confusing name!"
 	icon_state = "catfish"
 
-/obj/item/fish/catfish/attackby(var/obj/item/O, var/mob/user as mob)
-	if(is_sharp(O))
-		to_chat(user, "You carefully clean and gut \the [src.name].")
-		new /obj/item/reagent_containers/food/snacks/catfishmeat(get_turf(src))
-		new /obj/item/reagent_containers/food/snacks/catfishmeat(get_turf(src))
+
+/obj/item/fish/catfish/attackby(obj/item/I, mob/user, params)
+	if(is_sharp(I))
+		to_chat(user, "You carefully clean and gut [src].")
+		var/obj/item/reagent_containers/food/snacks/catfishmeat/meat = new(drop_location(), 2)
+		meat.add_fingerprint(user)
 		qdel(src)
-		return
-	..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/fish/goldfish
 	name = "goldfish"
@@ -183,14 +194,17 @@
 	desc = "The second-favorite food of Space Bears, right behind crew members."
 	icon_state = "salmon"
 
-/obj/item/fish/salmon/attackby(var/obj/item/O, var/mob/user as mob)
-	if(is_sharp(O))
-		to_chat(user, "You carefully clean and gut \the [src.name].")
-		new /obj/item/reagent_containers/food/snacks/salmonmeat(get_turf(src))
-		new /obj/item/reagent_containers/food/snacks/salmonmeat(get_turf(src))
+
+/obj/item/fish/salmon/attackby(obj/item/I, mob/user, params)
+	if(is_sharp(I))
+		to_chat(user, "You carefully clean and gut [src].")
+		var/obj/item/reagent_containers/food/snacks/salmonmeat/meat = new(drop_location(), 2)
+		meat.add_fingerprint(user)
 		qdel(src)
-		return
-	..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/fish/babycarp
 	name = "baby space carp"
@@ -199,13 +213,16 @@
 	hitsound = 'sound/weapons/bite.ogg'
 	force = 3
 
-/obj/item/fish/babycarp/attackby(var/obj/item/O, var/mob/user as mob)
-	if(is_sharp(O))
-		to_chat(user, "You carefully clean and gut \the [src.name].")
-		new /obj/item/reagent_containers/food/snacks/carpmeat(get_turf(src)) //just one fillet; this is a baby, afterall.
+
+/obj/item/fish/babycarp/attackby(obj/item/I, mob/user, params)
+	if(is_sharp(I))
+		to_chat(user, "You carefully clean and gut [src].")
+		var/obj/item/reagent_containers/food/snacks/carpmeat/meat = new(drop_location())	//just one fillet; this is a baby, afterall.
+		meat.add_fingerprint(user)
 		qdel(src)
-		return
-	..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
 
 
 /obj/item/grown/bananapeel/clownfish

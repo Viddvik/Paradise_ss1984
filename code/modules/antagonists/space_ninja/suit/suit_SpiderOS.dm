@@ -14,10 +14,10 @@
 	button_icon = 'icons/mob/actions/actions_ninja.dmi'
 	background_icon_state = "background_green"
 
-/obj/item/clothing/suit/space/space_ninja/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/item/clothing/suit/space/space_ninja/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SpiderOS", name, 700, 700, master_ui, state)
+		ui = new(user, src, "SpiderOS", name)
 		ui.open()
 
 /obj/item/clothing/suit/space/space_ninja/ui_data(mob/user)
@@ -96,7 +96,7 @@
 	var/mob/living/carbon/human/ninja = usr
 	switch(action)
 		if("initialise_suit")
-			if(ninja.get_item_by_slot(slot_wear_suit) == src)
+			if(ninja.get_item_by_slot(ITEM_SLOT_CLOTH_OUTER) == src)
 				toggle_on_off()
 				suit_tgui_state = NINJA_TGUI_LOADING_STATE
 			else
@@ -158,11 +158,11 @@
 				addtimer(CALLBACK(src, PROC_REF(toggle_ability_buy_block)), 2 SECONDS)
 				return
 			var/action_path = get_suit_ability(ability)
-			actions_types += action_path
+			LAZYADD(actions_types, action_path)
 			var/datum/action/ninja_action = new action_path(src, action_icon[action_path], action_icon_state[action_path])
 			ninja_action.Grant(usr)
 			if(istype(ninja_action, /datum/action/item_action/advanced/ninja/ninja_smoke_bomb))
-				actions_types += /datum/action/item_action/advanced/ninja/ninja_smoke_bomb_toggle_auto
+				LAZYADD(actions_types, /datum/action/item_action/advanced/ninja/ninja_smoke_bomb_toggle_auto)
 				var/datum/action/item_action/advanced/ninja/ninja_smoke_bomb_toggle_auto/smoke_toggle = new(src)
 				smoke_toggle.Grant(usr)
 				smoke_toggle.action_ready = FALSE
@@ -177,7 +177,7 @@
 		if("move")
 			var/destination = params["move"]
 			if(!options.Find(destination))
-				message_admins("[span_boldannounce("EXPLOIT: [ADMIN_LOOKUPFLW(usr)]")] attempted to move [shuttle_controller.shuttleId] to an invalid location! [ADMIN_COORDJMP(src)]")
+				message_admins("[span_boldannounceic("EXPLOIT: [ADMIN_LOOKUPFLW(usr)]")] attempted to move [shuttle_controller.shuttleId] to an invalid location! [ADMIN_COORDJMP(src)]")
 				return
 			switch(SSshuttle.moveShuttle(shuttle_controller.shuttleId, destination, TRUE, usr))
 				if(0)

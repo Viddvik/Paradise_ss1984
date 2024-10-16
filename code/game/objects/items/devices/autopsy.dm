@@ -8,7 +8,8 @@
 	origin_tech = "magnets=1;biotech=1"
 	var/list/datum/autopsy_data_scanner/wdata = list()
 	var/list/chemtraces = list()
-	var/target_name = null
+	var/target_UID = null
+	var/target_name = null	// target.name can change after scanning, so better save it here.
 	var/timeofdeath = null
 
 /obj/item/autopsy_scanner/Destroy()
@@ -39,47 +40,49 @@
 	W.time_inflicted = time_inflicted
 	return W
 
-/obj/item/autopsy_scanner/proc/add_data(obj/item/organ/O)
-	if(O.autopsy_data.len)
-		for(var/V in O.autopsy_data)
-			var/datum/autopsy_data/W = O.autopsy_data[V]
+/obj/item/autopsy_scanner/proc/add_data(obj/item/organ/check_organ)
+	for(var/index in check_organ.autopsy_data)
+		var/datum/autopsy_data/weapon_data = check_organ.autopsy_data[index]
 
-			var/datum/autopsy_data_scanner/D = wdata[V]
-			if(!D)
-				D = new()
-				D.weapon = W.weapon
-				wdata[V] = D
+		var/datum/autopsy_data_scanner/scanner_data = wdata[index]
+		if(!scanner_data)
+			scanner_data = new
+			scanner_data.weapon = weapon_data.weapon
+			wdata[index] = scanner_data
 
-			if(!D.organs_scanned[O.name])
-				if(D.organ_names == "")
-					D.organ_names = O.name
-				else
-					D.organ_names += ", [O.name]"
+		if(!scanner_data.organs_scanned[check_organ.name])
+			if(scanner_data.organ_names == "")
+				scanner_data.organ_names = check_organ.name
+			else
+				scanner_data.organ_names += ", [check_organ.name]"
 
-			qdel(D.organs_scanned[O.name])
-			D.organs_scanned[O.name] = W.copy()
+		qdel(scanner_data.organs_scanned[check_organ.name])
+		scanner_data.organs_scanned[check_organ.name] = weapon_data.copy()
 
-	if(O.trace_chemicals.len)
-		for(var/V in O.trace_chemicals)
-			if(O.trace_chemicals[V] > 0 && !chemtraces.Find(V))
-				chemtraces += V
+	for(var/chemID in check_organ.trace_chemicals)
+		if(check_organ.trace_chemicals[chemID] > 0 && !chemtraces.Find(chemID))
+			chemtraces += chemID
 
-/obj/item/autopsy_scanner/attackby(obj/item/P, mob/user)
-	if(istype(P, /obj/item/pen))
-		var/dead_name = input("Insert name of deceased individual")
-		var/dead_rank = input("Insert rank of deceased individual")
-		var/dead_tod = input("Insert time of death")
-		var/dead_cause = input("Insert cause of death")
-		var/dead_chems = input("Insert any chemical traces")
-		var/dead_notes = input("Insert any relevant notes")
-		var/obj/item/paper/R = new(user.loc)
-		R.name = "Official Coroner's Report - [dead_name]"
-		R.info = "<b>Nanotrasen Science Station [SSmapping.map_datum.station_short] - Coroner's Report</b><br><br><b>Name of Deceased:</b> [dead_name]</br><br><b>Rank of Deceased:</b> [dead_rank]<br><br><b>Time of Death:</b> [dead_tod]<br><br><b>Cause of Death:</b> [dead_cause]<br><br><b>Trace Chemicals:</b> [dead_chems]<br><br><b>Additional Coroner's Notes:</b> [dead_notes]<br><br><b>Coroner's Signature:</b> <span class=\"paper_field\">"
-		playsound(loc, 'sound/goonstation/machines/printer_thermal.ogg', 50, 1)
-		sleep(10)
-		user.put_in_hands(R, ignore_anim = FALSE)
-	else
-		return ..()
+
+/obj/item/autopsy_scanner/attackby(obj/item/I, mob/user, params)
+	if(is_pen(I))
+		add_fingerprint(user)
+		var/dead_name = tgui_input_text(user, "Insert name of the deceased individual", "Enter Name") || "Unknown"
+		var/dead_rank = tgui_input_text(user, "Insert rank of deceased individual", "Enter Rank") || "Not Available"
+		var/dead_tod = tgui_input_text(user, "Insert time of death", "Time Of Death") || "Unknown"
+		var/dead_cause = tgui_input_text(user, "Insert cause of death", "Cause Of Death") || "Unknown"
+		var/dead_chems = tgui_input_text(user, "Insert any chemical traces", "Chemical Traces") || "Unknown"
+		var/dead_notes = tgui_input_text(user, "Insert any relevant notes", "Relevant Notes") || "None"
+		playsound(loc, 'sound/goonstation/machines/printer_thermal.ogg', 50, TRUE)
+		sleep(1 SECONDS)
+		var/obj/item/paper/paper = new(user.loc)
+		paper.name = "Official Coroner's Report - [dead_name]"
+		paper.info = "<b>Nanotrasen Science Station [SSmapping.map_datum.station_short] - Coroner's Report</b><br><br><b>Name of Deceased:</b> [dead_name]</br><br><b>Rank of Deceased:</b> [dead_rank]<br><br><b>Time of Death:</b> [dead_tod]<br><br><b>Cause of Death:</b> [dead_cause]<br><br><b>Trace Chemicals:</b> [dead_chems]<br><br><b>Additional Coroner's Notes:</b> [dead_notes]<br><br><b>Coroner's Signature:</b> <span class=\"paper_field\">"
+		user.put_in_hands(paper, ignore_anim = FALSE)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/item/autopsy_scanner/attack_self(mob/user)
 	var/scan_data = ""
@@ -87,7 +90,7 @@
 	if(timeofdeath)
 		scan_data += "<b>Time of death:</b> [station_time_timestamp("hh:mm:ss", timeofdeath)]<br><br>"
 	else
-		scan_data += "<b>Time of death:</b> Unknown / Still alive<br><br>"
+		scan_data += "<b>Time of death:</b> No data<br><br>"
 
 	if(wdata.len)
 		var/n = 1
@@ -137,7 +140,7 @@
 		for(var/chemID in chemtraces)
 			scan_data += chemID
 			scan_data += "<br>"
-	user.visible_message("<span class='warning'>[src] rattles and prints out a sheet of paper.</span>")
+	user.visible_message(span_notice("[src] rattles and prints out a sheet of paper."))
 
 	playsound(loc, 'sound/goonstation/machines/printer_thermal.ogg', 50, 1)
 	flick("autopsy_scanner_anim", src)
@@ -146,31 +149,31 @@
 	var/obj/item/paper/P = new(drop_location())
 	P.name = "Autopsy Data ([target_name])"
 	P.info = "<tt>[scan_data]</tt>"
-	P.overlays += "paper_words"
+	P.update_icon()
 
 	user.put_in_hands(P, ignore_anim = FALSE)
 
-/obj/item/autopsy_scanner/attack(mob/living/carbon/human/M, mob/living/carbon/user)
-	if(!istype(M))
-		return
 
-	if(!can_operate(M))
-		return
+/obj/item/autopsy_scanner/attack(mob/living/carbon/human/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!ishuman(target) || !on_operable_surface(target))
+		return ATTACK_CHAIN_PROCEED
 
-	if(target_name != M.name)
-		target_name = M.name
+	. = ATTACK_CHAIN_PROCEED_SUCCESS
+
+	if(target_UID != target.UID())
+		to_chat(user, span_notice("A new patient has been registered.[target_UID ? " Purging data for previous patient." : ""]"))
+		target_UID = target.UID()
+		target_name = target.name
 		wdata.Cut()
 		chemtraces.Cut()
 		timeofdeath = null
-		to_chat(user, "<span class='warning'>A new patient has been registered. Purging data for previous patient.</span>")
 
-	timeofdeath = M.timeofdeath
+	timeofdeath = target.timeofdeath
 
-	var/obj/item/organ/external/S = M.get_organ(user.zone_selected)
-	if(!S)
-		to_chat(user, "<span class='warning'>You can't scan this body part.</span>")
-		return
-	M.visible_message("<span class='warning'>[user] scans the wounds on [M]'s [S] with [src]</span>")
+	var/obj/item/organ/external/limb = target.get_organ(user.zone_selected)
+	if(!limb)
+		to_chat(user, span_warning("You can't scan this body part!"))
+		return NONE
+	target.visible_message(span_notice("[user] scans the wounds on [target]'s [limb] with [src]."))
 
-	add_data(S)
-	return 1
+	add_data(limb)

@@ -8,6 +8,8 @@
 	special_role = SPECIAL_ROLE_TRAITOR
 	antag_hud_name = "hudsyndicate"
 	antag_hud_type = ANTAG_HUD_TRAITOR
+	wiki_page_name = "Traitor"
+	russian_wiki_name = "Предатель"
 	clown_gain_text = "Your training has allowed you to overcome your clownish nature, allowing you to wield weapons without harming yourself."
 	clown_removal_text = "You lose your syndicate training and return to your own clumsy, clownish self."
 	/// Should the traitor get codewords?
@@ -30,8 +32,19 @@
 	owner.som.masters += owner
 	return ..()
 
+/datum/antagonist/traitor/apply_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_phrase_regex, "codephrases", src)
+	datum_owner.AddComponent(/datum/component/codeword_hearing, GLOB.syndicate_code_response_regex, "coderesponses", src)
 
-/datum/antagonist/traitor/Destroy(force, ...)
+/datum/antagonist/traitor/remove_innate_effects(mob/living/mob_override)
+	. = ..()
+	var/mob/living/datum_owner = mob_override || owner.current
+	for(var/datum/component/codeword_hearing/component in datum_owner.GetComponents(/datum/component/codeword_hearing))
+		component.delete_if_from_source(src)
+
+/datum/antagonist/traitor/Destroy(force)
 	// Remove contractor if present
 	var/datum/antagonist/contractor/contractor_datum = owner?.has_antag_datum(/datum/antagonist/contractor)
 	if(contractor_datum)
@@ -45,8 +58,6 @@
 		slaved.serv -= owner
 		slaved.leave_serv_hud(owner)
 		owner.som = null
-
-	owner.current.client?.chatOutput?.clear_syndicate_codes()
 
 	if(hidden_uplink)
 		var/obj/item/uplink_holder = hidden_uplink.loc
@@ -107,7 +118,7 @@
 			return
 
 	for(var/i = objective_count, i < objective_amount)
-		forge_single_human_objective()
+		forge_single_objective()
 		i += 1
 
 	var/martyr_compatibility = TRUE //You can't succeed in stealing if you're dead.
@@ -158,11 +169,11 @@
 		folder = new/obj/item/folder/syndicate/blue(mob.locs)
 
 	var/list/slots = list (
-		"backpack" = slot_in_backpack,
-		"left pocket" = slot_l_store,
-		"right pocket" = slot_r_store,
-		"left hand" = slot_l_hand,
-		"right hand" = slot_r_hand,
+		"backpack" = ITEM_SLOT_BACKPACK,
+		"left pocket" = ITEM_SLOT_POCKET_LEFT,
+		"right pocket" = ITEM_SLOT_POCKET_RIGHT,
+		"left hand" = ITEM_SLOT_HAND_LEFT,
+		"right hand" = ITEM_SLOT_HAND_RIGHT,
 	)
 
 	var/where = "At your feet"
@@ -174,35 +185,12 @@
 
 
 /**
- * Create and assign a single randomized traitor objective.
- */
-/datum/antagonist/traitor/proc/forge_single_human_objective()
-	if(prob(50))
-		if(length(active_ais()) && prob(100 / length(GLOB.player_list)))
-			add_objective(/datum/objective/destroy)
-
-		else if(prob(5))
-			add_objective(/datum/objective/debrain)
-
-		else if(prob(30))
-			add_objective(/datum/objective/pain_hunter)
-
-		else if(prob(20))
-			add_objective(/datum/objective/protect)
-
-		else
-			add_objective(/datum/objective/maroon)
-
-	else
-		add_objective(/datum/objective/steal)
-
-
-/**
  * Give traitors their uplink. Play the traitor an alert sound.
  */
 /datum/antagonist/traitor/finalize_antag()
+	var/list/messages = list()
 	if(give_codewords)
-		give_codewords()
+		messages.Add(give_codewords())
 
 	if(give_uplink)
 		give_uplink()
@@ -212,8 +200,9 @@
 	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/tatoralert.ogg', 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
 
 	if(is_contractor)
-		owner.add_antag_datum(/datum/antagonist/contractor)
+		addtimer(CALLBACK(owner, TYPE_PROC_REF(/datum/mind, add_antag_datum), /datum/antagonist/contractor), 1)
 
+	return messages
 
 /**
  * Notify the traitor of their codewords and write them to `antag_memory` (notes).
@@ -222,22 +211,21 @@
 	if(!owner.current)
 		return
 
-	var/mob/traitor_mob = owner.current
-
 	var/phrases = jointext(GLOB.syndicate_code_phrase, ", ")
 	var/responses = jointext(GLOB.syndicate_code_response, ", ")
 
 	antag_memory += "<b>Code Phrase</b>: <span class='red'>[phrases]</span><br>"
 	antag_memory += "<b>Code Response</b>: <span class='red'>[responses]</span><br>"
-	traitor_mob.client.chatOutput?.notify_syndicate_codes()
 
+	var/list/messages = list()
 	if(!silent)
-		to_chat(traitor_mob, "<U><B>The Syndicate have provided you with the following codewords to identify fellow agents:</B></U>")
-		to_chat(traitor_mob, "<span class='bold body'>Code Phrase: <span class='codephrases'>[phrases]</span></span>")
-		to_chat(traitor_mob, "<span class='bold body'>Code Response: <span class='coderesponses'>[responses]</span></span>")
-		to_chat(traitor_mob, "Use the codewords during regular conversation to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
-		to_chat(traitor_mob, "<b><font color=red>You memorize the codewords, allowing you to recognize them when heard.</font></b>")
+		messages.Add("<U><B>The Syndicate have provided you with the following codewords to identify fellow agents:</B></U>")
+		messages.Add("<span class='bold body'>Code Phrase: <span class='codephrases'>[phrases]</span></span>")
+		messages.Add("<span class='bold body'>Code Response: <span class='coderesponses'>[responses]</span></span>")
+		messages.Add("Use the codewords during regular conversation to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
+		messages.Add("<b><font color=red>You memorize the codewords, allowing you to recognize them when heard.</font></b>")
 
+	return messages
 
 /**
  * Gives a traitor their uplink, and uplink code.
@@ -286,7 +274,7 @@
 		antag_memory += ("<B>Radio Freq:</B> [format_frequency(freq)] ([target_radio.name]).")
 		return TRUE
 
-	if(ispda(uplink_holder))
+	if(is_pda(uplink_holder))
 		// generate a passcode if the uplink is hidden in a PDA
 		var/obj/item/pda/target_pda = uplink_holder
 		var/obj/item/uplink/hidden/new_uplink = new(target_pda)
@@ -319,7 +307,7 @@
 
 	var/obj/item/uplink_holder = hidden_uplink.loc
 
-	if(ispda(uplink_holder))
+	if(is_pda(uplink_holder))
 		var/obj/item/pda/pda_uplink = uplink_holder
 		to_chat(owner.current, "The Syndicate have cunningly disguised a Syndicate Uplink as your [uplink_holder.name]. Simply enter the code \"[pda_uplink.lock_code]\" into the ringtone select to unlock its hidden features.")
 
@@ -329,6 +317,27 @@
 
 	else
 		to_chat(owner.current, span_warning("Unfortunately, the Syndicate wasn't able to get you a radio."))
+
+
+/**
+ * Takes any datum `source` and checks it for traitor datum.
+ */
+/proc/istraitor(datum/source)
+	if(!source)
+		return FALSE
+
+	if(istype(source, /datum/mind))
+		var/datum/mind/our_mind = source
+		return our_mind.has_antag_datum(/datum/antagonist/traitor)
+
+	if(!ismob(source))
+		return FALSE
+
+	var/mob/mind_holder = source
+	if(!mind_holder.mind)
+		return FALSE
+
+	return mind_holder.mind.has_antag_datum(/datum/antagonist/traitor)
 
 
 #undef EXCHANGE_OBJECTIVE_TRAITORS_REQUIRED

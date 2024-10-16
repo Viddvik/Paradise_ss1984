@@ -20,9 +20,10 @@
 		icon_state = "fingerprint1"
 
 /obj/item/sample/proc/copy_evidence(atom/supplied)
-	if(supplied.suit_fibers && supplied.suit_fibers.len)
-		evidence = supplied.suit_fibers.Copy()
+	if(supplied.time_of_touch && supplied.time_of_touch.len)
+		evidence = supplied.time_of_touch.Copy()
 		supplied.suit_fibers.Cut()
+		supplied.time_of_touch.Cut()
 
 /obj/item/sample/proc/merge_evidence(obj/item/sample/supplied, mob/user)
 	if(!supplied.evidence || !supplied.evidence.len)
@@ -31,6 +32,7 @@
 	name = ("[initial(name)] (combined)")
 	to_chat(user, "<span class='notice'>You transfer the contents of \the [supplied] into \the [src].</span>")
 	return 1
+
 
 /obj/item/sample/print/merge_evidence(obj/item/sample/supplied, mob/user)
 	if(!supplied.evidence || !supplied.evidence.len)
@@ -44,17 +46,18 @@
 	to_chat(user, "<span class='notice'>You overlay \the [src] and \the [supplied], combining the print records.</span>")
 	return 1
 
-/obj/item/sample/pre_attackby(atom/A, mob/living/user, params)
-	// Fingerprints will be handled in after_attack() to not mess up the samples taken
-	return A.attackby(src, user, params)
 
-/obj/item/sample/attackby(obj/O, mob/user)
-	if(O.type == src.type)
-		user.drop_item_ground(O)
-		if(merge_evidence(O, user))
-			qdel(O)
-		return 1
+/obj/item/sample/attackby(obj/item/I, mob/user, params)
+	if(I.type == type)
+		if(!user.can_unEquip(I) || !merge_evidence(I, user))
+			return ..()
+		user.drop_transfer_item_to_loc(I, src)
+		add_fingerprint(user)
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 /obj/item/sample/fibers
 	name = "fiber bag"
@@ -84,50 +87,50 @@
 	name = ("[initial(name)] (\the [H])")
 	icon_state = "fingerprint1"
 
-/obj/item/sample/print/attack(mob/living/M, mob/user)
 
-	if(!ishuman(M))
+/obj/item/sample/print/attack(mob/living/carbon/human/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!ishuman(target))
 		return ..()
 
-	if(evidence && evidence.len)
-		return 0
+	. = ATTACK_CHAIN_PROCEED
 
-	var/mob/living/carbon/human/H = M
+	if(length(evidence))
+		return .
 
-	if(H.gloves)
-		to_chat(user, "<span class='warning'>\The [H] is wearing gloves.</span>")
-		return 1
+	if(target.gloves)
+		to_chat(user, span_warning("[target] is wearing gloves."))
+		return .
 
-	if(user != H && H.a_intent != INTENT_HELP && !H.lying)
-		user.visible_message("<span class='danger'>\The [user] tries to take prints from \the [H], but they move away.</span>")
-		return 1
+	if(user != target && target.a_intent != INTENT_HELP && target.body_position != LYING_DOWN)
+		user.visible_message(span_danger("[user] tries to take prints from [target], but they move away."))
+		return .
 
-	if(user.zone_selected == "r_hand" || user.zone_selected == "l_hand")
-		var/has_hand
-		var/obj/item/organ/external/O = H.has_organ("r_hand")
-		if(istype(O))
-			has_hand = 1
-		else
-			O = H.has_organ("l_hand")
-			if(istype(O))
-				has_hand = 1
-		if(!has_hand)
-			to_chat(user, "<span class='warning'>They don't have any hands.</span>")
-			return 1
-		user.visible_message("[user] takes a copy of \the [H]'s fingerprints.")
-		var/fullprint = H.get_full_print()
-		evidence[fullprint] = fullprint
-		copy_evidence(src)
-		name = ("[initial(name)] (\the [H])")
-		icon_state = "fingerprint1"
-		return 1
-	return 0
+	if(user.zone_selected != BODY_ZONE_PRECISE_L_HAND || user.zone_selected != BODY_ZONE_PRECISE_R_HAND)
+		to_chat(user, span_warning("You need to select a hand to take prints from."))
+		return .
+
+	if(!target.get_organ(user.zone_selected))
+		to_chat(user, span_warning("This hand is absent."))
+		return .
+
+	. |= ATTACK_CHAIN_SUCCESS
+
+	user.visible_message(
+		span_notice("[user] takes a copy of [target]'s fingerprints."),
+		span_notice("You take a copy of [target]'s fingerprints."),
+	)
+	var/fullprint = target.get_full_print()
+	evidence[fullprint] = fullprint
+	copy_evidence(src)
+	name = "[initial(name)] ([target])"
+	icon_state = "fingerprint1"
+
 
 /obj/item/sample/print/copy_evidence(atom/supplied)
-	if(supplied.fingerprints && supplied.fingerprints.len)
-		for(var/print in supplied.fingerprints)
-			evidence[print] = supplied.fingerprints[print]
+	if(supplied.fingerprints_time && supplied.fingerprints_time.len)
+		evidence = supplied.fingerprints_time.Copy()
 		supplied.fingerprints.Cut()
+		supplied.fingerprints_time.Cut()
 
 /obj/item/forensics
 
@@ -146,8 +149,8 @@
 	var/obj/item/sample/S = new evidence_path(get_turf(user), supplied)
 	to_chat(user, "<span class='notice'>You transfer [S.evidence.len] [S.evidence.len > 1 ? "[evidence_type]s" : "[evidence_type]"] to \the [S].</span>")
 
-/obj/item/forensics/sample_kit/afterattack(atom/A, mob/user, proximity)
-	if(!proximity)
+/obj/item/forensics/sample_kit/afterattack(atom/A, mob/user, proximity, params)
+	if(!proximity || user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return
 	if(can_take_sample(user, A))
 		take_sample(user,A)
@@ -157,19 +160,19 @@
 		. = ..()
 
 
-/obj/item/forensics/sample_kit/MouseDrop(atom/over)
+/obj/item/forensics/sample_kit/MouseDrop(atom/over_object, src_location, over_location, src_control, over_control, params)
 	. = ..()
 	if(!.)
 		return FALSE
 
 	var/mob/user = usr
-	if(istype(over, /obj/screen))
+	if(is_screen_atom(over_object))
 		return FALSE
 
-	if(loc != user || user.incapacitated() || !ishuman(user))
+	if(loc != user || !ishuman(user))
 		return FALSE
 
-	afterattack(over, user, TRUE)
+	afterattack(over_object, user, TRUE, params)
 	return TRUE
 
 

@@ -43,7 +43,7 @@
 	)
 
 	var/id_access = "Syndicate Operative"
-	var/uplink_uses = 20
+	var/uplink_uses = 100
 
 /datum/outfit/admin/syndicate/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
 	. = ..()
@@ -115,13 +115,14 @@
 	uniform = /obj/item/clothing/under/syndicate
 	back = /obj/item/storage/backpack/security
 	shoes =	/obj/item/clothing/shoes/combat
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	l_ear = /obj/item/radio/headset/syndicate/alt/syndteam
 	l_pocket = /obj/item/card/emag
 	r_pocket = /obj/item/melee/energy/sword/saber/red
 	id = /obj/item/card/id/syndicate
 	box = /obj/item/storage/box/survival_syndi
 	backpack_contents = list(
+		/obj/item/radio/uplink/sst = 1,
 		/obj/item/grenade/plastic/x4 = 2,
 		/obj/item/reagent_containers/hypospray/combat/nanites = 1,
 		/obj/item/gun/projectile/revolver = 1,
@@ -162,6 +163,7 @@
 
 	backpack_contents = list(
 		/obj/item/tank/jetpack/oxygen/harness = 1,
+		/obj/item/radio/uplink/sst = 1,
 		/obj/item/ammo_box/magazine/mm556x45 = 1,
 		/obj/item/grenade/plastic/x4 = 2,
 		/obj/item/reagent_containers/hypospray/combat/nanites = 1,
@@ -173,7 +175,7 @@
 	name = "Syndicate Spy"
 	uniform = /obj/item/clothing/under/suit_jacket/really_black
 	shoes = /obj/item/clothing/shoes/chameleon/noslip
-	uplink_uses = 40
+	uplink_uses = 200
 	id_access = "Syndicate Agent"
 
 	implants = list(
@@ -213,7 +215,7 @@
 	suit = /obj/item/clothing/suit/storage/blueshield/srt
 	back = /obj/item/storage/backpack/satchel_blueshield/srt
 	belt = /obj/item/storage/belt/security/webbing/srt/full
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat
 	shoes = /obj/item/clothing/shoes/combat/swat
 	head = /obj/item/clothing/head/beret/centcom/officer/navy
 	l_ear = /obj/item/radio/headset/ert/alt
@@ -223,7 +225,7 @@
 	id = /obj/item/card/id/centcom
 
 	backpack_contents = list(
-		/obj/item/gun/projectile/automatic/pistol/sp8ar = 1,
+		/obj/item/gun/projectile/automatic/pistol/sp8/sp8ar = 1,
 		/obj/item/ammo_box/magazine/sp8 = 2,
 		/obj/item/storage/box/responseteam = 1,
 		/obj/item/gun/energy/gun/blueshield = 1,
@@ -269,7 +271,7 @@
 
 	uniform = /obj/item/clothing/under/rank/centcom/captain
 	back = /obj/item/storage/backpack/satchel
-	belt = /obj/item/gun/energy/pulse/pistol
+	belt = /obj/item/storage/belt/rapier/centcomm
 	gloves = /obj/item/clothing/gloves/color/white
 	shoes = /obj/item/clothing/shoes/centcom
 	head = /obj/item/clothing/head/beret/centcom/captain
@@ -279,6 +281,7 @@
 	pda = /obj/item/pda/centcom
 	backpack_contents = list(
 		/obj/item/storage/box/centcomofficer = 1,
+		/obj/item/gun/energy/pulse/pistol = 1,
 		/obj/item/implanter/death_alarm = 1
 	)
 	implants = list(
@@ -363,7 +366,7 @@
 
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
-		apply_to_card(I, H, get_centcom_access("NT Undercover Operative"), "Civilian")
+		apply_to_card(I, H, get_centcom_access("NT Undercover Operative"), JOB_TITLE_CIVILIAN)
 	H.sec_hud_set_ID() // Force it to show as Civ on sec huds
 
 	var/obj/item/radio/R = H.l_ear
@@ -378,8 +381,8 @@
 	suit = /obj/item/clothing/suit/space/hardsuit/deathsquad
 	back = /obj/item/storage/backpack/ert/security
 	belt = /obj/item/gun/projectile/revolver/mateba
-	gloves = /obj/item/clothing/gloves/combat
-	shoes = /obj/item/clothing/shoes/magboots/advance
+	gloves = /obj/item/clothing/gloves/combat/swat
+	shoes = /obj/item/clothing/shoes/magboots/syndie/advance
 	mask = /obj/item/clothing/mask/gas/sechailer/swat
 	glasses = /obj/item/clothing/glasses/hud/security/sunglasses
 	l_pocket = /obj/item/shield/energy
@@ -416,7 +419,7 @@
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
 		apply_to_card(I, H, get_centcom_access("Death Commando"), "Death Commando", "deathsquad")
-		I.photo = get_id_photo(H, custom_job = "Nanotrasen Representative") // They should go die with a good photo instead of assistants grey shorts xD
+		I.photo = get_id_photo(H, custom_job = JOB_TITLE_REPRESENTATIVE) // They should go die with a good photo instead of assistants grey shorts xD
 	H.sec_hud_set_ID()
 
 /datum/outfit/admin/death_commando/officer
@@ -433,7 +436,7 @@
 	uniform = /obj/item/clothing/under/pirate
 	back = /obj/item/storage/backpack/satchel
 	belt = /obj/item/storage/belt/utility/full/multitool
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	shoes = /obj/item/clothing/shoes/brown
 	l_ear = /obj/item/radio/headset
 	id = /obj/item/card/id
@@ -476,7 +479,7 @@
 	l_ear = /obj/item/radio/headset/syndicate
 	glasses = /obj/item/clothing/glasses/thermal/monocle
 	id = /obj/item/card/id/syndicate/vox
-	l_pocket = /obj/item/melee/classic_baton/telescopic
+	l_pocket = /obj/item/melee/baton/telescopic
 	r_pocket = /obj/item/tank/internals/emergency_oxygen/double/vox
 	backpack_contents = list(
 		/obj/item/flashlight = 1,
@@ -499,7 +502,7 @@
 
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
-		apply_to_card(I, H, get_all_accesses(), "Vox Armalis", "syndie")
+		apply_to_card(I, H, get_all_accesses(), SPECIES_VOX_ARMALIS, "syndie")
 
 /datum/outfit/admin/tunnel_clown
 	name = "Tunnel Clown"
@@ -522,7 +525,7 @@
 		/obj/item/flashlight = 1,
 		/obj/item/reagent_containers/food/drinks/bottle/bottleofbanana = 1,
 		/obj/item/grenade/clown_grenade = 1,
-		/obj/item/melee/baton/cattleprod = 1,
+		/obj/item/melee/baton/security/cattleprod = 1,
 		/obj/item/stock_parts/cell/super = 1,
 		/obj/item/bikehorn/rubberducky = 1
 	)
@@ -578,12 +581,12 @@
 	var/obj/item/pda/PDA = H.wear_pda
 	if(istype(PDA))
 		PDA.owner = H.real_name
-		PDA.ownjob = "Mime"
+		PDA.ownjob = JOB_TITLE_MIME
 		PDA.name = "PDA-[H.real_name] ([PDA.ownjob])"
 
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
-		apply_to_card(I, H, list(ACCESS_MIME, ACCESS_THEATRE, ACCESS_MAINT_TUNNELS), "Mime")
+		apply_to_card(I, H, list(ACCESS_MIME, ACCESS_THEATRE, ACCESS_MAINT_TUNNELS), JOB_TITLE_MIME)
 	H.sec_hud_set_ID()
 
 /datum/outfit/admin/greytide
@@ -700,7 +703,7 @@
 /datum/outfit/admin/soviet
 	name = "Soviet Generic"
 	var/list/rank_list = list()
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	uniform = /obj/item/clothing/under/soviet
 	back = /obj/item/storage/backpack/satchel
 	head = /obj/item/clothing/head/sovietsidecap
@@ -716,8 +719,8 @@
 
 	H.rename_character(null, "[rank_list.len ? pick(rank_list) : "[H.gender==FEMALE ? pick(GLOB.first_names_female) : pick(GLOB.first_names_male)]"] [H.gender==FEMALE ? pick(GLOB.last_names_female) : pick(GLOB.last_names)]")
 
-	H.add_language("Neo-Russkiya")
-	H.set_default_language(GLOB.all_languages["Neo-Russkiya"])
+	H.add_language(LANGUAGE_NEO_RUSSIAN)
+	H.set_default_language(GLOB.all_languages[LANGUAGE_NEO_RUSSIAN])
 
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
@@ -738,7 +741,7 @@
 	belt = /obj/item/gun/projectile/revolver/nagant
 
 	backpack_contents = list(
-		/obj/item/ammo_box/speedloader/shotgun/a762 = 4
+		/obj/item/ammo_box/speedloader/a762 = 4
 	)
 
 /datum/outfit/admin/soviet/soldier
@@ -763,7 +766,7 @@
 	head = /obj/item/clothing/head/sovietofficerhat
 	glasses = /obj/item/clothing/glasses/sunglasses
 	belt = /obj/item/gun/projectile/revolver/mateba
-	l_pocket = /obj/item/melee/classic_baton/telescopic
+	l_pocket = /obj/item/melee/baton/telescopic
 	r_pocket = /obj/item/flashlight/seclite
 
 	backpack_contents = list(
@@ -782,7 +785,7 @@
 	glasses = /obj/item/clothing/glasses/night
 	belt = /obj/item/storage/belt/military/assault/soviet/full
 	l_pocket = /obj/item/card/emag
-	r_pocket = /obj/item/melee/classic_baton/telescopic
+	r_pocket = /obj/item/melee/baton/telescopic
 	l_hand = /obj/item/gun/projectile/automatic/ak814
 	suit_store = /obj/item/tank/internals/emergency_oxygen/double
 
@@ -815,7 +818,7 @@
 	l_ear = /obj/item/radio/headset/syndicate
 	r_ear = /obj/item/radio/headset/alt/soviet
 	glasses = /obj/item/clothing/glasses/thermal/eyepatch
-	l_pocket = /obj/item/melee/classic_baton/telescopic
+	l_pocket = /obj/item/melee/baton/telescopic
 	backpack_contents = list(
 		/obj/item/ammo_box/speedloader/a357 = 3
 	)
@@ -837,6 +840,7 @@
 		/obj/item/storage/box/responseteam = 1,
 		/obj/item/implanter/dust = 1,
 		/obj/item/implanter/death_alarm = 1,
+		/obj/item/stamp/solgov = 1,
 	)
 
 /datum/outfit/admin/solgov_rep/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)
@@ -860,7 +864,7 @@
 	head = /obj/item/clothing/head/soft/solgov
 	glasses = /obj/item/clothing/glasses/night
 	mask = /obj/item/clothing/mask/gas/sechailer/swat
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	shoes = /obj/item/clothing/shoes/combat
 	l_ear = /obj/item/radio/headset/ert/alt/solgov
 	id = /obj/item/card/id
@@ -917,7 +921,7 @@
 	suit = /obj/item/clothing/suit/space/hardsuit/ert/solgov/command
 	head = /obj/item/clothing/head/beret/solgov/command/elite
 	mask = /obj/item/clothing/mask/gas/sechailer/swat
-	belt = /obj/item/melee/baton/loaded
+	belt = /obj/item/melee/baton/security/loaded
 	l_hand = null
 	suit_store = /obj/item/gun/projectile/automatic/pistol/deagle
 	l_pocket = /obj/item/pinpointer/advpinpointer
@@ -952,7 +956,7 @@
 
 	uniform = /obj/item/clothing/under/rank/cargotech
 	back = /obj/item/storage/backpack/industrial
-	belt = /obj/item/melee/classic_baton
+	belt = /obj/item/melee/baton
 	head = /obj/item/clothing/head/soft
 	shoes = /obj/item/clothing/shoes/black
 	l_ear = /obj/item/radio/headset
@@ -981,7 +985,7 @@
 	uniform = /obj/item/clothing/under/syndicate
 	suit = /obj/item/clothing/suit/space/chronos
 	back = /obj/item/chrono_eraser
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat
 	shoes = /obj/item/clothing/shoes/magboots/advance
 	head = /obj/item/clothing/head/helmet/space/chronos
 	mask = /obj/item/clothing/mask/gas/syndicate
@@ -1209,7 +1213,7 @@
 	back = /obj/item/storage/backpack/satchel
 	l_hand = /obj/item/twohanded/knighthammer
 	belt = /obj/item/claymore/ceremonial
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat
 	shoes = /obj/item/clothing/shoes/magboots
 	mask = /obj/item/clothing/mask/breath
 	l_ear = /obj/item/radio/headset/ert
@@ -1287,7 +1291,7 @@
 	if(istype(C))
 		C.name = "ancient robes"
 		C.hood.name = "ancient hood"
-		H.equip_to_slot_or_del(C, slot_in_backpack)
+		H.equip_to_slot_or_del(C, ITEM_SLOT_BACKPACK)
 
 	var/obj/item/card/id/I = H.wear_id
 	if(istype(I))
@@ -1308,9 +1312,7 @@
 	V.add_subclass(SUBCLASS_ANCIENT, FALSE)
 	H.mind.AddSpell(new /obj/effect/proc_holder/spell/shapeshift/bats)
 	H.mind.AddSpell(new /obj/effect/proc_holder/spell/shapeshift/hellhound)
-	H.dna.SetSEState(GLOB.jumpblock, TRUE)
-	genemutcheck(H, GLOB.jumpblock, null, MUTCHK_FORCED)
-	H.update_mutations()
+	H.force_gene_block(GLOB.jumpblock, TRUE)
 	H.gene_stability = 100
 
 /datum/outfit/admin/wizard
@@ -1413,4 +1415,5 @@
 		B.desc = "Sometimes, someone's just gotta die."
 	var/obj/item/radio/headset/R = H.l_ear
 	if(istype(R))
-		R.flags |= NODROP
+		ADD_TRAIT(R, TRAIT_NODROP, INNATE_TRAIT)
+

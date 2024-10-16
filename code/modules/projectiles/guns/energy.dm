@@ -4,40 +4,56 @@
 	desc = "A basic energy-based gun."
 	icon = 'icons/obj/weapons/energy.dmi'
 	fire_sound_text = "laser blast"
-
-	var/obj/item/stock_parts/cell/cell //What type of power cell this uses
-	var/cell_type = /obj/item/stock_parts/cell/laser
-	var/modifystate = 0
-	var/list/ammo_type = list(/obj/item/ammo_casing/energy)
-	var/select = 1 //The state of the select fire switch. Determines from the ammo_type list what kind of shot is fired next.
-	var/can_charge = 1
-	var/charge_sections = 4
+	gun_light_overlay = "flight"
 	ammo_x_offset = 2
-	var/shaded_charge = 0 //if this gun uses a stateful charge bar for more detail
-	var/selfcharge = 0
+
+	var/obj/item/stock_parts/cell/cell	//What type of power cell this uses
+	var/cell_type = /obj/item/stock_parts/cell/laser
+	var/list/ammo_type = list(/obj/item/ammo_casing/energy)
+	var/select = 1	//The state of the select fire switch. Determines from the ammo_type list what kind of shot is fired next.
+	var/modifystate = FALSE
+	var/shaded_charge = FALSE	//if this gun uses a stateful charge bar for more detail
+	var/selfcharge = FALSE
+	var/can_charge = TRUE
+	var/charge_sections = 4
 	var/charge_tick = 0
 	var/charge_delay = 4
+	/// Used when updating icon and overlays
+	var/new_icon_state
+	/// If the item uses a shared set of overlays instead of being based on icon_state
+	var/overlay_set
+	/// Used when updating icon and overlays to determine the energy pips
+	var/ratio
 
-	var/can_add_sibyl_system = TRUE //if a sibyl system's mod can be added or removed if it already has one
+	var/can_add_sibyl_system = TRUE	//if a sibyl system's mod can be added or removed if it already has one
 	var/obj/item/sibyl_system_mod/sibyl_mod = null
 
 /obj/item/gun/energy/examine(mob/user)
 	. = ..()
 	if(sibyl_mod)
-		. += "<span class='notice'>Вы видите индикаторы модуля Sibyl System.</span>"
+		. += span_notice("Вы видите индикаторы модуля Sibyl System.")
+
 
 /obj/item/gun/energy/attackby(obj/item/I, mob/user, params)
-	..()
-	if(can_add_sibyl_system)
-		if(istype(I, /obj/item/sibyl_system_mod))
-			if(!sibyl_mod)
-				var/obj/item/sibyl_system_mod/M = I
-				M.install(src, user)
-				return
-		if(istype(I, /obj/item/card/id/))
-			if(sibyl_mod)
-				sibyl_mod.toggleAuthorization(I, user)
-				return
+	if(istype(I, /obj/item/sibyl_system_mod))
+		add_fingerprint(user)
+		var/obj/item/sibyl_system_mod/new_sibyl = I
+		if(!can_add_sibyl_system)
+			to_chat(user, span_warning("The [name] is incompatible with the sibyl systems module."))
+			return ATTACK_CHAIN_PROCEED
+		if(sibyl_mod)
+			to_chat(user, span_warning("The [name] is already has a sibyl systems module installed."))
+			return ATTACK_CHAIN_PROCEED
+		new_sibyl.install(src, user)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(sibyl_mod && istype(I, /obj/item/card/id))
+		add_fingerprint(user)
+		sibyl_mod.toggleAuthorization(I, user)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/item/gun/energy/proc/toggle_voice()
 	set name = "Переключить голос Sibyl System"
@@ -52,60 +68,60 @@
 	if(sibyl_mod && user.a_intent != INTENT_HARM)
 		if(sibyl_mod.state == SIBSYS_STATE_SCREWDRIVER_ACT)
 			sibyl_mod.state = SIBSYS_STATE_INSTALLED
-			to_chat(user, "<span class='notice'>Вы закрутили шурупы мода Sibyl System в [src].</span>")
+			to_chat(user, span_notice("Вы закрутили шурупы мода Sibyl System в [src]."))
 			return
 		else
 			if(prob(90))
 				sibyl_mod.state = SIBSYS_STATE_SCREWDRIVER_ACT
-				to_chat(user, "<span class='notice'>Вы успешно открутили шурупы мода Sibyl System от [src].</span>")
+				to_chat(user, span_notice("Вы успешно открутили шурупы мода Sibyl System от [src]."))
 			else
 				var/mob/living/carbon/human/H = user
-				var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? "l_hand" : "r_hand")
+				var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? BODY_ZONE_PRECISE_L_HAND : BODY_ZONE_PRECISE_R_HAND)
 				user.apply_damage(5, BRUTE , affecting)
 				user.emote("scream")
-				to_chat(user, "<span class='warning'>Проклятье! [I] сорвалась и повредила [affecting.name]!</span>")
+				to_chat(user, span_warning("Проклятье! [I] сорвалась и повредила [affecting.name]!"))
 			return
 
 /obj/item/gun/energy/welder_act(mob/living/user, obj/item/I)
 	..()
 	if(sibyl_mod && user.a_intent != INTENT_HARM)
 		if(sibyl_mod.state == SIBSYS_STATE_WELDER_ACT)
-			to_chat(user, "<span class='notice'>Вы начинаете заваривать болты мода Sibyl System от [src]...</span>")
+			to_chat(user, span_notice("Вы начинаете заваривать болты мода Sibyl System от [src]..."))
 			if(I.use_tool(src, user, 16 SECONDS, volume = I.tool_volume))
 				sibyl_mod.state = SIBSYS_STATE_SCREWDRIVER_ACT
-				to_chat(user, "<span class='notice'>Вы заварили болты мода Sibyl System в [src].</span>")
+				to_chat(user, span_notice("Вы заварили болты мода Sibyl System в [src]."))
 			return
 		if(sibyl_mod.state == SIBSYS_STATE_SCREWDRIVER_ACT)
-			to_chat(user, "<span class='notice'>Вы начинаете разваривать болты мода Sibyl System от [src]...</span>")
+			to_chat(user, span_notice("Вы начинаете разваривать болты мода Sibyl System от [src]..."))
 			if(I.use_tool(src, user, 16 SECONDS, volume = I.tool_volume))
 				if(prob(70))
 					sibyl_mod.state = SIBSYS_STATE_WELDER_ACT
-					to_chat(user, "<span class='notice'>Вы успешно разварили болты мода Sibyl System от [src].</span>")
+					to_chat(user, span_notice("Вы успешно разварили болты мода Sibyl System от [src]."))
 				else
 					var/mob/living/carbon/human/H = user
-					var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? "l_hand" : "r_hand")
+					var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? BODY_ZONE_PRECISE_L_HAND : BODY_ZONE_PRECISE_R_HAND)
 					user.apply_damage(10, BURN , affecting)
 					user.emote("scream")
-					to_chat(user, "<span class='warning'>Проклятье! [I] дёрнулась и прожгла [affecting.name]!</span>")
+					to_chat(user, span_warning("Проклятье! [I] дёрнулась и прожгла [affecting.name]!"))
 			return
 
 /obj/item/gun/energy/crowbar_act(mob/living/user, obj/item/I)
 	..()
 	if(sibyl_mod && user.a_intent != INTENT_HARM)
 		if(sibyl_mod.state == SIBSYS_STATE_WELDER_ACT)
-			to_chat(user, "<span class='notice'>Вы начинаете отковыривать болты мода Sibyl System от [src]...</span>")
+			to_chat(user, span_notice("Вы начинаете отковыривать болты мода Sibyl System от [src]..."))
 			if(!I.use_tool(src, user, 16 SECONDS, volume = I.tool_volume))
 				return
 			if(prob(95))
 				if(sibyl_mod.state == SIBSYS_STATE_WELDER_ACT)
 					sibyl_mod.uninstall(src)
-					to_chat(user, "<span class='notice'>Вы успешно отковыряли болты мода Sibyl System от [src].</span>")
+					to_chat(user, span_notice("Вы успешно отковыряли болты мода Sibyl System от [src]."))
 			else
 				var/mob/living/carbon/human/H = user
-				var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? "l_hand" : "r_hand")
+				var/obj/item/organ/external/affecting = H.get_organ(user.r_hand == I ? BODY_ZONE_PRECISE_L_HAND : BODY_ZONE_PRECISE_R_HAND)
 				user.apply_damage(5, BRUTE , affecting)
 				user.emote("scream")
-				to_chat(user, "<span class='warning'>Проклятье! [I] соскальзнула и повредила [affecting.name]!</span>")
+				to_chat(user, span_warning("Проклятье! [I] соскальзнула и повредила [affecting.name]!"))
 			return
 
 /obj/item/gun/energy/emag_act(mob/user)
@@ -114,7 +130,7 @@
 		sibyl_mod.emagged = TRUE
 		sibyl_mod.unlock()
 		if(user)
-			user.visible_message("<span class='warning'>От [src] летят искры!</span>", "<span class='notice'>Вы взломали [src], что привело к выключению болтов предохранителя.</span>")
+			user.visible_message(span_warning("От [src] летят искры!"), span_notice("Вы взломали [src], что привело к выключению болтов предохранителя."))
 		playsound(src.loc, 'sound/effects/sparks4.ogg', 30, 1)
 		do_sparks(5, 1, src)
 		return
@@ -175,21 +191,24 @@
 /obj/item/gun/energy/proc/on_recharge()
 	newshot()
 
-/obj/item/gun/energy/attack_self(mob/living/user as mob)
-	if(ammo_type.len > 1)
+
+/obj/item/gun/energy/attack_self(mob/living/user)
+	. = ..()
+	if(!. && length(ammo_type) > 1)
 		select_fire(user)
 		update_icon()
-		if(istype(user,/mob/living/carbon/human)) //This has to be here or else if you toggle modes by clicking the gun in hand
-			var/mob/living/carbon/human/H = user //Otherwise the mob icon doesn't update, blame shitty human update_icons() code
-			H.update_inv_l_hand()
-			H.update_inv_r_hand()
+
 
 /obj/item/gun/energy/can_shoot(mob/living/user)
-	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
-	var/check_charge = cell.charge >= shot.e_cost
-	if(sibyl_mod && !sibyl_mod.check_auth(check_charge, user))
+	if(user && sibyl_mod && !sibyl_mod.check_auth(user))
 		return FALSE
-	return check_charge
+
+	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
+	. = cell.charge >= shot.e_cost
+
+	if(!.)
+		sibyl_mod?.sibyl_sound(user, 'sound/voice/dominator/battery.ogg', 5 SECONDS)
+
 
 /obj/item/gun/energy/newshot()
 	if(!ammo_type || !cell)
@@ -215,7 +234,9 @@
 	return ..()
 
 /obj/item/gun/energy/proc/select_fire(mob/living/user)
-	if(++select > ammo_type.len)
+	if(!user)	// If it's called by something, but not human (Security level changing), drop firemode to non-lethal.
+		select = 1
+	else if(++select > ammo_type.len)
 		select = 1
 	else
 		if(sibyl_mod && !sibyl_mod.check_select(select))
@@ -223,8 +244,51 @@
 	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
 	fire_sound = shot.fire_sound
 	fire_delay = shot.delay
-	if(!isnull(user) && shot.select_name)
-		to_chat(user, "<span class='notice'>[src] is now set to [shot.select_name].</span>")
+	if(!isnull(user) && (shot.select_name || shot.fluff_select_name))
+		var/static/gun_modes_ru = list( //about 2/3 of them will never be shown in game, but better save, than sorry
+			"practice" = "режим практики",
+			"kill" = "летальный режим",
+			"shuriken" = "метатель сюрикенов",
+			"energy" = "стандартный режим",
+			"anti-vehicle" = "тяжелый лазер",
+			"DESTROY" = "режим УНИЧТОЖЕНИЯ",
+			"ANNIHILATE" = "режим ИСТРЕБЛЕНИЯ",
+			"bluetag" = "синий режим",
+			"redtag" = "красный режим",
+			"precise" = "точный выстрел", //both used in multi-lens scattershot
+			"scatter" = "рассеянный выстрел",
+			"stun" = "тазер",
+			"ion" = "ионный выстрел",
+			"declone" = "деклонер",
+			"MINDFUCK" = "мозгодавка",
+			"floraalpha" = "альфа режим",
+			"florabeta" = "бета режим",
+			"floragamma" = "гамма режим",
+			"goddamn meteor" = "стрельба чертовым метеоритом",
+			"disable" = "нейтрализатор",
+			"plasma burst" = "пучок плазмы",
+			"blue" = "синий портал",
+			"orange" = "оранжевый портал",
+			"bolt" = "дротик", //used in e-crossbows
+			"heavy bolt" = "тяжелый дротик",
+			"toxic dart" = "токсичный дротик",
+			"lightning beam" = "луч молнии",
+			"plasma dart" = "плазменный дротик",
+			"clown" = "клоунский режим",
+			"snipe" = "снайперский режим",
+			"teleport beam" = "режим телепортации",
+			"gun mimic" = "режим мимикрии",
+			"non-lethal paralyzer" = "нелетальный парализатор",
+			"lethal-eliminator" = "летальный устранитель",
+			"execution-slaughter" = "режим казни",
+			"emitter" = "режим эмиттера",
+			"spraydown" = "режим распыления",
+			"spike" = "стрельба шипами",
+			"kinetic" = "кинетический выстрел",
+			"accelerator" = "ускоренный выстрел",
+		)
+
+		balloon_alert(user, "[gun_modes_ru[shot.fluff_select_name ? shot.fluff_select_name : shot.select_name]]")
 	if(chambered)//phil235
 		if(chambered.BB)
 			qdel(chambered.BB)
@@ -232,70 +296,87 @@
 		chambered = null
 	newshot()
 	update_icon()
-	return
 
-/obj/item/gun/energy/update_icon()
-	overlays.Cut()
-	var/ratio = CEILING((cell.charge / cell.maxcharge) * charge_sections, 1)
+
+/obj/item/gun/energy/update_icon(updates = ALL)
+	. = ..()
+	update_equipped_item(update_speedmods = FALSE)
+
+
+/obj/item/gun/energy/update_icon_state()
+	icon_state = initial(icon_state)
+	ratio = CEILING((cell.charge / cell.maxcharge) * charge_sections, 1)
 	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
-	var/iconState = "[icon_state]_charge"
-	var/itemState = null
+	new_icon_state = "[icon_state]_charge"
+	var/new_item_state = null
 	if(!initial(item_state))
-		itemState = icon_state
+		new_item_state = icon_state
 	if(modifystate)
-		overlays += "[icon_state]_[shot.select_name]"
-		iconState += "_[shot.select_name]"
-		if(itemState)
-			itemState += "[shot.select_name]"
+		new_icon_state += "_[shot.select_name]"
+		if(new_item_state)
+			new_item_state += "[shot.select_name]"
+	if(new_item_state)
+		new_item_state += "[ratio]"
+		item_state = new_item_state
+	if(current_skin)
+		icon_state = current_skin
+
+
+/obj/item/gun/energy/update_overlays()
+	. = ..()
+	var/overlay_name = overlay_set ? overlay_set : icon_state
+	var/obj/item/ammo_casing/energy/shot = ammo_type[select]
+	if(modifystate)
+		. += "[overlay_name]_[shot.select_name]"
 	if(cell.charge < shot.e_cost)
-		overlays += "[icon_state]_empty"
+		. += "[overlay_name]_empty"
 	else
 		if(!shaded_charge)
 			for(var/i = ratio, i >= 1, i--)
-				overlays += image(icon = icon, icon_state = iconState, pixel_x = ammo_x_offset * (i -1))
+				. += image(icon = icon, icon_state = new_icon_state, pixel_x = ammo_x_offset * (i - 1))
 		else
-			overlays += image(icon = icon, icon_state = "[icon_state]_[modifystate ? "[shot.select_name]_" : ""]charge[ratio]")
-	if(gun_light && can_flashlight)
-		var/iconF = "flight"
+			. += image(icon = icon, icon_state = "[overlay_name]_[modifystate ? "[shot.select_name]_" : ""]charge[ratio]")
+	if(gun_light && gun_light_overlay)
+		var/iconF = gun_light_overlay
 		if(gun_light.on)
-			iconF = "flight_on"
-		overlays += image(icon = icon, icon_state = iconF, pixel_x = flight_x_offset, pixel_y = flight_y_offset)
-	if(bayonet && can_bayonet)
-		overlays += knife_overlay
-	if(itemState)
-		itemState += "[ratio]"
-		item_state = itemState
+			iconF = "[gun_light_overlay]_on"
+		. += image(icon = icon, icon_state = iconF, pixel_x = flight_x_offset, pixel_y = flight_y_offset)
+	if(bayonet && bayonet_overlay)
+		. += bayonet_overlay
 
-/obj/item/gun/energy/ui_action_click()
+
+/obj/item/gun/energy/ui_action_click(mob/user, datum/action/action, leftclick)
 	toggle_gunlight()
 
+
 /obj/item/gun/energy/suicide_act(mob/user)
-	if(can_shoot())
-		user.visible_message("<span class='suicide'>[user] is putting the barrel of the [name] in [user.p_their()] mouth.  It looks like [user.p_theyre()] trying to commit suicide.</span>")
+	if(can_trigger_gun(user))
+		user.visible_message(span_suicide("[user] is putting the barrel of the [name] in [user.p_their()] mouth.  It looks like [user.p_theyre()] trying to commit suicide."))
 		sleep(25)
 		if(user.l_hand == src || user.r_hand == src)
-			user.visible_message("<span class='suicide'>[user] melts [user.p_their()] face off with the [name]!</span>")
-			playsound(loc, fire_sound, 50, 1, -1)
+			user.visible_message(span_suicide("[user] melts [user.p_their()] face off with the [name]!"))
+			playsound(loc, fire_sound, 50, TRUE, -1)
 			var/obj/item/ammo_casing/energy/shot = ammo_type[select]
 			cell.use(shot.e_cost)
 			update_icon()
 			return FIRELOSS
 		else
-			user.visible_message("<span class='suicide'>[user] panics and starts choking to death!</span>")
+			user.visible_message(span_suicide("[user] panics and starts choking to death!"))
 			return OXYLOSS
 	else
-		user.visible_message("<span class='suicide'>[user] is pretending to blow [user.p_their()] brains out with the [name]! It looks like [user.p_theyre()] trying to commit suicide!</b></span>")
-		playsound(loc, 'sound/weapons/empty.ogg', 50, 1, -1)
+		user.visible_message(span_suicide("[user] is pretending to blow [user.p_their()] brains out with the [name]! It looks like [user.p_theyre()] trying to commit suicide!"))
+		playsound(loc, 'sound/weapons/empty.ogg', 50, TRUE, -1)
 		return OXYLOSS
 
+
 /obj/item/gun/energy/vv_edit_var(var_name, var_value)
-	switch(var_name)
-		if("selfcharge")
-			if(var_value)
-				START_PROCESSING(SSobj, src)
-			else
-				STOP_PROCESSING(SSobj, src)
 	. = ..()
+	if(var_name == NAMEOF(src, selfcharge))
+		if(var_value)
+			START_PROCESSING(SSobj, src)
+		else
+			STOP_PROCESSING(SSobj, src)
+
 
 /obj/item/gun/energy/proc/robocharge()
 	if(cell.charge == cell.maxcharge)

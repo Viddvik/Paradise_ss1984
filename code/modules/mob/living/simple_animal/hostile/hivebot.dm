@@ -4,7 +4,7 @@
 
 /mob/living/simple_animal/hostile/hivebot
 	name = "Hivebot"
-	desc = "A small robot"
+	desc = "A small robot."
 	icon = 'icons/mob/hivebot.dmi'
 	icon_state = "basic"
 	icon_living = "basic"
@@ -20,7 +20,6 @@
 	faction = list("hivebot")
 	check_friendly_fire = 1
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	speak_emote = list("states")
 	gold_core_spawnable = HOSTILE_SPAWN
 	loot = list(/obj/effect/decal/cleanable/blood/gibs/robot)
@@ -28,6 +27,13 @@
 	bubble_icon = "machine"
 	del_on_death = 1
 	footstep_type = FOOTSTEP_MOB_CLAW
+	AI_delay_max = 0.5 SECONDS
+
+/mob/living/simple_animal/hostile/hivebot/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/hivebot/range
 	name = "Hivebot"
@@ -65,7 +71,7 @@
 	health = 200
 	maxHealth = 200
 	status_flags = 0
-	anchored = 1
+	anchored = TRUE
 	stop_automated_movement = 1
 	var/bot_type = "norm"
 	var/bot_amt = 10

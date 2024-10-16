@@ -23,19 +23,23 @@
 	set hidden = FALSE
 	..()
 
+
 /obj/item/reagent_containers/food/drinks/drinkingglass/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/reagent_containers/food/snacks/egg)) //breaking eggs
-		var/obj/item/reagent_containers/food/snacks/egg/E = I
-		if(reagents)
-			if(reagents.total_volume >= reagents.maximum_volume)
-				to_chat(user, "<span class='notice'>[src] is full.</span>")
-			else
-				to_chat(user, "<span class='notice'>You break [E] in [src].</span>")
-				E.reagents.trans_to(src, E.reagents.total_volume)
-				qdel(E)
-			return
-	else
-		..()
+		add_fingerprint(user)
+		if(!reagents)
+			to_chat(user, span_warning("The [I.name] is empty."))
+			return ATTACK_CHAIN_PROCEED
+		if(reagents.total_volume >= reagents.maximum_volume)
+			to_chat(user, span_warning("The [name] is full."))
+			return ATTACK_CHAIN_PROCEED
+		to_chat(user, span_notice("You break [I] into [src]."))
+		I.reagents.trans_to(src, I.reagents.total_volume)
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
 	if(!reagents.total_volume)
@@ -46,22 +50,45 @@
 	reagents.clear_reagents()
 	extinguish()
 
-/obj/item/reagent_containers/food/drinks/drinkingglass/on_reagent_change()
-	overlays.Cut()
-	if(reagents.reagent_list.len)
-		var/datum/reagent/R = reagents.get_master_reagent()
-		name = R.drink_name
-		desc = R.drink_desc
-		if(R.drink_icon)
-			icon_state = R.drink_icon
-		else
-			var/image/I = image(icon, "glassoverlay")
-			I.color = mix_color_from_reagents(reagents.reagent_list)
-			overlays += I
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/update_icon_state()
+	if(length(reagents.reagent_list))
+		var/datum/reagent/check = reagents.get_master_reagent()
+		if(check.drink_icon)
+			icon_state = check.drink_icon
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/update_overlays()
+	. = ..()
+	if(length(reagents.reagent_list))
+		var/datum/reagent/check = reagents.get_master_reagent()
+		if(!check.drink_icon)
+			. += mutable_appearance(icon, "glassoverlay", color = mix_color_from_reagents(reagents.reagent_list))
 	else
-		icon_state = "glass_empty"
-		name = "glass"
-		desc = "Your standard drinking glass."
+		icon_state = initial(icon_state)
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/update_name(updates)
+	. = ..()
+	if(length(reagents.reagent_list))
+		var/datum/reagent/check = reagents.get_master_reagent()
+		name = check.drink_name
+	else
+		name = initial(name)
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/update_desc(updates)
+	. = ..()
+	if(length(reagents.reagent_list))
+		var/datum/reagent/check = reagents.get_master_reagent()
+		desc = check.drink_desc
+	else
+		desc = initial(desc)
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/on_reagent_change()
+	update_appearance()
+
 
 // for /obj/machinery/vending/sovietsoda
 /obj/item/reagent_containers/food/drinks/drinkingglass/soda

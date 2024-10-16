@@ -6,7 +6,7 @@ SUBSYSTEM_DEF(nightshift)
 	flags = SS_NO_TICK_CHECK
 	offline_implications = "The game will no longer shift between day and night lighting. No immediate action is needed."
 	cpu_display = SS_CPUDISPLAY_LOW
-
+	ss_id = "night_shift"
 	var/nightshift_active = FALSE
 	var/nightshift_start_time = 702000		//7:30 PM, station time
 	var/nightshift_end_time = 270000		//7:30 AM, station time
@@ -20,6 +20,7 @@ SUBSYSTEM_DEF(nightshift)
 		flags |= SS_NO_FIRE
 	if(CONFIG_GET(flag/randomize_shift_time))
 		GLOB.gametime_offset = rand(0, 23) HOURS
+	return SS_INIT_SUCCESS
 
 
 /datum/controller/subsystem/nightshift/fire(resumed = FALSE)

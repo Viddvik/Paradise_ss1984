@@ -2,9 +2,9 @@
 	name = "personal AI device"
 	icon = 'icons/obj/aicards.dmi'
 	icon_state = "pai"
-	item_state = "electronic"
+	item_state = "pai"
 	w_class = WEIGHT_CLASS_SMALL
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	origin_tech = "programming=2"
 	var/request_cooldown = 5 // five seconds
 	var/last_request
@@ -30,7 +30,7 @@
 
 /obj/item/paicard/New()
 	..()
-	overlays += "pai-off"
+	add_overlay("pai-off")
 
 /obj/item/paicard/Destroy()
 	if(pai)
@@ -253,7 +253,7 @@
 		if(pai.master_dna)
 			return
 		var/mob/M = usr
-		if(!istype(M, /mob/living/carbon))
+		if(!iscarbon(M))
 			to_chat(usr, "<font color=blue>You don't have any DNA, or your DNA is incompatible with this device.</font>")
 		else
 			var/datum/dna/dna = usr.dna
@@ -270,7 +270,7 @@
 		looking_for_personality = 1
 		GLOB.paiController.findPAI(src, usr)
 	if(href_list["wipe"])
-		var/confirm = input("Are you CERTAIN you wish to delete the current personality? This action cannot be undone.", "Personality Wipe") in list("Yes", "No")
+		var/confirm = tgui_alert(usr, "Are you certain you wish to delete the current personality? This action cannot be undone.", "Personality Wipe", list("No", "Yes"))
 		if(confirm == "Yes")
 			for(var/mob/M in src)
 				to_chat(M, "<font color = #ff0000><h2>You feel yourself slipping away from reality.</h2></font>")
@@ -279,7 +279,7 @@
 				to_chat(M, "<font color = #ffc4c4><h5>oblivion... </h5></font>")
 				var/mob/living/silicon/pai/P = M
 				if(istype(P))
-					if(P.resting || P.canmove)
+					if(P.body_position == LYING_DOWN)
 						P.close_up()
 				M.death(0, 1)
 			removePersonality()
@@ -291,7 +291,7 @@
 			if(2)
 				radio.ToggleReception()
 	if(href_list["setlaws"])
-		var/newlaws = sanitize(copytext_char(input("Enter any additional directives you would like your pAI personality to follow. Note that these directives will not override the personality's allegiance to its imprinted master. Conflicting directives will be ignored.", "pAI Directive Configuration", pai.pai_laws) as message,1,MAX_MESSAGE_LEN))
+		var/newlaws = tgui_input_text(usr, "Enter any additional directives you would like your pAI personality to follow. Note that these directives will not override the personality's allegiance to its imprinted master. Conflicting directives will be ignored.", "pAI Directive Configuration", pai.pai_laws)
 		if(newlaws)
 			pai.pai_laws = newlaws
 			to_chat(pai, "Your supplemental directives have been updated. Your new directives are:")
@@ -305,15 +305,18 @@
 
 /obj/item/paicard/proc/setPersonality(mob/living/silicon/pai/personality)
 	pai = personality
-	overlays += "pai-happy"
+	add_overlay("pai-happy")
 	if(upgrade)
 		extra_memory = upgrade.extra_memory
+		pai.syndipai = TRUE
 	pai.reset_software(extra_memory)
 
 /obj/item/paicard/proc/removePersonality()
 	pai = null
-	overlays.Cut()
-	overlays += "pai-off"
+	cut_overlays()
+	add_overlay("pai-off")
+	if(blocks_emissive)
+		add_overlay(get_emissive_block())
 	QDEL_LIST(upgrades)
 	extra_memory = 0
 
@@ -321,20 +324,34 @@
 	var/current_emotion = 1
 /obj/item/paicard/proc/setEmotion(emotion)
 	if(pai)
-		overlays.Cut()
+		cut_overlays()
 		switch(emotion)
-			if(1) overlays += "pai-happy"
-			if(2) overlays += "pai-cat"
-			if(3) overlays += "pai-extremely-happy"
-			if(4) overlays += "pai-face"
-			if(5) overlays += "pai-laugh"
-			if(6) overlays += "pai-off"
-			if(7) overlays += "pai-sad"
-			if(8) overlays += "pai-angry"
-			if(9) overlays += "pai-what"
-			if(10) overlays += "pai-spai"
-			if(11) overlays += "pai-spaic"
-			if(12) overlays += "pai-spaiv"
+			if(1)
+				add_overlay("pai-happy")
+			if(2)
+				add_overlay("pai-cat")
+			if(3)
+				add_overlay("pai-extremely-happy")
+			if(4)
+				add_overlay("pai-face")
+			if(5)
+				add_overlay("pai-laugh")
+			if(6)
+				add_overlay("pai-off")
+			if(7)
+				add_overlay("pai-sad")
+			if(8)
+				add_overlay("pai-angry")
+			if(9)
+				add_overlay("pai-what")
+			if(10)
+				add_overlay("pai-spai")
+			if(11)
+				add_overlay("pai-spaic")
+			if(12)
+				add_overlay("pai-spaiv")
+		if(blocks_emissive)
+			add_overlay(get_emissive_block())
 		current_emotion = emotion
 
 /obj/item/paicard/proc/alertUpdate()
@@ -350,85 +367,90 @@
 /obj/item/paicard/extinguish_light(force = FALSE)
 	if(pai)
 		pai.extinguish_light()
-		set_light(0)
+		set_light_on(FALSE)
+
 
 /obj/item/paicard/attackby(obj/item/I, mob/user, params)
-	. = ..()
 	if(istype(I, /obj/item/pai_cartridge))
+		add_fingerprint(user)
 		if(!pai)
-			to_chat(user, "<span class='notice'>PAI must be active to install the cartridge.")
-			return
-		var/obj/item/pai_cartridge/P = I
+			to_chat(user, span_warning("PAI must be active to install the cartridge."))
+			return ATTACK_CHAIN_PROCEED
 		for(var/obj/item/pai_cartridge/cartridge in upgrades)
-			if(istype(P, cartridge))
-				to_chat(user, "<span class='notice'>PAI already has this cartridge")
-				return
-		to_chat(user, "<span class='notice'>You install cartridge")
-		if(istype(P, /obj/item/pai_cartridge/reset))
-			pai.reset_software(extra_memory)
-			qdel(P)
-			return
-		if(istype(P, /obj/item/pai_cartridge/memory))
-			var/obj/item/pai_cartridge/memory/U = P
-			extra_memory = U.extra_memory
-			pai.ram += min(extra_memory, 70)
-			upgrades += P
-			qdel(P)
-			return
-		if(istype(P, /obj/item/pai_cartridge/doorjack))
-			var/obj/item/pai_cartridge/doorjack/U = P
-			pai.doorjack_factor += U.factor
-			upgrades += P
-			qdel(P)
-			return
-		if(istype(P, /obj/item/pai_cartridge/female))
-			pai.female_chassis = TRUE
-			upgrades += P
-			qdel(P)
-			return
-		if(istype(P, /obj/item/pai_cartridge/snake))
-			pai.snake_chassis = TRUE
-			upgrades += P
-			qdel(P)
-			return
-		if(istype(P, /obj/item/pai_cartridge/syndi_emote))
-			pai.syndi_emote = TRUE
-			upgrades += P
-			qdel(P)
-			return
+			if(istype(I, cartridge))
+				to_chat(user, span_warning("PAI already has this cartridge."))
+				return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("You install [I]."))
+		switch(I.type)
+			if(/obj/item/pai_cartridge/reset)
+				pai.reset_software(extra_memory)
+				qdel(I)
+			if(/obj/item/pai_cartridge/female)
+				pai.female_chassis = TRUE
+				upgrades += I
+			if(/obj/item/pai_cartridge/memory)
+				var/obj/item/pai_cartridge/memory/memory = I
+				extra_memory = memory.extra_memory
+				pai.ram += min(extra_memory, 70)
+				upgrades += memory
+			if(/obj/item/pai_cartridge/doorjack)
+				var/obj/item/pai_cartridge/doorjack/doorjack = I
+				pai.doorjack_factor += doorjack.factor
+				upgrades += doorjack
+			if(/obj/item/pai_cartridge/snake)
+				pai.snake_chassis = TRUE
+				upgrades += I
+			if(/obj/item/pai_cartridge/syndi_emote)
+				pai.syndi_emote = TRUE
+				upgrades += I
+		return ATTACK_CHAIN_BLOCKED_ALL
 
 	if(istype(I, /obj/item/paicard_upgrade))
-		var/obj/item/paicard_upgrade/P = I
+		add_fingerprint(user)
+		var/obj/item/paicard_upgrade/new_upgrade = I
 		if(pai)
 			if(pai.syndipai)
-				return
-			extra_memory += P.extra_memory
+				to_chat(user, span_warning("This [name] is badass enough already!"))
+				return ATTACK_CHAIN_PROCEED
+			if(!user.drop_transfer_item_to_loc(new_upgrade, src))
+				return ..()
+			extra_memory += new_upgrade.extra_memory
 			pai.reset_software(extra_memory)
 			pai.syndipai = TRUE
-			qdel(P)
-			return
-		if(upgrade || is_syndicate_type)
-			return
-		to_chat(user, "<span class='notice'>You install upgrade.</span>")
-		upgrade = P
-		user.drop_transfer_item_to_loc(P, src)
-		extra_memory += P.extra_memory
+			qdel(new_upgrade)
+			return ATTACK_CHAIN_BLOCKED_ALL
+		if(is_syndicate_type)
+			to_chat(user, span_warning("This [name] is badass enough already!"))
+			return ATTACK_CHAIN_PROCEED
+		if(upgrade)
+			to_chat(user, span_warning("This [name] has [upgrade] installed already!"))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(new_upgrade, src))
+			return ..()
+		to_chat(user, span_notice("You install [new_upgrade]."))
+		upgrade = new_upgrade
+		extra_memory += new_upgrade.extra_memory
 		is_syndicate_type = TRUE
-		return
+		return ATTACK_CHAIN_BLOCKED_ALL
 
 	if(istype(I, /obj/item/encryptionkey))
+		add_fingerprint(user)
 		if(!radio)
-			return
-
+			to_chat(user, span_warning("This [name] has no radio installed!"))
+			return ATTACK_CHAIN_PROCEED
 		if(radio.keyslot1)
-			to_chat(user, "The headset can't hold another key!")
-			return
-		else
-			user.drop_transfer_item_to_loc(I, radio)
-			radio.keyslot1 = I
-
+			to_chat(user, span_warning("[name]'s radio cannot hold another encryption key!"))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		radio.keyslot1 = I
 		radio.recalculateChannels()
-		return
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/paicard/screwdriver_act(mob/living/user, obj/item/I)
 	. = TRUE
@@ -523,7 +545,7 @@
 
 /obj/item/paper/pai_upgrade
 	name = "Инструкция по применению"
-	icon_state = "paper"
+	icon_state = "paper_words"
 	info = {"<center> <b>Инструкция по применению СпИИ</b> </center><br>
 
  <b>В набор СпИИ входит:</b><br>
@@ -548,7 +570,7 @@
  5.Термальное зрение для пИИ<br>
 "}
 
-/obj/item/paper/pai_upgrade/update_icon()
+/obj/item/paper/pai_upgrade/update_icon_state()
 	return
 
 /obj/item/storage/box/syndie_kit/pai

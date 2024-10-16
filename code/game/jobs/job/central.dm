@@ -1,13 +1,13 @@
 
 // General-purpose CC official. Can hear out grievances, investigate cases, issue demotions, etc.
 /datum/job/ntnavyofficer
-	title = "Nanotrasen Navy Officer"
-	flag = JOB_CENTCOM
-	department_flag = JOB_CENTCOM // This gets its job as its own flag because admin jobs dont have flags
+	title = JOB_TITLE_CCOFFICER
+	flag = JOB_FLAG_CENTCOM
+	department_flag = JOB_FLAG_CENTCOM // This gets its job as its own flag because admin jobs dont have flags
 	total_positions = 5
 	spawn_positions = 5
 	supervisors = "the admins"
-	selection_color = "#ffdddd"
+	selection_color = "#6865B3"
 	access = list()
 	minimal_access = list()
 	admin_only = 1
@@ -52,7 +52,7 @@
 
 // НТ Оффицер для недовольных выходов с ЦК.
 /datum/job/ntnavyofficer/field
-	title = "Nanotrasen Navy Field Officer"
+	title = JOB_TITLE_CCFIELD
 	outfit = /datum/outfit/job/ntnavyofficer/field
 
 /datum/outfit/job/ntnavyofficer/field
@@ -64,13 +64,13 @@
 
 // CC Officials who lead ERTs, Death Squads, etc.
 /datum/job/ntspecops
-	title = "Special Operations Officer"
-	flag = JOB_CENTCOM
-	department_flag = JOB_CENTCOM // This gets its job as its own flag because admin jobs dont have flags
+	title = JOB_TITLE_CCSPECOPS
+	flag = JOB_FLAG_CENTCOM
+	department_flag = JOB_FLAG_CENTCOM // This gets its job as its own flag because admin jobs dont have flags
 	total_positions = 5
 	spawn_positions = 5
 	supervisors = "the admins"
-	selection_color = "#ffdddd"
+	selection_color = "#6865B3"
 	access = list()
 	minimal_access = list()
 	admin_only = 1
@@ -87,7 +87,7 @@
 	suit = /obj/item/clothing/suit/space/deathsquad/officer
 	back = /obj/item/storage/backpack/ert/security
 	belt = /obj/item/storage/belt/military/assault
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat
 	shoes = /obj/item/clothing/shoes/combat
 	mask = /obj/item/clothing/mask/cigarette/cigar/cohiba
 	head = /obj/item/clothing/head/helmet/space/deathsquad/beret
@@ -122,7 +122,7 @@
 
 // Верховное командование для самых больших проблем
 /datum/job/ntspecops/supreme
-	title = "Supreme Commander"
+	title = JOB_TITLE_CCSUPREME
 	outfit = /datum/outfit/job/ntspecops/supreme
 
 /datum/outfit/job/ntspecops/supreme
@@ -130,6 +130,7 @@
 	jobtype = /datum/job/ntspecops/supreme
 
 	suit = /obj/item/clothing/suit/space/deathsquad/officer/supreme
+	belt = /obj/item/storage/belt/rapier/centcomm
 	head = /obj/item/clothing/head/helmet/space/deathsquad/beret/supreme
 	shoes =	/obj/item/clothing/shoes/cowboy/white
 	gloves = /obj/item/clothing/gloves/color/white
@@ -140,7 +141,7 @@
 
 //Tran-Solar Federation General
 /datum/job/ntspecops/solgovspecops
-	title = "Solar Federation General"
+	title = JOB_TITLE_CCSOLGOV
 	outfit = /datum/outfit/job/ntspecops/solgovspecops
 
 /datum/outfit/job/ntspecops/solgovspecops
@@ -152,6 +153,10 @@
 
 	implants = list(
 		/obj/item/implant/dust
+	)
+
+	backpack_contents = list(
+		/obj/item/stamp/solgov = 1,
 	)
 
 /datum/outfit/job/ntspecops/solgovspecops/post_equip(mob/living/carbon/human/H, visualsOnly = FALSE)

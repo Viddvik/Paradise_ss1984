@@ -10,17 +10,17 @@
 	icon = 'icons/mob/alien.dmi'
 	gender = NEUTER
 	dna = null
-	alien_talk_understand = TRUE
+	ventcrawler_trait = TRAIT_VENTCRAWLER_ALIEN
 
-	var/nightvision = FALSE
-	see_in_dark = 4
+	var/nightvision_enabled = FALSE
+	nightvision = 4
 
 	var/obj/item/card/id/wear_id = null // Fix for station bounced radios -- Skie
 	var/has_fine_manipulation = FALSE
-	var/move_delay_add = FALSE // movement delay to add
+	var/move_delay_add = 0 // movement delay to add
+	var/caste_movement_delay = 0
 
 	status_flags = CANPARALYSE|CANPUSH
-	var/heal_rate = 5
 
 	var/attack_damage = 20
 	var/armour_penetration = 20
@@ -34,25 +34,33 @@
 	var/heat_protection = 0.5
 	var/leaping = FALSE
 	dirslash_enabled = TRUE
-	ventcrawler = 1
+
+	var/can_evolve = FALSE
+	var/evolution_points = 0
+	var/max_evolution_points = 200
+
 	/// See [/proc/genderize_decode] for more info.
 	var/death_message = "изда%(ет,ют)% тихий гортанный звук, зелёная кровь пузырится из %(его,её,его,их)% пасти..."
 	var/death_sound = 'sound/voice/hiss6.ogg'
 
 	var/datum/action/innate/alien_nightvision_toggle/night_vision_action
+	var/static/praetorian_count = 0
+	var/static/queen_count = 0
+	var/static/queen_maximum = 0
 
 
 /mob/living/carbon/alien/New()
 	..()
 	create_reagents(1000)
-	verbs += /mob/living/verb/mob_sleep
-	verbs += /mob/living/verb/lay_down
+	add_verb(src, /mob/living/verb/mob_sleep)
 	night_vision_action = new
 	night_vision_action.Grant(src)
 
 	for(var/organ_path in get_caste_organs())
-		var/obj/item/organ/internal/organ = new organ_path()
-		organ.insert(src)
+		new organ_path(src)
+
+	if(caste_movement_delay)
+		update_alien_speed()
 
 
 /mob/living/carbon/alien/Destroy()
@@ -74,10 +82,19 @@
 	)
 
 
+/mob/living/carbon/alien/get_status_tab_items()
+	var/list/status_tab_data = ..()
+	. = status_tab_data
+	status_tab_data[++status_tab_data.len] = list("Intent:", "[a_intent]")
+	status_tab_data[++status_tab_data.len] = list("Move Mode:", "[m_intent]")
+	if(can_evolve)
+		status_tab_data[++status_tab_data.len] = list("Evolution progress: [evolution_points]/[max_evolution_points]")
+
+
 /mob/living/carbon/alien/get_default_language()
 	if(default_language)
 		return default_language
-	return GLOB.all_languages["Xenomorph"]
+	return GLOB.all_languages[LANGUAGE_XENOS]
 
 /mob/living/carbon/alien/say_quote(var/message, var/datum/language/speaking = null)
 	var/verb = "hisses"
@@ -93,24 +110,34 @@
 	return verb
 
 
-/mob/living/carbon/alien/adjustToxLoss(amount, updating_health)
+/mob/living/carbon/alien/adjustToxLoss(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	forced = FALSE,
+	used_weapon = null,
+)
 	return STATUS_UPDATE_NONE
 
-/mob/living/carbon/alien/adjustFireLoss(amount, updating_health) // Weak to Fire
-	if(amount > 0)
-		return ..(amount * ALIEN_BURN_MOD)
-	else
-		return ..(amount)
 
-/mob/living/carbon/alien/adjustBruteLoss(amount, updating_health = TRUE)
-	if(amount > 0)
-		return ..(amount * ALIEN_BRUTE_MOD, updating_health)
-	else
-		return ..(amount, updating_health)
+/mob/living/carbon/alien/get_incoming_damage_modifier(
+	damage = 0,
+	damagetype = BRUTE,
+	def_zone = null,
+	sharp = FALSE,
+	used_weapon = null,
+)
+	. = ..()
+
+	switch(damagetype)
+		if(BRUTE)
+			. *= ALIEN_BRUTE_MOD
+		if(BURN)
+			. *= ALIEN_BURN_MOD
 
 
 /mob/living/carbon/alien/check_eye_prot()
-	return 2
+	return FLASH_PROTECTION_WELDER
 
 /mob/living/carbon/alien/handle_environment(var/datum/gas_mixture/environment)
 
@@ -129,15 +156,15 @@
 			//Place is hotter than we are
 			var/thermal_protection = heat_protection //This returns a 0 - 1 value, which corresponds to the percentage of protection based on what you're wearing and what you're exposed to.
 			if(thermal_protection < 1)
-				bodytemperature += (1-thermal_protection) * ((loc_temp - bodytemperature) / BODYTEMP_HEAT_DIVISOR)
+				adjust_bodytemperature((1-thermal_protection) * ((loc_temp - bodytemperature) / BODYTEMP_HEAT_DIVISOR))
 		else
-			bodytemperature += 1 * ((loc_temp - bodytemperature) / BODYTEMP_HEAT_DIVISOR)
+			adjust_bodytemperature(1 * ((loc_temp - bodytemperature) / BODYTEMP_HEAT_DIVISOR))
 		//	bodytemperature -= max((loc_temp - bodytemperature / BODYTEMP_AUTORECOVERY_DIVISOR), BODYTEMP_AUTORECOVERY_MINIMUM)
 
 	// +/- 50 degrees from 310.15K is the 'safe' zone, where no damage is dealt.
 	if(bodytemperature > 360.15)
 		//Body temperature is too hot.
-		throw_alert("alien_fire", /obj/screen/alert/alien_fire)
+		throw_alert("alien_fire", /atom/movable/screen/alert/alien_fire)
 		switch(bodytemperature)
 			if(360 to 400)
 				apply_damage(HEAT_DAMAGE_LEVEL_1, BURN)
@@ -152,33 +179,50 @@
 		clear_alert("alien_fire")
 
 
-/mob/living/carbon/alien/can_ventcrawl(atom/clicked_on, override = FALSE)
-	if(!override && ventcrawler == 1 && (get_active_hand() || get_inactive_hand()))
-		to_chat(src, span_warning("Вы не можете ползать по вентиляции с предметами в руках."))
-		return FALSE
-
-	return ..(clicked_on, override = TRUE)
-
-
 /mob/living/carbon/alien/IsAdvancedToolUser()
 	return has_fine_manipulation
 
-/mob/living/carbon/alien/Stat()
-	..()
-	statpanel("Status")
-	stat(null, "Intent: [a_intent]")
-	stat(null, "Move Mode: [m_intent]")
-	show_stat_emergency_shuttle_eta()
+
+/mob/living/carbon/alien/Weaken(amount, ignore_canweaken)
+	. = ..()
+	if(. && check_incapacitating_immunity(CANWEAKEN, ignore_canweaken) && amount && !large)
+		// add some movement delay
+		move_delay_add = min(move_delay_add + round(amount / 5), 10)
+		add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/alien_stun_delay, multiplicative_slowdown = move_delay_add)
+
 
 /mob/living/carbon/alien/SetWeakened(amount, ignore_canweaken)
-	..()
-	if(!(status_flags & CANWEAKEN) && amount)
-		// add some movement delay
-		move_delay_add = min(move_delay_add + round(amount / 2), 10) // a maximum delay of 10
-
-/mob/living/carbon/alien/movement_delay()
 	. = ..()
-	. += move_delay_add + CONFIG_GET(number/alien_delay) //move_delay_add is used to slow aliens with stuns
+	if(. && check_incapacitating_immunity(CANWEAKEN, ignore_canweaken) && amount && !large)
+		// add some movement delay
+		move_delay_add = min(move_delay_add + round(amount / 5), 10)
+		add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/alien_stun_delay, multiplicative_slowdown = move_delay_add)
+	else if(amount == 0)
+		move_delay_add = 0
+		remove_movespeed_modifier(/datum/movespeed_modifier/alien_stun_delay)
+
+
+/mob/living/carbon/alien/update_stamina()
+	return
+
+
+/mob/living/carbon/alien/lying_angle_on_movement(direct)
+	return
+
+
+/mob/living/carbon/alien/on_lying_down(new_lying_angle)
+	. = ..()
+	update_icons()
+
+
+/mob/living/carbon/alien/on_standing_up()
+	. = ..()
+	update_icons()
+
+
+/mob/living/carbon/alien/proc/update_alien_speed()
+	add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/alien_speed, multiplicative_slowdown = caste_movement_delay)
+
 
 /mob/living/carbon/alien/getDNA()
 	return null
@@ -189,20 +233,20 @@
 /mob/living/carbon/alien/verb/nightvisiontoggle()
 	set name = "Toggle Night Vision"
 
-	if(!nightvision)
-		see_in_dark = 8
+	if(!nightvision_enabled)
 		lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
-		nightvision = TRUE
+		nightvision = 8
+		nightvision_enabled = TRUE
 		usr.hud_used.nightvisionicon.icon_state = "nightvision1"
-	else if(nightvision)
-		see_in_dark = initial(see_in_dark)
+	else if(nightvision_enabled)
 		lighting_alpha = initial(lighting_alpha)
-		nightvision = FALSE
+		nightvision_enabled = FALSE
 		usr.hud_used.nightvisionicon.icon_state = "nightvision0"
 
 	update_sight()
-	if(ventcrawler)
-		update_pipe_vision(loc)
+	if(is_ventcrawling(src))
+		update_pipe_vision()
+
 
 /mob/living/carbon/alien/assess_threat(var/mob/living/simple_animal/bot/secbot/judgebot, var/lasercolor)
 	if(judgebot.emagged == 2)
@@ -265,10 +309,6 @@ Des: Removes all infected images from the alien.
 	return
 
 
-/mob/living/carbon/alien/canBeHandcuffed()
-	return TRUE
-
-
 /mob/living/carbon/proc/get_plasma()
 	var/obj/item/organ/internal/xenos/plasmavessel/vessel = get_int_organ(/obj/item/organ/internal/xenos/plasmavessel)
 	if(!vessel)
@@ -309,8 +349,6 @@ Des: Removes all infected images from the alien.
 /mob/living/carbon/alien/larva/update_plasma_display(mob/owner, update_buttons = FALSE)
 	return
 
-/mob/living/carbon/alien/can_use_vents()
-	return
 
 /mob/living/carbon/alien/getTrail()
 	if(getBruteLoss() < 200)
@@ -325,13 +363,11 @@ Des: Removes all infected images from the alien.
 		grant_death_vision()
 		return
 
-	see_invisible = initial(see_invisible)
-	sight = SEE_MOBS
-	if(nightvision)
-		see_in_dark = 8
+	set_invis_see(initial(see_invisible))
+	set_sight(SEE_MOBS)
+	if(nightvision_enabled)
 		lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
 	else
-		see_in_dark = initial(see_in_dark)
 		lighting_alpha = initial(lighting_alpha)
 
 	if(client.eye != src)
@@ -339,14 +375,14 @@ Des: Removes all infected images from the alien.
 		if(A.update_remote_sight(src)) //returns 1 if we override all other sight updates.
 			return
 
-	for(var/obj/item/organ/internal/cyberimp/eyes/E in internal_organs)
-		sight |= E.vision_flags
-		if(E.see_in_dark)
-			see_in_dark = max(see_in_dark, E.see_in_dark)
-		if(E.see_invisible)
-			see_invisible = min(see_invisible, E.see_invisible)
-		if(!isnull(E.lighting_alpha))
-			lighting_alpha = min(lighting_alpha, E.lighting_alpha)
+	for(var/obj/item/organ/internal/cyberimp/eyes/cyber_eyes in internal_organs)
+		add_sight(cyber_eyes.vision_flags)
+		if(cyber_eyes.see_in_dark)
+			nightvision = max(nightvision, cyber_eyes.see_in_dark)
+		if(cyber_eyes.see_invisible)
+			set_invis_see(min(see_invisible, cyber_eyes.see_invisible))
+		if(!isnull(cyber_eyes.lighting_alpha))
+			lighting_alpha = min(lighting_alpha, cyber_eyes.lighting_alpha)
 
 	SEND_SIGNAL(src, COMSIG_MOB_UPDATE_SIGHT)
 	sync_lighting_plane_alpha()

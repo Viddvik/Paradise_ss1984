@@ -33,7 +33,7 @@
 	info_list += "[span_info("Температура тела: [ninja.bodytemperature-T0C] градусов C ([ninja.bodytemperature*1.8-459.67] градусов F)")]\n"
 
 	//Diseases
-	if(length(ninja.diseases))
+	if(LAZYLEN(ninja.diseases))
 		info_list += "[span_info("Вирусы:")]\n"
 		for(var/datum/disease/ninja_disease in ninja.diseases)
 			info_list += "[span_info("* [ninja_disease.name], Тип: [ninja_disease.additional_info], Стадия: [ninja_disease.stage]/[ninja_disease.max_stages], Возможное лекарство: [ninja_disease.cure_text]")]\n"
@@ -41,7 +41,7 @@
 	if(ninja.reagents.reagent_list.len)
 		info_list += "[span_info("Обнаружены реагенты:")]\n"
 		for(var/datum/reagent/ninja_reagent in ninja.reagents.reagent_list)
-			info_list += "[span_info("&emsp;[ninja_reagent.volume]u [ninja_reagent.name][ninja_reagent.overdosed ? " - [span_boldannounce("ПЕРЕДОЗИРОВКА")]" : "."]")]\n"
+			info_list += "[span_info("&emsp;[ninja_reagent.volume]u [ninja_reagent.name][ninja_reagent.overdosed ? " - [span_boldannounceic("ПЕРЕДОЗИРОВКА")]" : "."]")]\n"
 	else
 		info_list += "[span_info("Реагенты не обнаружены.")]\n"
 	if(ninja.reagents.addiction_list.len)

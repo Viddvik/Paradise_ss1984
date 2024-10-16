@@ -20,14 +20,14 @@
 	melee_damage_upper = 16
 	stat_attack = 1
 	robust_searching = 1
-	see_in_dark = 7
-	ventcrawler = 2
+	nightvision = 7
+	ventcrawler_trait = TRAIT_VENTCRAWLER_ALWAYS
 	pass_flags = PASSTABLE
 	attack_sound = 'sound/weapons/bite.ogg'
 	deathmessage = "rolls over, frothing at the mouth before stilling."
 	var/poison_type = "spore"
 	var/poison_per_bite = 5
-	var/buttmad = 0
+	var/buttmad = FALSE
 	var/melee_damage_lower_angery0 = 13
 	var/melee_damage_upper_angery0 = 16
 	var/melee_damage_lower_angery1 = 15
@@ -35,31 +35,42 @@
 	var/anger_move_to_delay = 8
 	var/anger_speed = 4
 
-/mob/living/simple_animal/hostile/asteroid/marrowweaver/adjustHealth(amount, updating_health = TRUE)
-	if(buttmad == 0)
+
+/mob/living/simple_animal/hostile/asteroid/marrowweaver/adjustHealth(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	damage_type = BRUTE,
+	forced = FALSE,
+)
+	. = ..()
+	if(!. || amount <= 0)
+		return .
+
+	if(!buttmad)
 		if(health < maxHealth/3)
-			buttmad = 1
+			buttmad = TRUE
 			visible_message(span_danger("[src] chitters in rage, baring its fangs!"))
 			melee_damage_lower = melee_damage_lower_angery1
 			melee_damage_upper = melee_damage_upper_angery1
 			move_to_delay = anger_move_to_delay
-			speed = anger_speed
+			set_varspeed(anger_speed)
 			poison_type = "venom"
 			poison_per_bite = 6
-	else if(buttmad == 1)
+	else
 		if(health > maxHealth/2)
-			buttmad = 0
+			buttmad = FALSE
 			visible_message(span_notice("[src] seems to have calmed down, but not by much."))
 			melee_damage_lower = melee_damage_lower_angery0
 			melee_damage_upper = melee_damage_upper_angery0
 			poison_type = initial(poison_type)
-			speed = initial(speed)
+			set_varspeed(initial(speed))
 			poison_per_bite = initial(poison_per_bite)
-	..()
+
 
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/AttackingTarget()
-	..()
-	if(isliving(target))
+	. = ..()
+	if(. && isliving(target))
 		var/mob/living/L = target
 		if(target.reagents)
 			L.reagents.add_reagent(poison_type, poison_per_bite)
@@ -87,8 +98,8 @@
 
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/proc/fiesta(var/mob/living/carbon/human/snack, preparing = TRUE)
 	var/foundorgans = 0
-	var/list/organs = snack.get_organs_zone("chest")
-	for(var/obj/item/organ/internal/I in organs)
+	var/list/organs = snack.get_organs_zone(BODY_ZONE_CHEST)
+	for(var/obj/item/organ/internal/I as anything in organs)
 		if(!istype(I, /obj/item/organ/internal/brain))
 			foundorgans ++
 			if(!preparing)
@@ -104,16 +115,14 @@
 	icon_state = "chitin"
 	singular_name = "chitin chunk"
 
-//better and dangerous subtype for regular lavaland. Has X-ray and slightly faster
+//better and dangerous subtype for regular lavaland. Slightly faster and NO MORE XRAY.
 
 /mob/living/simple_animal/hostile/asteroid/marrowweaver/dangerous
 	health = 320
 	maxHealth = 320
 	vision_range = 8
-	see_in_dark = 8
+	nightvision = 8
 	speed = 5
-	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
-	sight = SEE_TURFS|SEE_MOBS|SEE_OBJS
 	move_to_delay = 14
 	anger_move_to_delay = 6
 	anger_speed = 6

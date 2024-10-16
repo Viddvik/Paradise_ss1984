@@ -1,8 +1,10 @@
 /datum/disease/virus
 	form = "Вирус"
 	carrier_mobtypes = list(/mob/living/simple_animal/mouse)
-	var/spread_flags = NON_CONTAGIOUS
+	spread_from_dead_prob = 25
 
+	///method of infection of the virus
+	var/spread_flags = NON_CONTAGIOUS
 	///affects how often the virus will try to spread. The more the better. In range [0-100]
 	var/infectivity = 65
 	///affects how well the virus will pass through the protection. The more the better. In range (0-2]
@@ -20,13 +22,20 @@
  * * FALSE - if don't need to call a child proc
  */
 /datum/disease/virus/stage_act()
-	if(prob(infectivity))
+	if(!affected_mob)
+		return FALSE
+
+	if(can_spread())
 		spread()
 
 	. = ..()
 
-	if(!. || carrier || (affected_mob.type in carrier_mobtypes))
+	if(!. || carrier)
 		return FALSE
+
+	for(var/mobtype in carrier_mobtypes)
+		if(istype(affected_mob, mobtype))
+			return FALSE
 
 	return TRUE
 
@@ -37,7 +46,16 @@
 			discovered = TRUE
 			affected_mob.med_hud_set_status()
 
-/datum/disease/virus/spread(force_spread = 0)
+
+/datum/disease/virus/proc/can_spread()
+	if(istype(affected_mob.loc, /obj/structure/closet/body_bag/biohazard))
+		return FALSE
+	if(prob(infectivity) && (affected_mob.stat != DEAD || prob(spread_from_dead_prob)))
+		return TRUE
+	return FALSE
+
+
+/datum/disease/virus/proc/spread(force_spread = 0)
 	if(!affected_mob)
 		return
 
@@ -52,9 +70,9 @@
 	if(spread_flags & AIRBORNE)
 		spread_range++
 
-	var/turf/T = affected_mob.loc
+	var/turf/T = get_turf(affected_mob)
 	if(istype(T))
-		for(var/mob/living/C in oview(spread_range, affected_mob))
+		for(var/mob/living/C in view(spread_range, T))
 			var/turf/V = get_turf(C)
 			if(V)
 				while(TRUE)
@@ -66,7 +84,7 @@
 						Contract(C, act_type = a_type, need_protection_check = TRUE)
 						break
 					var/turf/Temp = get_step_towards(V, T)
-					if(!V.CanAtmosPass(Temp))
+					if(!V.CanAtmosPass(Temp, vertical = FALSE))
 						break
 					V = Temp
 

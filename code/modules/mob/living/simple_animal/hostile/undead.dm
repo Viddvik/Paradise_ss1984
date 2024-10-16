@@ -13,7 +13,7 @@
 		else
 			R.visible_message("[R] stares at [src] for a minute before turning away.")
 			if(R.target == src)
-				R.target = null
+				R.GiveTarget(null)
 	if(!found)
 		return ..()
 
@@ -23,7 +23,7 @@
 	icon_state = "ghost2"
 	icon_living = "ghost2"
 	icon_dead = "ghost"
-	density = 0 // ghost
+	density = FALSE // ghost
 	invisibility = 60 // no seriously ghost
 	speak_chance = 0 // fyi, ghost
 
@@ -46,16 +46,25 @@
 	attack_sound = 'sound/hallucinations/growl1.ogg'
 
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
-	flying = TRUE
 	pressure_resistance = 300
 	gold_core_spawnable = NO_SPAWN //too spooky for science
 	faction = list("undead") // did I mention ghost
 	loot = list(/obj/item/reagent_containers/food/snacks/ectoplasm)
 	del_on_death = 1
 
-/mob/living/simple_animal/hostile/ghost/Process_Spacemove(var/check_drift = 0)
-	return 1
+/mob/living/simple_animal/hostile/ghost/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
+/mob/living/simple_animal/hostile/ghost/Initialize(mapload)
+	. = ..()
+	AddElement(/datum/element/simple_flying)
+
+
+/mob/living/simple_animal/hostile/ghost/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE
 
 /mob/living/simple_animal/hostile/ghost/Life(seconds, times_fired)
 	if(target)
@@ -83,8 +92,6 @@
 	harm_intent_damage = 5
 	melee_damage_lower = 15
 	melee_damage_upper = 15
-	minbodytemp = 0
-	maxbodytemp = 1500
 	healable = FALSE //they're skeletons how would bruise packs help them??
 	attacktext = "бьёт"
 	attack_sound = 'sound/hallucinations/growl1.ogg'
@@ -94,11 +101,18 @@
 	stat_attack = UNCONSCIOUS
 	gold_core_spawnable = HOSTILE_SPAWN
 	faction = list("undead")
-	see_in_dark = 8
+	nightvision = 8
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
 	deathmessage = "collapses into a pile of bones!"
 	del_on_death = TRUE
 	loot = list(/obj/effect/decal/remains/human)
+
+/mob/living/simple_animal/hostile/skeleton/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 1500, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/skeleton/eskimo
 	name = "undead eskimo"
@@ -107,7 +121,7 @@
 	icon_living = "eskimo"
 	maxHealth = 55
 	health = 55
-	weather_immunities = list("snow")
+	weather_immunities = list(TRAIT_SNOWSTORM_IMMUNE)
 	gold_core_spawnable = NO_SPAWN
 	melee_damage_lower = 17
 	melee_damage_upper = 20
@@ -141,11 +155,16 @@
 	attack_sound = 'sound/hallucinations/growl1.ogg'
 
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 
 	faction = list("undead")
 	loot = list(/obj/effect/decal/cleanable/blood/gibs)
 	del_on_death = 1
+
+/mob/living/simple_animal/hostile/zombie/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/zombie/whiteship
 	speak = list("RAWR!","Rawr!","GRR!","Growl!")
@@ -169,3 +188,76 @@
 	melee_damage_lower = 15
 	melee_damage_upper = 30
 	speed = -1
+
+/mob/living/simple_animal/hostile/zombie/space_graveyard/noble
+	name = "zombie"
+	icon = 'icons/mob/simple_human.dmi'
+	icon_state = "husk_suit"
+	speed = 0
+	maxHealth = 100
+	health = 100
+	melee_damage_lower = 25
+	melee_damage_upper = 35
+	loot = list(
+		/obj/item/decorations/bouquets/random,
+		/obj/item/clothing/shoes/centcom,
+		/obj/item/clothing/under/suit_jacket/charcoal,
+		/obj/effect/decal/cleanable/blood/gibs,
+		/obj/effect/particle_effect/smoke/vomiting,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping,
+	)
+
+/mob/living/simple_animal/hostile/zombie/space_graveyard/noble/fast
+	name = "fast zombie"
+	maxHealth = 75
+	health = 75
+	melee_damage_lower = 15
+	melee_damage_upper = 30
+	speed = -1
+
+/mob/living/simple_animal/hostile/zombie/space_graveyard/dredd
+	name = "street judge zombie"
+	icon = 'icons/mob/simple_human.dmi'
+	icon_state = "husk_dredd"
+	speed = 0
+	maxHealth = 160
+	health = 160
+	melee_damage_lower = 25
+	melee_damage_upper = 40
+	loot = list(
+		/obj/item/clothing/under/rank/security,
+		/obj/item/clothing/suit/armor/vest/street_judge,
+		/obj/item/clothing/gloves/combat,
+		/obj/item/clothing/shoes/jackboots,
+		/obj/item/clothing/head/helmet/street_judge,
+		/obj/item/clothing/mask/gas/sechailer,
+		/obj/item/gun/energy/dominator/sibyl,
+		/obj/item/clothing/accessory/head_strip/lawyers_badge,
+		/obj/effect/decal/cleanable/blood/gibs,
+		/obj/effect/particle_effect/smoke/vomiting,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping,
+	)
+
+/mob/living/simple_animal/hostile/zombie/space_graveyard/pirate
+	name = "zombie pirate"
+	icon = 'icons/mob/simple_human.dmi'
+	icon_state = "husk_pirate"
+	speed = 0
+	maxHealth = 125
+	health = 125
+	melee_damage_lower = 20
+	melee_damage_upper = 30
+	loot = list(
+		/obj/item/clothing/suit/pirate_brown,
+		/obj/item/clothing/under/pirate,
+		/obj/item/clothing/shoes/fluff/noble_boot,
+		/obj/item/clothing/head/pirate,
+		/obj/item/clothing/glasses/eyepatch,
+		/obj/item/melee/energy/sword/pirate,
+		/obj/effect/decal/cleanable/blood/gibs,
+		/obj/effect/particle_effect/smoke/vomiting,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping,
+		/obj/item/reagent_containers/food/snacks/monstermeat/rotten/jumping
+	)

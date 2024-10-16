@@ -17,24 +17,25 @@
 	START_PROCESSING(SSobj, src)
 	GLOB.poi_list |= src
 	adjustcolors(color) //so it atleast appears
-	if(offspring)
-		is_offspring = 1
-	if(overmind)
-		adjustcolors(overmind.blob_reagent_datum.color)
 	if(!overmind)
 		create_overmind(new_overmind)
+	if(offspring)
+		is_offspring = TRUE
 	point_rate = new_rate
 	..(loc, h)
 
 
-/obj/structure/blob/core/adjustcolors(var/a_color)
-	overlays.Cut()
+/obj/structure/blob/core/adjustcolors(a_color)
+	cut_overlays()
 	color = null
 	var/image/I = new('icons/mob/blob.dmi', "blob")
 	I.color = a_color
-	overlays += I
+	add_overlay(I)
 	var/image/C = new('icons/mob/blob.dmi', "blob_core_overlay")
-	overlays += C
+	add_overlay(C)
+
+	if(blocks_emissive)
+		add_overlay(get_emissive_block())
 
 
 /obj/structure/blob/core/Destroy()
@@ -42,6 +43,7 @@
 	if(overmind)
 		overmind.blob_core = null
 	overmind = null
+	SSticker?.mode?.blob_died()
 	STOP_PROCESSING(SSobj, src)
 	GLOB.poi_list.Remove(src)
 	return ..()
@@ -69,7 +71,7 @@
 	obj_integrity = min(max_integrity, obj_integrity + 1)
 	if(overmind)
 		overmind.update_health_hud()
-	if(overmind)
+	if(overmind?.blob_reagent_datum?.color)
 		for(var/i = 1; i < 8; i += i)
 			Pulse(0, i, overmind.blob_reagent_datum.color)
 	else
@@ -81,7 +83,7 @@
 		var/obj/structure/blob/normal/B = locate() in get_step(src, b_dir)
 		if(B)
 			B.change_to(/obj/structure/blob/shield/core)
-			if(B && overmind)
+			if(B && overmind?.blob_reagent_datum?.color)
 				B.color = overmind.blob_reagent_datum.color
 			else
 				B.color = color
@@ -120,10 +122,8 @@
 		B.key = C.key
 		B.blob_core = src
 		overmind = B
-		color = overmind.blob_reagent_datum.color
-		if(B.mind && !B.mind.special_role)
-			B.mind.make_Overmind()
 		B.is_offspring = is_offspring
+		addtimer(CALLBACK(src, PROC_REF(add_datum_if_not_exist)), TIME_TO_ADD_OM_DATUM)
 		log_game("[B.key] has become Blob [is_offspring ? "offspring" : ""]")
 
 /obj/structure/blob/core/proc/lateblobtimer()
@@ -132,14 +132,23 @@
 /obj/structure/blob/core/proc/lateblobcheck()
 	if(overmind)
 		overmind.add_points(60)
-		if(overmind.mind)
-			overmind.mind.make_Overmind()
-		else
+		if(!overmind.mind)
 			log_debug("/obj/structure/blob/core/proc/lateblobcheck: Blob core lacks a overmind.mind.")
 	else
 		log_debug("/obj/structure/blob/core/proc/lateblobcheck: Blob core lacks an overmind.")
 
-/obj/structure/blob/core/onTransitZ(old_z, new_z)
-	if(overmind && is_station_level(new_z))
-		overmind.forceMove(get_turf(src))
+/obj/structure/blob/core/on_changed_z_level(turf/old_turf, turf/new_turf, same_z_layer)
+	overmind?.forceMove(get_turf(src))
 	return ..()
+
+/obj/structure/blob/core/proc/add_datum_if_not_exist()
+	overmind.select_reagent()
+	if(!overmind.mind.has_antag_datum(/datum/antagonist/blob_overmind))
+		var/datum/antagonist/blob_overmind/overmind_datum = new
+		overmind_datum.add_to_mode = TRUE
+		overmind_datum.is_offspring = is_offspring
+		if(overmind.blob_reagent_datum)
+			overmind_datum.reagent = overmind.blob_reagent_datum
+		overmind.mind.add_antag_datum(overmind_datum)
+	color = overmind.blob_reagent_datum?.color
+

@@ -63,11 +63,13 @@
 		qdel(user.get_inactive_hand())
 		done = TRUE
 
-	if(done && !silent)
-		user.visible_message(span_warning("With a sickening crunch, [user] reforms [user.p_their()] [weapon_name_simple] into an arm!"),
-							span_notice("We assimilate the [weapon_name_simple] back into our body."),
-							span_warning("You hear organic matter ripping and tearing!"))
-		playsound(user, "bonebreak", 150, 1)
+	if(done)
+		. = COMPONENT_CANCEL_DROP
+		if(!silent)
+			playsound(user, "bonebreak", 150, TRUE)
+			user.visible_message(span_warning("With a sickening crunch, [user] reforms [user.p_their()] [weapon_name_simple] into an arm!"),
+								span_notice("We assimilate the [weapon_name_simple] back into our body."),
+								span_warning("You hear organic matter ripping and tearing!"))
 
 
 //Parent to space suits and armor.
@@ -120,8 +122,8 @@
 	user.drop_item_ground(user.head)
 	user.drop_item_ground(user.wear_suit)
 
-	user.equip_to_slot_or_del(new suit_type(user), slot_wear_suit)
-	user.equip_to_slot_or_del(new helmet_type(user), slot_head)
+	user.equip_to_slot_or_del(new suit_type(user), ITEM_SLOT_CLOTH_OUTER)
+	user.equip_to_slot_or_del(new helmet_type(user), ITEM_SLOT_HEAD)
 
 	cling.chem_recharge_slowdown += recharge_slowdown
 	return TRUE
@@ -133,7 +135,7 @@
 \***************************************/
 /datum/action/changeling/weapon/arm_blade
 	name = "Arm Blade"
-	desc = "We reform one of our arms into a deadly blade. Costs 25 chemicals."
+	desc = "We reform one of our arms into a deadly blade. Costs 10 chemicals."
 	helptext = "We may retract our armblade in the same manner as we form it. Cannot be used while in lesser form."
 	button_icon_state = "armblade"
 	power_type = CHANGELING_PURCHASABLE_POWER
@@ -151,13 +153,14 @@
 	desc = "A grotesque blade made out of bone and flesh that cleaves through people as a hot knife through butter"
 	icon_state = "arm_blade"
 	item_state = "arm_blade"
-	flags = ABSTRACT | NODROP | DROPDEL
+	item_flags = ABSTRACT|DROPDEL
 	slot_flags = NONE
 	w_class = WEIGHT_CLASS_HUGE
 	sharp = TRUE
 	force = 45
 	armour_penetration = -30
 	block_chance = 50
+	block_type = MELEE_ATTACKS
 	hitsound = 'sound/weapons/bladeslice.ogg'
 	throwforce = 0 //Just to be on the safe side
 	throw_range = 0
@@ -169,6 +172,7 @@
 
 /obj/item/melee/arm_blade/Initialize(mapload, silent, new_parent_action)
 	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 	parent_action = new_parent_action
 
 
@@ -178,15 +182,9 @@
 		parent_action.UnregisterSignal(parent_action.owner, COMSIG_MOB_WEAPON_APPEARS)
 		parent_action = null
 	return ..()
+	
 
-
-/obj/item/melee/arm_blade/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
-	if(attack_type == PROJECTILE_ATTACK)
-		final_block_chance = 0 //only blocks melee
-	return ..()
-
-
-/obj/item/melee/arm_blade/afterattack(atom/target, mob/user, proximity)
+/obj/item/melee/arm_blade/afterattack(atom/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 
@@ -206,7 +204,7 @@
 								span_italics("You hear a metal screeching sound."))
 
 			playsound(airlock, 'sound/machines/airlock_alien_prying.ogg', 150, TRUE)
-			if(!do_after(user, 3 SECONDS, target = airlock ))
+			if(!do_after(user, 3 SECONDS, airlock))
 				return
 
 		//user.say("Heeeeeeeeeerrre's Johnny!")
@@ -248,11 +246,11 @@
 	force = 25
 	block_chance = 0
 	armour_penetration = 35
-	hitsound = 'sound/weapons/genhit.ogg'
+	hitsound = "swing_hit"
 	gender = MALE
 	ru_names = list(NOMINATIVE = "молот из плоти", GENITIVE = "молота из плоти", DATIVE = "молоту из плоти", ACCUSATIVE = "молот из плоти", INSTRUMENTAL = "молотом из плоти", PREPOSITIONAL = "молоте из плоти")
 
-/obj/item/melee/arm_blade/fleshy_maul/afterattack(atom/target, mob/living/user, proximity)
+/obj/item/melee/arm_blade/fleshy_maul/afterattack(atom/target, mob/living/user, proximity, params)
 	if(!proximity)
 		return
 
@@ -263,8 +261,9 @@
 
 	else if(iswallturf(target))
 		var/turf/simulated/wall/wall = target
-		wall.take_damage(30)
 		user.do_attack_animation(wall)
+		user.changeNext_move(attack_speed)
+		wall.take_damage(30)
 		playsound(src, 'sound/weapons/smash.ogg', 50, TRUE)
 
 	else if(isliving(target))
@@ -315,7 +314,7 @@
 	icon = 'icons/obj/items.dmi'
 	icon_state = "tentacle"
 	item_state = "tentacle"
-	flags = ABSTRACT | NODROP | NOBLUDGEON | DROPDEL
+	item_flags = ABSTRACT|NOBLUDGEON|DROPDEL
 	slot_flags = NONE
 	w_class = WEIGHT_CLASS_HUGE
 	ammo_type = /obj/item/ammo_casing/magic/tentacle
@@ -330,6 +329,7 @@
 
 /obj/item/gun/magic/tentacle/Initialize(mapload, silent, new_parent_action)
 	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 	parent_action = new_parent_action
 	if(ismob(loc))
 		if(!silent)
@@ -437,9 +437,8 @@
 	if(!user.Adjacent(target))
 		return
 
-	var/obj/item/grab/grab = target.grabbedby(user, TRUE)
-	if(istype(grab))
-		grab.state = GRAB_PASSIVE
+	if(target.grabbedby(user, supress_message = TRUE))
+		target.grippedby(user) //instant aggro grab
 		target.Weaken(4 SECONDS)
 
 
@@ -463,7 +462,7 @@
 
 	target.apply_damage(offarm_item.force, BRUTE, BODY_ZONE_CHEST)
 	user.do_attack_animation(target, used_item = offarm_item)
-	add_blood(target)
+	offarm_item.add_mob_blood(target)
 	playsound(get_turf(user), offarm_item.hitsound, 75, TRUE)
 
 
@@ -473,7 +472,7 @@
 		return FALSE
 
 	var/mob/living/carbon/human/user = firer
-	if(istype(target, /obj/item))
+	if(isitem(target))
 		var/obj/item/item = target
 		if(!item.anchored)
 			to_chat(firer, "<span class='notice'>You pull [item] towards yourself.</span>")
@@ -583,21 +582,22 @@
 /obj/item/shield/changeling
 	name = "shield-like mass"
 	desc = "A mass of tough, boney tissue. You can still see the fingers as a twisted pattern in the shield."
-	flags = NODROP | DROPDEL
+	item_flags = DROPDEL
 	icon_state = "ling_shield"
 	block_chance = 50
 	var/remaining_uses //Set by the changeling ability.
 
 
-/obj/item/shield/changeling/New()
-	..()
+/obj/item/shield/changeling/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 	if(ismob(loc))
 		loc.visible_message(span_warning("The end of [loc.name]\'s hand inflates rapidly, forming a huge shield-like mass!"), \
 							span_warning("We inflate our hand into a strong shield."), \
 							span_italics("You hear organic matter ripping and tearing!"))
 
 
-/obj/item/shield/changeling/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
+/obj/item/shield/changeling/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = ITEM_ATTACK)
 	if(remaining_uses < 1)
 		if(ishuman(loc))
 			var/mob/living/carbon/human/user = loc
@@ -637,20 +637,24 @@
 	name = "flesh mass"
 	icon_state = "lingspacesuit"
 	desc = "A huge, bulky mass of pressure and temperature-resistant organic tissue, evolved to facilitate space travel."
-	flags = STOPSPRESSUREDMAGE | NODROP | DROPDEL | HIDETAIL
+	clothing_flags = STOPSPRESSUREDMAGE
+	flags_inv = HIDETAIL
+	item_flags = DROPDEL
 	allowed = list(/obj/item/flashlight, /obj/item/tank/internals)
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0,"energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 90, "acid" = 90) //No armor at all
 	species_restricted = null
+	faction_restricted = null
 	sprite_sheets = list(
-		"Unathi" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Ash Walker" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Ash Walker Shaman" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Draconid" = 'icons/mob/clothing/species/unathi/suit.dmi'
+		SPECIES_UNATHI = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_ASHWALKER_BASIC = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_ASHWALKER_SHAMAN = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_DRACONOID = 'icons/mob/clothing/species/unathi/suit.dmi'
 		)
 
 
-/obj/item/clothing/suit/space/changeling/New()
-	..()
+/obj/item/clothing/suit/space/changeling/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 	if(ismob(loc))
 		loc.visible_message(span_warning("[loc.name]\'s flesh rapidly inflates, forming a bloated mass around [loc.p_their()] body!"), \
 							span_warning("We inflate our flesh, creating a spaceproof suit!"), \
@@ -668,15 +672,23 @@
 	name = "flesh mass"
 	icon_state = "lingspacehelmet"
 	desc = "A covering of pressure and temperature-resistant organic tissue with a glass-like chitin front."
-	flags = BLOCKHAIR | STOPSPRESSUREDMAGE | NODROP | DROPDEL
+	clothing_flags = STOPSPRESSUREDMAGE
+	flags_inv = HIDEHEADSETS|HIDEGLASSES|HIDEHAIR
+	item_flags = DROPDEL
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0,"energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 90, "acid" = 90)
 	species_restricted = null
+	faction_restricted = null
 	sprite_sheets = list(
-		"Unathi" = 'icons/mob/clothing/species/unathi/helmet.dmi',
-		"Ash Walker" = 'icons/mob/clothing/species/unathi/helmet.dmi',
-		"Ash Walker Shaman" = 'icons/mob/clothing/species/unathi/helmet.dmi',
-		"Draconid" = 'icons/mob/clothing/species/unathi/helmet.dmi'
+		SPECIES_UNATHI = 'icons/mob/clothing/species/unathi/helmet.dmi',
+		SPECIES_ASHWALKER_BASIC = 'icons/mob/clothing/species/unathi/helmet.dmi',
+		SPECIES_ASHWALKER_SHAMAN = 'icons/mob/clothing/species/unathi/helmet.dmi',
+		SPECIES_DRACONOID = 'icons/mob/clothing/species/unathi/helmet.dmi'
 		)
+
+
+/obj/item/clothing/head/helmet/space/changeling/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 
 
 /***************************************\
@@ -703,24 +715,27 @@
 	name = "chitinous mass"
 	desc = "A tough, hard covering of black chitin."
 	icon_state = "lingarmor"
-	flags = NODROP | DROPDEL
+	item_flags = DROPDEL
 	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|ARMS|HANDS
 	armor = list("melee" = 40, "bullet" = 40, "laser" = 40, "energy" = 20, "bomb" = 10, "bio" = 4, "rad" = 0, "fire" = 90, "acid" = 90)
 	flags_inv = HIDEJUMPSUIT
 	cold_protection = 0
 	heat_protection = 0
-	hide_tail_by_species = list("Vulpkanin", "Unathi", "Ash Walker", "Ash Walker Shaman", "Draconid",)
+	species_restricted = null
+	faction_restricted = null
+	hide_tail_by_species = list(SPECIES_VULPKANIN, SPECIES_UNATHI, SPECIES_ASHWALKER_BASIC, SPECIES_ASHWALKER_SHAMAN, SPECIES_DRACONOID)
 	sprite_sheets = list(
-		"Unathi" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Vulpkanin" = 'icons/mob/clothing/species/vulpkanin/suit.dmi',
-		"Ash Walker" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Ash Walker Shaman" = 'icons/mob/clothing/species/unathi/suit.dmi',
-		"Draconid" = 'icons/mob/clothing/species/unathi/suit.dmi'
+		SPECIES_UNATHI = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_VULPKANIN = 'icons/mob/clothing/species/vulpkanin/suit.dmi',
+		SPECIES_ASHWALKER_BASIC = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_ASHWALKER_SHAMAN = 'icons/mob/clothing/species/unathi/suit.dmi',
+		SPECIES_DRACONOID = 'icons/mob/clothing/species/unathi/suit.dmi'
 		)
 
 
-/obj/item/clothing/suit/armor/changeling/New()
-	..()
+/obj/item/clothing/suit/armor/changeling/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
 	if(ismob(loc))
 		loc.visible_message(span_warning("[loc.name]\'s flesh turns black, quickly transforming into a hard, chitinous mass!"), \
 							span_warning("We harden our flesh, creating a suit of armor!"), \
@@ -731,7 +746,15 @@
 	name = "chitinous mass"
 	desc = "A tough, hard covering of black chitin with transparent chitin in front."
 	icon_state = "lingarmorhelmet"
-	flags = BLOCKHAIR | NODROP | DROPDEL
-	armor = list("melee" = 40, "bullet" = 40, "laser" = 40, "energy" = 20, "bomb" = 10, "bio" = 4, "rad" = 0, "fire" = 90, "acid" = 90)
-	flags_inv = HIDEHEADSETS
+	flags_inv = HIDEHEADSETS|HIDEHAIR
+	item_flags = DROPDEL
 	flags_cover = MASKCOVERSEYES|MASKCOVERSMOUTH
+	armor = list("melee" = 40, "bullet" = 40, "laser" = 40, "energy" = 20, "bomb" = 10, "bio" = 4, "rad" = 0, "fire" = 90, "acid" = 90)
+	species_restricted = null
+	faction_restricted = null
+
+
+/obj/item/clothing/head/helmet/changeling/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CHANGELING_TRAIT)
+

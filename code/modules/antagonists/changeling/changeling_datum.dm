@@ -21,6 +21,8 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	special_role = SPECIAL_ROLE_CHANGELING
 	antag_hud_name = "hudchangeling"
 	antag_hud_type = ANTAG_HUD_CHANGELING
+	wiki_page_name = "Changeling"
+	russian_wiki_name = "Генокрад"
 	clown_gain_text = "You have evolved beyond your clownish nature, allowing you to wield weapons without harming yourself."
 	clown_removal_text = "As your changeling nature fades, you return to your own clumsy, clownish self."
 	/// List of [/datum/dna] which have been absorbed through the DNA sting or absorb power.
@@ -155,7 +157,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 		return
 
 	// Brains are optional for changelings.
-	var/obj/item/organ/internal/brain/ling_brain = carbon_user.get_organ_slot("brain")
+	var/obj/item/organ/internal/brain/ling_brain = carbon_user.get_organ_slot(INTERNAL_ORGAN_BRAIN)
 	ling_brain?.decoy_brain = TRUE
 
 
@@ -186,7 +188,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 		return
 
 	// If they get de-clinged, make sure they can't just chop their own head off for the hell of it
-	var/obj/item/organ/internal/brain/former_ling_brain = carbon_user.get_organ_slot("brain")
+	var/obj/item/organ/internal/brain/former_ling_brain = carbon_user.get_organ_slot(INTERNAL_ORGAN_BRAIN)
 	if(former_ling_brain && former_ling_brain.decoy_brain != initial(former_ling_brain.decoy_brain))
 		former_ling_brain.decoy_brain = FALSE
 
@@ -203,6 +205,9 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	absorb.owner = owner
 	objectives += absorb
 
+	forge_single_objective()
+	forge_single_objective()
+
 	if(prob(60))
 		add_objective(/datum/objective/steal)
 	else
@@ -215,7 +220,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 		var/datum/objective/maroon/maroon_objective = add_objective(/datum/objective/maroon)
 		var/mob/living/carbon/human/maroon_target = maroon_objective.target?.current
 
-		if(!(locate(/datum/objective/escape) in owner.get_all_objectives()) && maroon_target && !has_no_DNA(maroon_target))
+		if(!(locate(/datum/objective/escape) in owner.get_all_objectives()) && maroon_target && !HAS_TRAIT(maroon_target, TRAIT_NO_DNA))
 			var/datum/objective/escape/escape_with_identity/identity_theft = new(_special_objective = maroon_objective)
 			identity_theft.owner = owner
 			objectives += identity_theft
@@ -251,7 +256,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
  */
 /datum/antagonist/changeling/proc/try_respec()
 	var/mob/living/carbon/human/user = owner.current
-	if(!istype(user) || issmall(user))
+	if(!istype(user) || is_monkeybasic(user))
 		to_chat(user, span_danger("We can't readapt our evolutions in this form!"))
 		return FALSE
 	if(can_respec)
@@ -341,7 +346,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	for(var/datum/language/language in new_languages)
 		if(is_type_in_UID_list(language, absorbed_languages))
 			continue
-		owner.current.add_language("[language.name]")
+		owner.current.add_language(language.name)
 		absorbed_languages += language.UID()
 
 
@@ -350,8 +355,8 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
  */
 /datum/antagonist/changeling/proc/update_languages()
 	for(var/lang_UID in absorbed_languages)
-		var/datum/language/lang = locateUID(lang_UID)
-		owner.current.add_language("[lang.name]")
+		var/datum/language/language = locateUID(lang_UID)
+		owner.current.add_language(language.name)
 
 
 /**
@@ -376,10 +381,10 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 		ignored_languages += human_user.dna.species.secondary_langs
 
 	for(var/lang_UID in absorbed_languages)
-		var/datum/language/lang = locateUID(lang_UID)
-		if(lang.name in ignored_languages)
+		var/datum/language/language = locateUID(lang_UID)
+		if(language.name in ignored_languages)
 			continue
-		user.remove_language("[lang.name]")
+		user.remove_language(language.name)
 
 
 /**
@@ -426,7 +431,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 			continue
 		names[DNA.real_name] = DNA
 
-	var/chosen_name = input(message, title, null) as null|anything in names
+	var/chosen_name = tgui_input_list(owner.current, message, title, names)
 	if(!chosen_name)
 		return
 
@@ -488,15 +493,15 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 		return FALSE
 
 	var/mob/living/carbon/human/human_target = target
-	if(!istype(human_target) || issmall(human_target))
+	if(!istype(human_target) || is_monkeybasic(human_target))
 		to_chat(user, span_warning("[human_target] is not compatible with our biology."))
 		return FALSE
 
-	if((NOCLONE || SKELETON || HUSK) in human_target.mutations)
+	if(HAS_TRAIT(human_target, TRAIT_HUSK) || HAS_TRAIT(human_target, TRAIT_SKELETON) || HAS_TRAIT(human_target, TRAIT_NO_CLONE))
 		to_chat(user, span_warning("DNA of [target] is ruined beyond usability!"))
 		return FALSE
 
-	if(has_no_DNA(human_target))
+	if(HAS_TRAIT(human_target, TRAIT_NO_DNA))
 		to_chat(user, span_warning("This creature does not have DNA!"))
 		return FALSE
 
@@ -565,7 +570,7 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	// 60 SECONDS of delay overall.
 	var/mob/living/carbon/human/h_user = user
 	var/missing_limbs = 5
-	for(var/obj/item/organ/external/limb in h_user.bodyparts)
+	for(var/obj/item/organ/external/limb as anything in h_user.bodyparts)
 		if(istype(limb, /obj/item/organ/external/head) || \
 			istype(limb, /obj/item/organ/external/arm) || \
 			istype(limb, /obj/item/organ/external/leg))
@@ -598,12 +603,9 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 	if(!source)
 		return FALSE
 
-	if(!has_variable(source, "mind"))
-		if(has_variable(source, "antag_datums"))
-			var/datum/mind/our_mind = source
-			return our_mind.has_antag_datum(/datum/antagonist/changeling)
-
-		return FALSE
+	if(istype(source, /datum/mind))
+		var/datum/mind/our_mind = source
+		return our_mind.has_antag_datum(/datum/antagonist/changeling)
 
 	if(!ismob(source))
 		return FALSE
@@ -614,8 +616,3 @@ GLOBAL_LIST_INIT(possible_changeling_IDs, list("Alpha","Beta","Gamma","Delta","E
 
 	return mind_holder.mind.has_antag_datum(/datum/antagonist/changeling)
 
-
-/proc/has_no_DNA(mob/living/carbon/user)
-	if(!istype(user) || !user.dna)
-		return TRUE
-	return NO_DNA in user.dna.species.species_traits

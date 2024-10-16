@@ -2,6 +2,7 @@
 	name = "shot glass"
 	desc = "No glasses were shot in the making of this glass."
 	icon_state = "shotglass"
+	custom_fire_overlay = "shotglass_fire"
 	amount_per_transfer_from_this = 15
 	volume = 15
 	materials = list(MAT_GLASS=100)
@@ -12,10 +13,21 @@
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/on_reagent_change()
 	if(!isShotFlammable() && (resistance_flags & ON_FIRE))
 		extinguish()
-	update_icon()
+	update_appearance(UPDATE_NAME|UPDATE_OVERLAYS)
 
-/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/update_icon()
-	overlays.Cut()
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/update_name()
+	. = ..()
+	if(reagents.total_volume)
+		name = "shot glass of " + reagents.get_master_reagent_name() //No matter what, the glass will tell you the reagent's name. Might be too abusable in the future.
+		if(resistance_flags & ON_FIRE)
+			name = "flaming [name]"
+	else
+		name = "shot glass"
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/update_overlays()
+	. = ..()
 	if(reagents.total_volume)
 		var/image/filling = image('icons/obj/reagentfillings.dmi', src, "[icon_state]1")
 
@@ -28,23 +40,23 @@
 			if(80 to INFINITY)
 				filling.icon_state = "[icon_state]12"
 		filling.icon += mix_color_from_reagents(reagents.reagent_list)
-		overlays += filling
-		name = "shot glass of " + reagents.get_master_reagent_name() //No matter what, the glass will tell you the reagent's name. Might be too abusable in the future.
-		if(resistance_flags & ON_FIRE)
-			cut_overlay(GLOB.fire_overlay, TRUE)
-			overlays += "shotglass_fire"
-			name = "flaming [name]"
-	else
-		name = "shot glass"
+		. += filling
+
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/proc/clumsilyDrink(mob/living/carbon/human/user) //Clowns beware
 	if(!(resistance_flags & ON_FIRE))
-		return
-	user.visible_message("<span class = 'warning'>[user] pours [src] all over [user.p_them()]self!</span>", "<span class = 'danger'>You pour [src] all over yourself!</span>", "<span class = 'warning'>You hear a 'whoompf' and a sizzle.</span>")
+		return ATTACK_CHAIN_PROCEED
+	user.visible_message(
+		span_warning("[user] pours [src] all over [user.p_them()]self!"),
+		span_danger("You pour [src] all over yourself!"),
+		span_italics("You hear a 'whoompf' and a sizzle."),
+	)
 	extinguish(TRUE)
 	reagents.reaction(user, REAGENT_TOUCH)
 	reagents.clear_reagents()
 	user.IgniteMob()
+	return ATTACK_CHAIN_PROCEED_SUCCESS
+
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/proc/isShotFlammable()
 	var/datum/reagent/R = reagents.get_master_reagent()
@@ -57,30 +69,34 @@
 	if(!isShotFlammable() || (resistance_flags & ON_FIRE)) //You can't light a shot that's not flammable!
 		return
 	..()
-	set_light(light_intensity, null, light_color)
+	set_light_range_power_color(light_intensity, 1, light_color)
+	set_light_on(TRUE)
 	visible_message("<span class = 'notice'>[src] begins to burn with a blue hue!</span>")
-	update_icon()
+	update_appearance(UPDATE_NAME|UPDATE_OVERLAYS)
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/extinguish(silent = FALSE)
 	..()
-	set_light(0)
+	set_light_on(FALSE)
 	if(!silent)
 		visible_message("<span class = 'notice'>The dancing flame on [src] dies out.</span>")
-	update_icon()
+	update_appearance(UPDATE_NAME|UPDATE_OVERLAYS)
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/burn() //Let's override fire deleting the reagents inside the shot
 	return
 
-/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/attack(mob/living/carbon/human/user)
-	if((CLUMSY in user.mutations) && prob(50) && (resistance_flags & ON_FIRE))
-		clumsilyDrink(user)
-	else
-		..()
 
-/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/attackby(obj/item/W)
-	..()
-	if(is_hot(W))
+/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(HAS_TRAIT(user, TRAIT_CLUMSY) && prob(50) && (resistance_flags & ON_FIRE))
+		return clumsilyDrink(user)
+	return ..()
+
+
+/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/attackby(obj/item/I, mob/user, params)
+	. = ..()
+
+	if(!ATTACK_CHAIN_CANCEL_CHECK(.) && is_hot(I))
 		fire_act()
+
 
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/attack_hand(mob/user, pickupfireoverride = TRUE)
 	..()
@@ -89,18 +105,18 @@
 	..()
 	if(!(resistance_flags & ON_FIRE))
 		return
-	if((CLUMSY in user.mutations) && prob(50))
+	if(HAS_TRAIT(user, TRAIT_CLUMSY) && prob(50))
 		clumsilyDrink(user)
 	else
 		user.visible_message("<span class = 'notice'>[user] places [user.p_their()] hand over [src] to put it out!</span>", "<span class = 'notice'>You use your hand to extinguish [src]!</span>")
 		extinguish()
 
 
-/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/MouseDrop(mob/living/carbon/human/user)
-	if(!ishuman(user))
+/obj/item/reagent_containers/food/drinks/drinkingglass/shotglass/MouseDrop(mob/living/carbon/human/user, src_location, over_location, src_control, over_control, params)
+	if(!ishuman(user) || usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return ..()
 
-	if((CLUMSY in user.mutations) && prob(50) && (resistance_flags & ON_FIRE))
+	if(HAS_TRAIT(user, TRAIT_CLUMSY) && prob(50) && (resistance_flags & ON_FIRE))
 		clumsilyDrink(user)
 		return
 

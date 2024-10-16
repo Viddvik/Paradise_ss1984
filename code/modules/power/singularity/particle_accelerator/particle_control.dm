@@ -4,8 +4,8 @@
 	icon = 'icons/obj/engines_and_power/particle_accelerator.dmi'
 	icon_state = "control_box"
 	reference = "control_box"
-	anchored = 0
-	density = 1
+	anchored = FALSE
+	density = TRUE
 	use_power = NO_POWER_USE
 	idle_power_usage = 500
 	active_power_usage = 10000
@@ -23,7 +23,7 @@
 	. = ..()
 	wires = new(src)
 	connected_parts = list()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	use_log = list()
 
 /obj/machinery/particle_accelerator/control_box/Destroy()
@@ -59,7 +59,7 @@
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = null
 			part.powered = 0
-			part.update_icon()
+			part.update_icon(UPDATE_ICON_STATE)
 		connected_parts = list()
 		return
 	if(!part_scan())
@@ -67,9 +67,8 @@
 		active = 0
 		connected_parts = list()
 
-	return
 
-/obj/machinery/particle_accelerator/control_box/update_icon()
+/obj/machinery/particle_accelerator/control_box/update_icon_state()
 	if(active)
 		icon_state = "[reference]p[strength]"
 	else
@@ -88,7 +87,7 @@
 					icon_state = "[reference]w"
 				else
 					icon_state = "[reference]c"
-	return
+
 
 /obj/machinery/particle_accelerator/control_box/Topic(href, href_list)
 	if(..(href, href_list))
@@ -118,14 +117,14 @@
 			remove_strength()
 
 	updateDialog()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	return
 
 
 /obj/machinery/particle_accelerator/control_box/proc/strength_change()
 	for(var/obj/structure/particle_accelerator/part in connected_parts)
 		part.strength = strength
-		part.update_icon()
+		part.update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/particle_accelerator/control_box/proc/add_strength(var/s)
 	if(assembled)
@@ -154,21 +153,20 @@
 
 		strength_change()
 
-/obj/machinery/particle_accelerator/control_box/power_change()
+/obj/machinery/particle_accelerator/control_box/power_change(forced = FALSE)
 	..()
 	if(stat & NOPOWER)
 		active = 0
 		use_power = NO_POWER_USE
 	else if(!stat && construction_state <= 3)
 		use_power = IDLE_POWER_USE
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 	if((stat & NOPOWER) || (!stat && construction_state <= 3)) //Only update the part icons if something's changed (i.e. any of the above condition sets are met).
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = null
 			part.powered = 0
-			part.update_icon()
-	return
+			part.update_icon(UPDATE_ICON_STATE)
 
 
 /obj/machinery/particle_accelerator/control_box/process()
@@ -182,7 +180,6 @@
 		for(var/obj/structure/particle_accelerator/particle_emitter/PE in connected_parts)
 			if(PE)
 				PE.emit_particle(strength)
-	return
 
 
 /obj/machinery/particle_accelerator/control_box/proc/part_scan()
@@ -246,13 +243,13 @@
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = strength
 			part.powered = 1
-			part.update_icon()
+			part.update_icon(UPDATE_ICON_STATE)
 	else
 		use_power = IDLE_POWER_USE
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = null
 			part.powered = 0
-			part.update_icon()
+			part.update_icon(UPDATE_ICON_STATE)
 	return 1
 
 
@@ -264,12 +261,12 @@
 			return
 	user.set_machine(src)
 
-	var/dat = {"<meta charset="UTF-8">"}
-	dat += "<A href='?src=[UID()];close=1'>Close</A><BR><BR>"
+	var/dat = {"<!DOCTYPE html><meta charset="UTF-8">"}
+	dat += "<a href='byond://?src=[UID()];close=1'>Close</A><BR><BR>"
 	dat += "<h3>Status</h3>"
 	if(!assembled)
 		dat += "Unable to detect all parts!<BR>"
-		dat += "<A href='?src=[UID()];scan=1'>Run Scan</A><BR><BR>"
+		dat += "<a href='byond://?src=[UID()];scan=1'>Run Scan</A><BR><BR>"
 	else
 		dat += "All parts in place.<BR><BR>"
 		dat += "Power:"
@@ -277,14 +274,13 @@
 			dat += "On<BR>"
 		else
 			dat += "Off <BR>"
-		dat += "<A href='?src=[UID()];togglep=1'>Toggle Power</A><BR><BR>"
+		dat += "<a href='byond://?src=[UID()];togglep=1'>Toggle Power</A><BR><BR>"
 		dat += "Particle Strength: [strength] "
-		dat += "<A href='?src=[UID()];strengthdown=1'>--</A>|<A href='?src=[UID()];strengthup=1'>++</A><BR><BR>"
+		dat += "<a href='byond://?src=[UID()];strengthdown=1'>--</A>|<a href='byond://?src=[UID()];strengthup=1'>++</A><BR><BR>"
 
 	//user << browse(dat, "window=pacontrol;size=420x500")
 	//onclose(user, "pacontrol")
 	var/datum/browser/popup = new(user, "pacontrol", name, 420, 500, src)
 	popup.set_content(dat)
-	popup.set_title_image(user.browse_rsc_icon(icon, icon_state))
 	popup.open()
 	return

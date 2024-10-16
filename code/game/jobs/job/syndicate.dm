@@ -1,11 +1,11 @@
 /datum/job/syndicateofficer
-	title = "Syndicate Officer"
-	flag = JOB_SYNDICATE
-	department_flag = JOB_SYNDICATE // This gets its job as its own flag because admin jobs dont have flags
+	title = JOB_TITLE_SYNDICATE
+	flag = JOB_FLAG_SYNDICATE
+	department_flag = JOB_FLAG_SYNDICATE // This gets its job as its own flag because admin jobs dont have flags
 	total_positions = 5
 	spawn_positions = 5
 	supervisors = "the admins"
-	selection_color = "#ff0000"
+	selection_color = "#4c1e1e"
 	access = list()
 	minimal_access = list()
 	admin_only = 1
@@ -24,7 +24,7 @@
 	neck = /obj/item/clothing/neck/cloak/syndieadm
 	back = /obj/item/storage/backpack
 	head = /obj/item/clothing/head/helmet/space/deathsquad/beret
-	gloves = /obj/item/clothing/gloves/combat
+	gloves = /obj/item/clothing/gloves/combat/swat/syndicate
 	shoes = /obj/item/clothing/shoes/combat
 	mask = /obj/item/clothing/mask/cigarette/cigar/havana
 	belt = /obj/item/gun/projectile/automatic/pistol/deagle/camo
@@ -51,7 +51,7 @@
 
 	var/obj/item/implant/uplink/admin/U = new /obj/item/implant/uplink/admin(H)
 	U.implant(H)
-	U.hidden_uplink.uses = 500
+	U.hidden_uplink.uses = 2500
 	H.faction += "syndicate"
 	var/datum/atom_hud/antag/opshud = GLOB.huds[ANTAG_HUD_OPS]
 	opshud.join_hud(H.mind.current)

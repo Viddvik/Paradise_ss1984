@@ -109,11 +109,11 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 	if(istype(crate, /obj/structure/closet/crate))
 		var/obj/structure/closet/crate/CR = crate
 		CR.manifest = slip
-		CR.update_icon()
+		CR.update_icon(UPDATE_OVERLAYS)
 	if(istype(crate, /obj/structure/largecrate))
 		var/obj/structure/largecrate/LC = crate
 		LC.manifest = slip
-		LC.update_icon()
+		LC.update_icon(UPDATE_OVERLAYS)
 
 
 /***************************
@@ -261,8 +261,6 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 	circuit = /obj/item/circuitboard/syndicatesupplycomp
 	/// Is this a public console
 	var/is_public = FALSE
-	/// Time of last request
-	var/reqtime = 0
 	var/datum/syndie_data_storage/data_storage = null
 
 /obj/machinery/computer/syndie_supplycomp/Initialize(mapload)
@@ -271,6 +269,7 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 	return INITIALIZE_HINT_LATELOAD
 
 /obj/machinery/computer/syndie_supplycomp/LateInitialize()
+	. = ..()
 	compSync()
 
 /obj/machinery/computer/syndie_supplycomp/Destroy()
@@ -329,7 +328,6 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 /obj/machinery/computer/syndie_supplycomp/proc/sell() //Этот код ищет зоны где находятся телепады отправки и продаёт ящики и товар в них
 
 	var/plasma_count = 0
-	var/intel_count = 0
 	var/crate_count = 0
 
 	var/msg = "<center>---[station_time_timestamp()]---</center><br>"
@@ -344,7 +342,7 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 			if(MA.anchored)
 				continue
 			var/mob/MB = get_mob_in_atom_without_warning(MA)
-			if(MB?.stat || istype(MA, /mob/living)) // Если окажется что на паде труп или живое существо, то это защитит его от уничтожения
+			if(MB?.stat || isliving(MA)) // Если окажется что на паде труп или живое существо, то это защитит его от уничтожения
 				continue
 			if(istype(MA,/obj/structure/closet/crate/syndicate) || istype(MA,/obj/structure/closet/crate/secure/syndicate))
 				++crate_count
@@ -375,7 +373,7 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 
 					if(find_slip && istype(thing,/obj/item/paper/manifest))
 						var/obj/item/paper/manifest/slip = thing
-						var/slip_stamped_len = length(slip.stamped)
+						var/slip_stamped_len = LAZYLEN(slip.stamped)
 						if(slip_stamped_len) //yes, the clown stamp will work. clown is the highest authority on the station, it makes sense
 							// Did they mark it as erroneous?
 							var/denied = 0
@@ -419,9 +417,13 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 						var/obj/item/stack/sheet/mineral/plasma/P = thing
 						plasma_count += P.amount
 
-					// Sell nanotrasen intel
-					if(istype(thing, /obj/item/documents/nanotrasen))
-						++intel_count
+					// Sell intel
+					if(istype(thing, /obj/item/documents))
+						var/obj/item/documents/docs = thing
+						if(INTEREST_SYNDICATE & docs.sell_interest)
+							cashEarned = round(data_storage.cash_per_intel * docs.sell_multiplier)
+							data_storage.cash += cashEarned
+							msg += "[span_good("+[cashEarned]")]: Received enemy intelligence.<br>"
 
 					// Sell tech levels
 					if(istype(thing, /obj/item/disk/tech_disk))
@@ -470,19 +472,16 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 						cashEarned = round(Gem.sell_multiplier * data_storage.cash_per_gem)
 						msg += "[span_good("+[cashEarned]")]: Received [Gem.name]. Great work.<br>"
 						data_storage.cash += cashEarned
+						qdel(thing, force = TRUE) //ovveride for special gems
 
-					qdel(thing)
+					if(!QDELETED(thing))
+						qdel(thing)
 			qdel(MA)
 			data_storage.sold_atoms += "."
 
 	if(plasma_count > 0)
 		cashEarned = round(plasma_count * data_storage.cash_per_plasma)
 		msg += "[span_good("+[cashEarned]")]: Received [plasma_count] unit(s) of exotic material.<br>"
-		data_storage.cash += cashEarned
-
-	if(intel_count > 0)
-		cashEarned = round(intel_count * data_storage.cash_per_intel)
-		msg += "[span_good("+[cashEarned]")]: Received [intel_count] article(s) of enemy intelligence.<br>"
 		data_storage.cash += cashEarned
 
 	if(crate_count > 0)
@@ -501,7 +500,8 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 	is_public = TRUE
 
 /obj/machinery/computer/syndie_supplycomp/emag_act(mob/user)
-	to_chat(user, span_notice("The electronic systems in this console are far too advanced for your primitive hacking peripherals."))
+	if(user)
+		to_chat(user, span_notice("The electronic systems in this console are far too advanced for your primitive hacking peripherals."))
 	return
 
 
@@ -517,29 +517,32 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 	ui_interact(user)
 	return
 
-/obj/machinery/computer/syndie_supplycomp/attackby(obj/item/I, mob/user, params)
-	if(!powered())
-		add_fingerprint(user)
-		return 0
+
+/obj/machinery/computer/syndie_supplycomp/attackby(obj/item/I, mob/living/carbon/human/user, params)
+	if(user.a_intent == INTENT_HARM || !powered() || !ishuman(user))
+		return ..()
+
 	if(istype(I, /obj/item/stack/spacecash))
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
 		add_fingerprint(user)
 		//consume the money
-		var/obj/item/stack/spacecash/C = I
+		var/obj/item/stack/spacecash/cash = I
 		playsound(loc, pick('sound/items/polaroid1.ogg', 'sound/items/polaroid2.ogg'), 50, TRUE)
-		data_storage.cash += C.amount
-		to_chat(user, span_info("You insert [C] into [src]."))
-		var/mob/living/carbon/human/H = user
-		var/name = H.get_authentification_name()
-		data_storage.blackmarket_message += "[span_good("+[C.amount]")]: [name] adds credits to the console.<br>"
+		data_storage.cash += cash.amount
+		to_chat(user, span_info("You insert [cash] into [src]."))
+		data_storage.blackmarket_message += "[span_good("+[cash.amount]")]: [user.get_authentification_name()] adds credits to the console.<br>"
 		SStgui.update_uis(src)
-		C.use(C.amount)
-		return 1
+		qdel(cash)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
 
-/obj/machinery/computer/syndie_supplycomp/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+
+/obj/machinery/computer/syndie_supplycomp/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SyndieCargoConsole", name, 900, 800, master_ui, state)
+		ui = new(user, src, "SyndieCargoConsole", name)
 		ui.open()
 
 /obj/machinery/computer/syndie_supplycomp/ui_data(mob/user)
@@ -593,7 +596,7 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 
 	return FALSE
 
-/obj/machinery/computer/syndie_supplycomp/ui_act(action, list/params)
+/obj/machinery/computer/syndie_supplycomp/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	if(..())
 		return
 
@@ -633,18 +636,16 @@ GLOBAL_LIST_INIT(data_storages, list()) //list of all cargo console data storage
 		if("order")
 			var/amount = 1
 			if(params["multiple"] == "1") // 1 is a string here. DO NOT MAKE THIS A BOOLEAN YOU DORK
-				var/num_input = input(usr, "Amount", "How many crates? (20 Max)") as null|num
+				var/num_input = tgui_input_number(ui.user, "Amount", "How many crates?", max_value = 20)
 				if(!num_input || (!is_public && !is_authorized(usr)) || ..()) // Make sure they dont walk away
 					return
-				amount = clamp(round(num_input), 1, 20)
 
 			var/datum/syndie_supply_packs/SP = locateUID(params["crate"])
 			if(!istype(SP))
 				return
 
-			var/timeout = world.time + 600 // If you dont type the reason within a minute, theres bigger problems here
-			var/reason = input(usr, "Reason", "Why do you require this item?","") as null|text
-			if(world.time > timeout || !reason || (!is_public && !is_authorized(usr)) || ..())
+			var/reason = tgui_input_text(ui.user, "Reason", "Why do you require this item?", encode = FALSE, timeout = 60 SECONDS)
+			if(!reason || (!is_public && !is_authorized(usr)) || ..())
 				// Cancel if they take too long, they dont give a reason, they aint authed, or if they walked away
 				return
 			reason = sanitize(copytext_char(reason, 1, MAX_MESSAGE_LEN))

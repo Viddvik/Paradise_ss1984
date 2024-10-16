@@ -64,8 +64,8 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	desc = "Part of a Particle Accelerator."
 	icon = 'icons/obj/engines_and_power/particle_accelerator.dmi'
 	icon_state = "none"
-	anchored = 0
-	density = 1
+	anchored = FALSE
+	density = TRUE
 	max_integrity = 500
 	armor = list("melee" = 30, "bullet" = 20, "laser" = 20, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 90, "acid" = 80)
 	var/obj/machinery/particle_accelerator/control_box/master = null
@@ -87,87 +87,69 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	icon_state = "end_cap"
 	reference = "end_cap"
 
-/obj/structure/particle_accelerator/update_icon()
-	..()
-	return
-
 
 /obj/structure/particle_accelerator/verb/rotate()
 	set name = "Rotate Clockwise"
 	set category = "Object"
 	set src in oview(1)
 
-	if(usr.stat || !usr.canmove || usr.restrained())
-		return
-	if(anchored)
-		to_chat(usr, "It is fastened to the floor!")
-		return 0
-	add_fingerprint(usr)
-	dir = turn(dir, 270)
-	return 1
+	rotate_accelerator(usr)
 
 /obj/structure/particle_accelerator/AltClick(mob/user)
-	if(user.incapacitated())
-		to_chat(user, "<span class='warning'>You can't do that right now!</span>")
-		return
-	if(!Adjacent(user))
-		return
-	rotate()
+	rotate_accelerator(user)
 
-/obj/structure/particle_accelerator/verb/rotateccw()
-	set name = "Rotate Counter Clockwise"
-	set category = "Object"
-	set src in oview(1)
-
-	if(usr.stat || !usr.canmove || usr.restrained())
+/obj/structure/particle_accelerator/proc/rotate_accelerator(mob/user)
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user))
 		return
 	if(anchored)
-		to_chat(usr, "It is fastened to the floor!")
-		return 0
-	dir = turn(dir, 90)
-	return 1
+		to_chat(user, "<span class='notice'>It is fastened to the floor!</span>")
+		return
+	dir = turn(dir, 270)
+
 
 /obj/structure/particle_accelerator/examine(mob/user)
+	. = ..()
 	switch(construction_state)
-		if(0)
-			desc = text("A [name], looks like it's not attached to the flooring")
-		if(1)
-			desc = text("A [name], it is missing some cables")
-		if(2)
-			desc = text("A [name], the panel is open")
-		if(3)
-			desc = text("The [name] is assembled")
+		if(ACCELERATOR_UNWRENCHED)
+			. += "<span class='notice'>\The [name]'s <i>anchoring bolts</i> are loose.</span>"
+		if(ACCELERATOR_WRENCHED)
+			. += "<span class='notice'>\The [name]'s anchoring bolts are <b>wrenched</b> in place, but it lacks <i>wiring</i>.</span>"
+		if(ACCELERATOR_WIRED)
+			. +=  "<span class='notice'>\The [name] is <b>wired</b>, but the maintenance panel is <i>unscrewed and open</i>.</span>"
+		if(ACCELERATOR_READY)
+			. += "<span class='notice'>\The [name] is assembled and the maintenence panel is <b>screwed shut</b>.</span>"
 			if(powered)
 				desc = desc_holder
-	. = ..()
+	if(!anchored)
+		. += "<span class='notice'><b>Alt-Click</b> to rotate it.</span>"
 
 /obj/structure/particle_accelerator/deconstruct(disassembled = TRUE)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		new /obj/item/stack/sheet/metal (loc, 5)
 	qdel(src)
 
-/obj/structure/particle_accelerator/Move()
+/obj/structure/particle_accelerator/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(master && master.active)
 		master.toggle_power()
 		investigate_log("was moved whilst active; it <font color='red'>powered down</font>.", INVESTIGATE_ENGINE)
 
 /obj/machinery/particle_accelerator/control_box/blob_act(obj/structure/blob/B)
-	if(prob(50))
+	if(prob(50) && !QDELETED(src))
 		qdel(src)
 
-/obj/structure/particle_accelerator/update_icon()
+/obj/structure/particle_accelerator/update_icon_state()
 	switch(construction_state)
-		if(0,1)
+		if(ACCELERATOR_UNWRENCHED, ACCELERATOR_WRENCHED)
 			icon_state="[reference]"
-		if(2)
+		if(ACCELERATOR_WIRED)
 			icon_state="[reference]w"
-		if(3)
+		if(ACCELERATOR_READY)
 			if(powered)
 				icon_state="[reference]p[strength]"
 			else
 				icon_state="[reference]c"
-	return
+
 
 /obj/structure/particle_accelerator/proc/update_state()
 	if(master)
@@ -195,18 +177,32 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 			return 1
 	return 0
 
-/obj/structure/particle_accelerator/attackby(obj/item/W, mob/user, params)
-	if(!iscoil(W))
+
+/obj/structure/particle_accelerator/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
 		return ..()
-	if(construction_state == ACCELERATOR_WRENCHED)
-		var/obj/item/stack/cable_coil/C = W
-		if(C.use(1))
-			add_fingerprint(user)
-			playsound(loc, C.usesound, 50, 1)
-			user.visible_message("[user.name] adds wires to the [name].", \
-				"You add some wires.")
-			construction_state = ACCELERATOR_WIRED
-	update_icon()
+
+	if(iscoil(I))
+		add_fingerprint(user)
+		var/obj/item/stack/cable_coil/coil = I
+		if(construction_state != ACCELERATOR_WRENCHED)
+			to_chat(user, span_warning("The [name] should be secured to the floor."))
+			return ATTACK_CHAIN_PROCEED
+		var/cached_sound = coil.usesound
+		if(!coil.use(1))
+			to_chat(user, span_warning("You need at least one length of the cable to proceed."))
+			return ATTACK_CHAIN_PROCEED
+		playsound(loc, cached_sound, 50, TRUE)
+		user.visible_message(
+			span_notice("[user] has wired [src]."),
+			span_notice("You have wired [src]."),
+		)
+		construction_state = ACCELERATOR_WIRED
+		update_icon(UPDATE_ICON_STATE)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/structure/particle_accelerator/screwdriver_act(mob/user, obj/item/I)
 	if(construction_state != ACCELERATOR_WIRED && construction_state != ACCELERATOR_READY)
@@ -222,7 +218,7 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 		construction_state = ACCELERATOR_WIRED
 		SCREWDRIVER_OPEN_PANEL_MESSAGE
 	update_state()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/structure/particle_accelerator/wirecutter_act(mob/user, obj/item/I)
 	if(construction_state != ACCELERATOR_WIRED)
@@ -240,14 +236,14 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
 		return
 	if(construction_state == ACCELERATOR_UNWRENCHED)
-		anchored = TRUE
+		set_anchored(TRUE)
 		WRENCH_ANCHOR_MESSAGE
 		construction_state = ACCELERATOR_WRENCHED
 	else
-		anchored = FALSE
+		set_anchored(FALSE)
 		WRENCH_UNANCHOR_MESSAGE
 		construction_state = ACCELERATOR_UNWRENCHED
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 
 /obj/machinery/particle_accelerator
@@ -255,8 +251,8 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	desc = "Part of a Particle Accelerator."
 	icon = 'icons/obj/engines_and_power/particle_accelerator.dmi'
 	icon_state = "none"
-	anchored = 0
-	density = 1
+	anchored = FALSE
+	density = TRUE
 	use_power = NO_POWER_USE
 	idle_power_usage = 0
 	active_power_usage = 0
@@ -268,48 +264,56 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	var/desc_holder = null
 
 
+/obj/machinery/particle_accelerator/examine(mob/user)
+	. = ..()
+	. += "<span class='info'><b>Alt-Click</b> to rotate it.</span>"
+
+
 /obj/machinery/particle_accelerator/verb/rotate()
 	set name = "Rotate Clockwise"
 	set category = "Object"
 	set src in oview(1)
 
-	if(usr.stat || !usr.canmove || usr.restrained())
+	rotate_accelerator(usr)
+
+/obj/machinery/particle_accelerator/AltClick(mob/user)
+	rotate_accelerator(user)
+
+
+/obj/machinery/particle_accelerator/proc/rotate_accelerator(mob/user)
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user))
 		return
 	if(anchored)
-		to_chat(usr, "It is fastened to the floor!")
-		return 0
-	add_fingerprint(usr)
+		to_chat(user, "<span class='notice'>It is fastened to the floor!</span>")
+		return
 	dir = turn(dir, 270)
-	return 1
 
-/obj/machinery/particle_accelerator/verb/rotateccw()
-	set name = "Rotate Counter-Clockwise"
-	set category = "Object"
-	set src in oview(1)
 
-	if(usr.stat || !usr.canmove || usr.restrained())
-		return
-	if(anchored)
-		to_chat(usr, "It is fastened to the floor!")
-		return 0
-	dir = turn(dir, 90)
-	return 1
-
-/obj/machinery/particle_accelerator/update_icon()
-	return
-
-/obj/machinery/particle_accelerator/attackby(obj/item/W, mob/user, params)
-	if(!iscoil(W))
+/obj/machinery/particle_accelerator/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
 		return ..()
-	if(construction_state == ACCELERATOR_WRENCHED)
-		var/obj/item/stack/cable_coil/C = W
-		if(C.use(1))
-			add_fingerprint(user)
-			playsound(loc, C.usesound, 50, 1)
-			user.visible_message("[user.name] adds wires to the [name].", \
-				"You add some wires.")
-			construction_state = ACCELERATOR_WIRED
-	update_icon()
+
+	if(iscoil(I))
+		add_fingerprint(user)
+		var/obj/item/stack/cable_coil/coil = I
+		if(construction_state != ACCELERATOR_WRENCHED)
+			to_chat(user, span_warning("The [name] should be secured to the floor."))
+			return ATTACK_CHAIN_PROCEED
+		var/cached_sound = coil.usesound
+		if(!coil.use(1))
+			to_chat(user, span_warning("You need at least one length of the cable to proceed."))
+			return ATTACK_CHAIN_PROCEED
+		playsound(loc, cached_sound, 50, TRUE)
+		user.visible_message(
+			span_notice("[user] has wired [src]."),
+			span_notice("You have wired [src]."),
+		)
+		construction_state = ACCELERATOR_WIRED
+		update_icon()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/machinery/particle_accelerator/screwdriver_act(mob/user, obj/item/I)
 	if(construction_state != ACCELERATOR_WIRED && construction_state != ACCELERATOR_READY)
@@ -344,18 +348,18 @@ So, hopefully this is helpful if any more icons are to be added/changed/wonderin
 	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
 		return
 	if(construction_state == ACCELERATOR_UNWRENCHED)
-		anchored = TRUE
+		set_anchored(TRUE)
 		WRENCH_ANCHOR_MESSAGE
 		construction_state = ACCELERATOR_WRENCHED
 	else
-		anchored = FALSE
+		set_anchored(FALSE)
 		WRENCH_UNANCHOR_MESSAGE
 		construction_state = ACCELERATOR_UNWRENCHED
 	update_icon()
 
 
 /obj/machinery/particle_accelerator/proc/update_state()
-	return 0
+	return FALSE
 
 
 #undef ACCELERATOR_UNWRENCHED

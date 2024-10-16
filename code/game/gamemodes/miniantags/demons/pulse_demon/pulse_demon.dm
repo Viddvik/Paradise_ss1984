@@ -29,17 +29,16 @@
 	response_harm = "punches their fist through"
 	deathmessage = "fizzles out into faint sparks, leaving only a slight trail of smoke..."
 	level = 1
-	plane = FLOOR_PLANE
+	plane = FLOOR_PLANE // I hate this
 	layer = ABOVE_PLATING_LAYER
 
 	maxHealth = 50
 	health = 50
 	speed = -0.5
-	flying = TRUE
 	mob_size = MOB_SIZE_TINY
 	density = FALSE
 	del_on_death = TRUE
-
+	light_system = MOVABLE_LIGHT
 	attacktext = "electrocutes"
 	attack_sound = "sparks"
 	a_intent = INTENT_HARM
@@ -49,6 +48,7 @@
 	pass_flags = PASSDOOR
 	stop_automated_movement = TRUE
 	has_unlimited_silicon_privilege = TRUE
+	can_buckle_to = FALSE
 	// this makes the demon able to speak through holopads, due to the overriden say, PD cannot speak normally regardless
 	universal_speak = TRUE
 	loot = list(/obj/item/organ/internal/heart/demon/pulse)
@@ -128,16 +128,20 @@
 		name += " ([rand(100, 999)])"
 		real_name = name
 
+	AddElement(/datum/element/simple_flying)
 	remove_from_all_data_huds()
 	ADD_TRAIT(src, TRAIT_AI_UNTRACKABLE, PULSEDEMON_TRAIT)
 	// flags_2 |= RAD_NO_CONTAMINATE_2
 
 	// don't step on me
-	RegisterSignal(src, COMSIG_CROSSED_MOVABLE, PROC_REF(try_cross_shock))
-	RegisterSignal(src, COMSIG_MOVABLE_CROSSED, PROC_REF(try_cross_shock))
+	RegisterSignal(src, COMSIG_ATOM_ENTERING, PROC_REF(on_entering))
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
 
 	// drop demon onto ground if its loc is a non-turf and gets deleted
-	RegisterSignal(src, COMSIG_PARENT_PREQDELETED, PROC_REF(deleted_handler))
+	RegisterSignal(src, COMSIG_PREQDELETED, PROC_REF(deleted_handler))
 
 	RegisterSignal(SSdcs, COMSIG_GLOB_CABLE_UPDATED, PROC_REF(cable_updated_handler))
 
@@ -178,7 +182,7 @@
 
 	for(var/obj/structure/cable/C in T)
 		var/image/cable_image = image(C, C, layer = ABOVE_LIGHTING_LAYER, dir = C.dir)
-		cable_image.plane = ABOVE_LIGHTING_PLANE
+		SET_PLANE_EXPLICIT(cable_image, PIPECRAWL_IMAGES_PLANE, C)
 		cable_images[T] += cable_image
 		client?.images += cable_image
 
@@ -212,15 +216,22 @@
 	mind.special_role = SPECIAL_ROLE_DEMON
 	give_objectives()
 
+
 /mob/living/simple_animal/demon/pulse_demon/vv_edit_var(var_name, var_value)
-	switch(var_name)
-		if("glow_color")
-			update_glow()
-		if("charge")
-			// automatically adjusts maxcharge to allow the new value
-			adjust_charge(var_value - charge, TRUE)
-			return TRUE
-	return ..()
+	if(var_name == NAMEOF(src, charge))
+		// automatically adjusts maxcharge to allow the new value
+		adjust_charge(var_value - charge, TRUE)
+		. = TRUE
+
+	if(!isnull(.))
+		datum_flags |= DF_VAR_EDITED
+		return .
+
+	. = ..()
+
+	if(var_name == NAMEOF(src, glow_color))
+		update_glow()
+
 
 /mob/living/simple_animal/demon/pulse_demon/forceMove(atom/destination)
 	var/old_location = loc
@@ -247,7 +258,6 @@
 	greeting.Add(span_clock("<b>A being made of pure electrical energy, you travel through the station's wires and infest machinery.</b>"))
 	greeting.Add(span_clock("<b>Navigate the station's power cables to find power sources to steal from, and hijack APCs to interact with their connected machines.</b>"))
 	greeting.Add(span_clock("<b>If the wire or power source you're connected to runs out of power you'll start losing health and eventually die, but you are otherwise immune to damage.</b>"))
-	to_chat(src, span_notice(greeting.Join("<br>")))
 	var/datum/objective/pulse_demon/infest/infestapc = new
 	var/datum/objective/pulse_demon/drain/drainpower = new
 	var/datum/objective/pulse_demon/tamper/tampermach = new
@@ -257,7 +267,9 @@
 	infestapc.owner = mind
 	drainpower.owner = mind
 	tampermach.owner = mind
-	mind.announce_objectives()
+	greeting.Add(mind.prepare_announce_objectives(FALSE))
+	greeting.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Pulse_Demon\">Электродемон</a></span>")
+	to_chat(src, chat_box_yellow(greeting.Join("<br>")))
 	SSticker.mode.traitors |= mind
 	return
 
@@ -273,15 +285,15 @@
 	AddSpell(new /obj/effect/proc_holder/spell/pulse_demon/remotedrain)
 	AddSpell(new /obj/effect/proc_holder/spell/pulse_demon/open_upgrades)
 
-/mob/living/simple_animal/demon/pulse_demon/Stat()
-	. = ..()
-	if(statpanel("Status"))
-		stat(null, "Charge: [format_si_suffix(charge)]W")
-		stat(null, "Maximum Charge: [format_si_suffix(maxcharge)]W")
-		stat(null, "Drained Charge: [format_si_suffix(charge_drained)]W")
-		stat(null, "Hijacked APCs: [length(hijacked_apcs)]")
-		stat(null, "Drain Rate: [format_si_suffix(power_drain_rate)]W")
-		stat(null, "Hijack Time: [hijack_time / 10] seconds")
+/mob/living/simple_animal/demon/pulse_demon/get_status_tab_items()
+	var/list/status_tab_data = ..()
+	. = status_tab_data
+	status_tab_data[++status_tab_data.len] = list("Charge:", "[format_si_suffix(charge)]W")
+	status_tab_data[++status_tab_data.len] = list("Maximum Charge:", "[format_si_suffix(maxcharge)]W")
+	status_tab_data[++status_tab_data.len] = list("Drained Charge:", "[format_si_suffix(charge_drained)]W")
+	status_tab_data[++status_tab_data.len] = list("Hijacked APCs:", "[length(hijacked_apcs)]")
+	status_tab_data[++status_tab_data.len] = list("Drain Rate:", "[format_si_suffix(power_drain_rate)]W")
+	status_tab_data[++status_tab_data.len] = list("Hijack Time:", "[hijack_time / 10] seconds")
 
 /mob/living/simple_animal/demon/pulse_demon/dust()
 	return death()
@@ -289,7 +301,7 @@
 /mob/living/simple_animal/demon/pulse_demon/gib()
 	return death()
 
-/mob/living/simple_animal/demon/pulse_demon/death()
+/mob/living/simple_animal/demon/pulse_demon/death(gibbed)
 	var/turf/T = get_turf(src)
 	do_sparks(rand(2, 4), FALSE, src)
 	. = ..()
@@ -308,7 +320,7 @@
 	Move(T)
 	if(!current_cable && !current_power)
 		var/obj/effect/proc_holder/spell/pulse_demon/toggle/can_exit_cable/S = locate() in mob_spell_list
-		if(!S.locked && !can_exit_cable)
+		if(S && !S.locked && !can_exit_cable)
 			can_exit_cable = TRUE
 			S.do_toggle(can_exit_cable)
 			to_chat(src, span_danger("Your self-sustaining ability has automatically enabled itself to prevent death from having no connection!"))
@@ -336,7 +348,7 @@
 /mob/living/simple_animal/demon/pulse_demon/proc/is_valid_apc(obj/machinery/power/apc/A)
 	return istype(A) && !(A.stat & BROKEN) && !A.shorted
 
-/mob/living/simple_animal/demon/pulse_demon/Move(newloc)
+/mob/living/simple_animal/demon/pulse_demon/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/obj/machinery/power/new_power = locate(/obj/machinery/power) in newloc
 	var/obj/structure/cable/new_cable = locate(/obj/structure/cable) in newloc
 
@@ -362,9 +374,9 @@
 
 	if(!new_cable && !new_power)
 		if(can_exit_cable && moved)
-			speed = outside_cable_speed
+			set_varspeed(outside_cable_speed)
 	else
-		speed = inside_cable_speed
+		set_varspeed(inside_cable_speed)
 
 	if(moved)
 		if(!is_under_tile() && prob(PULSEDEMON_PLATING_SPARK_CHANCE))
@@ -404,6 +416,40 @@
 		current_cable = null
 		current_power = null
 		update_controlling_area()
+
+/mob/living/simple_animal/demon/pulse_demon/move_up()
+	set name = "Move Upwards"
+	set category = "IC"
+
+	var/turf/current_turf = get_turf(src)
+	if(!locate(/obj/structure/cable/multiz) in current_turf)
+		to_chat(src, "<span class='warning'>You need to be on multi z cable hub to move up and down!</span>")
+		return FALSE
+
+	var/turf/turf_to_check = GET_TURF_ABOVE(current_turf)
+	if(!(can_exit_cable || locate(/obj/structure/cable/multiz) in turf_to_check))
+		to_chat(src, "<span class='warning'>There isn't a connected cable to be moved on!</span>")
+		return FALSE
+
+	if(zMove(UP, z_move_flags = ZMOVE_FEEDBACK|ZMOVE_IGNORE_OBSTACLES))
+		to_chat(src, "<span class='notice'>You move upwards.</span>")
+
+/mob/living/simple_animal/demon/pulse_demon/move_down()
+	set name = "Move Down"
+	set category = "IC"
+
+	var/turf/current_turf = get_turf(src)
+	if(!locate(/obj/structure/cable/multiz) in current_turf)
+		to_chat(src, "<span class='warning'>You need to be on multi z cable hub to move up and down!</span>")
+		return
+
+	var/turf/turf_to_check = GET_TURF_BELOW(current_turf)
+	if(!(can_exit_cable || locate(/obj/structure/cable/multiz) in turf_to_check))
+		to_chat(src, "<span class='warning'>There isn't a connected cable to be moved on!</span>")
+		return FALSE
+
+	if(zMove(DOWN, z_move_flags = ZMOVE_FEEDBACK|ZMOVE_IGNORE_OBSTACLES))
+		to_chat(src, "<span class='notice'>You move down.</span>")
 
 // signal to replace relaymove where or when? // Never, actually just manage your code instead
 /obj/machinery/power/relaymove(mob/user, dir)
@@ -452,7 +498,7 @@
 /mob/living/simple_animal/demon/pulse_demon/proc/update_glow()
 	var/range = 2 + (log(2, charge + 1) - log(2, 50000)) / 2
 	range = max(range, 1.5)
-	set_light(range, 2, glow_color)
+	set_light_range_power_color(range, 2, glow_color)
 
 /mob/living/simple_animal/demon/pulse_demon/proc/drain_APC(obj/machinery/power/apc/A, multiplier = 1)
 	if(A.being_hijacked)
@@ -505,7 +551,7 @@
 			// 2 * initial_rate - upgrade_level
 			rate += initial(health_loss_rate)
 		adjustHealth(rate)
-		throw_alert(ALERT_CATEGORY_NOPOWER, /obj/screen/alert/pulse_nopower)
+		throw_alert(ALERT_CATEGORY_NOPOWER, /atom/movable/screen/alert/pulse_nopower)
 
 	if(regen_lock > 0)
 		if(--regen_lock == 0)
@@ -517,7 +563,7 @@
 		. += pick("!", "@", "#", "$", "%", "^", "&", "*")
 
 /mob/living/simple_animal/demon/pulse_demon/say(message, verb, sanitize = TRUE, ignore_speech_problems = FALSE, ignore_atmospherics = FALSE, ignore_languages = FALSE)
-	if(client && (client.prefs.muted & MUTE_IC))
+	if(check_mute(ckey, MUTE_IC))
 		to_chat(src, span_danger("You cannot speak in IC (Muted)."))
 		return FALSE
 
@@ -567,7 +613,7 @@
 	create_log(SAY_LOG, "[message_mode ? "([message_mode])" : ""] '[message]'")
 
 	playsound(get_turf(src), pick(speech_sounds), 30, TRUE)
-	if(istype(loc, /obj/item/radio))
+	if(isradio(loc))
 		var/obj/item/radio/R = loc
 		name = gen_speech_name()
 		R.talk_into(src, message_pieces, message_mode, verb)
@@ -584,7 +630,7 @@
 	emote("me", message = "[pick(emote_hear)]")
 	return TRUE
 
-/mob/living/simple_animal/demon/pulse_demon/visible_message(message, self_message, blind_message)
+/mob/living/simple_animal/demon/pulse_demon/visible_message(message, self_message, blind_message, list/ignored_mobs, chat_message_type)
 	// overriden because pulse demon is quite often in non-turf locs, and /mob/visible_message acts differently there
 	for(var/mob/M in get_mobs_in_view(7, src))
 		if(M.see_invisible < invisibility)
@@ -592,7 +638,7 @@
 		var/msg = message
 		if(self_message && M == src)
 			msg = self_message
-		M.show_message(msg, EMOTE_VISIBLE, blind_message, EMOTE_AUDIBLE)
+		M.show_message(msg, EMOTE_VISIBLE, blind_message, EMOTE_AUDIBLE, chat_message_type = MESSAGE_TYPE_LOCALCHAT)
 
 /mob/living/simple_animal/demon/pulse_demon/proc/try_hijack_apc(obj/machinery/power/apc/A, remote = FALSE)
 	// one APC per pulse demon, one pulse demon per APC, no duplicate APCs
@@ -603,7 +649,7 @@
 	apc_being_hijacked = A
 	A.being_hijacked = TRUE
 	A.update_icon()
-	if(do_after(src, hijack_time, target = A))
+	if(do_after(src, hijack_time, A))
 		if(is_valid_apc(A))
 			finish_hijack_apc(A, remote)
 		else
@@ -621,23 +667,36 @@
 
 /mob/living/simple_animal/demon/pulse_demon/proc/finish_hijack_apc(obj/machinery/power/apc/A, remote = FALSE)
 	var/image/apc_image = image('icons/obj/engines_and_power/power.dmi', A, "apcemag", ABOVE_LIGHTING_LAYER, A.dir)
-	apc_image.plane = ABOVE_LIGHTING_PLANE
+	SET_PLANE_EXPLICIT(apc_image, PIPECRAWL_IMAGES_PLANE, A)
 	LAZYADD(apc_images[get_turf(A)], apc_image)
 	client.images += apc_image
 
 	hijacked_apcs += A
-	RegisterSignal(A, COMSIG_PARENT_QDELETING, PROC_REF(apc_deleted_handler))
+	RegisterSignal(A, COMSIG_QDELETING, PROC_REF(apc_deleted_handler))
 	if(!remote)
 		update_controlling_area()
 	maxcharge = calc_maxcharge(length(hijacked_apcs)) + (maxcharge - calc_maxcharge(length(hijacked_apcs) - 1))
 	to_chat(src, span_notice("Hijacking complete! You now control [length(hijacked_apcs)] APCs."))
 
-/mob/living/simple_animal/demon/pulse_demon/proc/try_cross_shock(src, atom/A)
+
+/mob/living/simple_animal/demon/pulse_demon/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	SIGNAL_HANDLER
-	if(!isliving(A) || is_under_tile())
+
+	if(!isliving(arrived) || is_under_tile())
 		return
-	var/mob/living/L = A
-	try_shock_mob(L)
+
+	try_shock_mob(arrived)
+
+
+/mob/living/simple_animal/demon/pulse_demon/proc/on_entering(datum/source, atom/destination, atom/oldloc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	if(!isturf(destination) || is_under_tile())
+		return
+
+	for(var/mob/living/mob in (destination.contents - src))
+		try_shock_mob(mob)
+
 
 /mob/living/simple_animal/demon/pulse_demon/proc/try_shock_mob(mob/living/L, siemens_coeff = 1)
 	var/dealt = 0
@@ -645,7 +704,7 @@
 		// returns used energy, not damage dealt, but ez conversion with /20
 		dealt = electrocute_mob(L, current_cable.powernet, src, siemens_coeff) / 20
 	else if(charge >= 1000)
-		dealt = L.electrocute_act(30, src, siemens_coeff)
+		dealt = L.electrocute_act(30, "пульс-демона", siemens_coeff)
 		adjust_charge(-1000)
 	if(dealt > 0)
 		do_sparks(rand(2, 4), FALSE, src)
@@ -653,7 +712,7 @@
 
 /mob/living/simple_animal/demon/pulse_demon/proc/is_under_tile()
 	var/turf/T = get_turf(src)
-	return T.transparent_floor || T.intact || HAS_TRAIT(T, TRAIT_TURF_COVERED)
+	return (T.transparent_floor == TURF_TRANSPARENT) || T.intact || HAS_TRAIT(T, TRAIT_TURF_COVERED)
 
 // cable (and hijacked APC) view helper
 /mob/living/simple_animal/demon/pulse_demon/proc/update_cableview()
@@ -676,7 +735,7 @@
 
 			var/image/cable_image = image(C, C, layer = ABOVE_LIGHTING_LAYER, dir = C.dir)
 			// good visibility here
-			cable_image.plane = ABOVE_LIGHTING_PLANE
+			SET_PLANE_EXPLICIT(cable_image, PIPECRAWL_IMAGES_PLANE, C)
 			LAZYADD(cable_images[cable_turf], cable_image)
 			client.images += cable_image
 
@@ -688,7 +747,7 @@
 			continue
 		// parent of image is the APC, not the turf because of how clicking on images works
 		var/image/apc_image = image('icons/obj/engines_and_power/power.dmi', A, "apcemag", ABOVE_LIGHTING_LAYER, A.dir)
-		apc_image.plane = ABOVE_LIGHTING_PLANE
+		SET_PLANE_EXPLICIT(apc_image, PIPECRAWL_IMAGES_PLANE, A)
 		LAZYADD(apc_images[apc_turf], apc_image)
 		client.images += apc_image
 
@@ -699,7 +758,7 @@
 	. = ..()
 	visible_message(span_danger(">[src] [pick("fizzles", "wails", "flails")] in anguish!"))
 	playsound(get_turf(src), pick(hurt_sounds), 30, TRUE)
-	throw_alert(ALERT_CATEGORY_NOREGEN, /obj/screen/alert/pulse_noregen)
+	throw_alert(ALERT_CATEGORY_NOREGEN, /atom/movable/screen/alert/pulse_noregen)
 	switch(severity)
 		if(EMP_LIGHT)
 			adjustHealth(round(max(initial(health) / 4, round(maxHealth / 8))))
@@ -716,6 +775,8 @@
 		try_shock_mob(L)
 
 /mob/living/simple_animal/demon/pulse_demon/UnarmedAttack(atom/A)
+	if(!can_unarmed_attack())
+		return
 	if(isliving(A))
 		try_attack_mob(A)
 	else if(isitem(A) && !is_under_tile())
@@ -739,24 +800,29 @@
 			visible_message(span_danger("[M] [response_harm] [src]."))
 	try_attack_mob(M)
 
-/mob/living/simple_animal/demon/pulse_demon/attackby(obj/item/O, mob/living/user)
+
+/mob/living/simple_animal/demon/pulse_demon/attackby(obj/item/I, mob/user, params)
+	. = ATTACK_CHAIN_BLOCKED_ALL
 	if(is_under_tile())
 		to_chat(user, span_danger("You can't interact with something that's under the floor!"))
-		return
-	var/obj/item/stock_parts/cell/C = O.get_cell()
-	if(C && C.charge)
-		C.use(min(C.charge, power_drain_rate))
-		adjust_charge(min(C.charge, power_drain_rate))
-		to_chat(user, span_warning("You touch [src] with [O] and [src] drains it."))
-		to_chat(src, span_notice("[user] touches you with [O] and you drain its power!"))
-	visible_message(span_notice("[O] goes right through [src]."))
-	try_shock_mob(user, O.siemens_coefficient)
+		return .
+	var/obj/item/stock_parts/cell/cell = I.get_cell()
+	if(cell?.charge)
+		cell.use(min(cell.charge, power_drain_rate))
+		adjust_charge(min(cell.charge, power_drain_rate))
+		to_chat(user, span_warning("You touch [src] with [I] and [src] drains it."))
+		to_chat(src, span_notice("[user] touches you with [I] and you drain its power!"))
+	visible_message(span_notice("[I] goes right through [src]."))
+	try_shock_mob(user, I.siemens_coefficient)
+
 
 /mob/living/simple_animal/demon/pulse_demon/ex_act()
 	return
 
-/mob/living/simple_animal/demon/pulse_demon/CanPass(atom/movable/mover, turf/target, height)
+/mob/living/simple_animal/demon/pulse_demon/CanAllowThrough(atom/movable/mover, border_dir)
 	. = ..()
+	if(checkpass(mover))
+		return TRUE
 	if(istype(mover, /obj/item/projectile/ion))
 		return FALSE
 
@@ -765,8 +831,8 @@
 		return ..()
 	visible_message(span_warning("[proj] goes right through [src]!"))
 
-/mob/living/simple_animal/demon/pulse_demon/electrocute_act(shock_damage, source, siemens_coeff, safety, override, tesla_shock, illusion, stun)
-	return
+/mob/living/simple_animal/demon/pulse_demon/electrocute_act(shock_damage, source, siemens_coeff = 1, flags = NONE, jitter_time = 10 SECONDS, stutter_time = 6 SECONDS, stun_duration = 4 SECONDS)
+	return FALSE
 
 /mob/living/simple_animal/demon/pulse_demon/blob_act(obj/structure/blob/B)
 	return // will likely end up dying if the blob cuts its wires anyway
@@ -780,10 +846,7 @@
 /mob/living/simple_animal/demon/pulse_demon/IsAdvancedToolUser()
 	return TRUE // interacting with machines
 
-/mob/living/simple_animal/demon/pulse_demon/can_be_pulled()
-	return FALSE
-
-/mob/living/simple_animal/demon/pulse_demon/can_buckle()
+/mob/living/simple_animal/demon/pulse_demon/can_be_pulled(atom/movable/puller, grab_state, force, supress_message)
 	return FALSE
 
 /mob/living/simple_animal/demon/pulse_demon/hitby(atom/movable/AM, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
@@ -798,9 +861,6 @@
 /mob/living/simple_animal/demon/pulse_demon/mob_negates_gravity()
 	return TRUE
 
-/mob/living/simple_animal/demon/pulse_demon/mob_has_gravity()
-	return TRUE
-
 /obj/item/organ/internal/heart/demon/pulse
 	name = "perpetual pacemaker"
 	desc = "It still beats furiously, thousands of bright lights shine within it."
@@ -808,23 +868,23 @@
 
 /obj/item/organ/internal/heart/demon/pulse/Initialize(mapload)
 	. = ..()
-	set_light(13, 2, "#bbbb00")
+	set_light_range_power_color(13, 2, "#bbbb00")
 
 /obj/item/organ/internal/heart/demon/pulse/attack_self(mob/living/user)
 	. = ..()
-	user.drop_from_active_hand()
-	insert(user)
+	if(user.temporarily_remove_item_from_inventory(src))
+		insert(user)
 
-/obj/item/organ/internal/heart/demon/pulse/insert(mob/living/carbon/M, special = 0)
+/obj/item/organ/internal/heart/demon/pulse/insert(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	. = ..()
 	M.AddComponent(/datum/component/cross_shock, 30, 500, 2 SECONDS)
 	ADD_TRAIT(M, TRAIT_SHOCKIMMUNE, UNIQUE_TRAIT_SOURCE(src))
-	M.set_light(3, 2, "#bbbb00")
+	M.set_light_range_power_color(3, 2, "#bbbb00")
 
-/obj/item/organ/internal/heart/demon/pulse/remove(mob/living/carbon/M, special = 0)
-	. = ..()
+/obj/item/organ/internal/heart/demon/pulse/remove(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	REMOVE_TRAIT(M, TRAIT_SHOCKIMMUNE, UNIQUE_TRAIT_SOURCE(src))
 	M.remove_light()
+	. = ..()
 
 /obj/item/organ/internal/heart/demon/pulse/on_life()
 	if(!owner)
@@ -838,12 +898,12 @@
 				cell_location.update_icon() //update power meters and such
 			cell_to_charge.update_icon()
 
-/obj/screen/alert/pulse_nopower
+/atom/movable/screen/alert/pulse_nopower
 	name = "No Power"
 	desc = "You are not connected to a cable or machine and are losing health!"
 	icon_state = "pd_nopower"
 
-/obj/screen/alert/pulse_noregen
+/atom/movable/screen/alert/pulse_noregen
 	name = "Regeneration Stalled"
 	desc = "You've been EMP'd and cannot regenerate health!"
 	icon_state = "pd_noregen"

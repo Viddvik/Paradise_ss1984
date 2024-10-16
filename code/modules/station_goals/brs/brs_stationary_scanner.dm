@@ -85,7 +85,7 @@
 	GLOB.poi_list |= src
 	new_component_parts()
 	connect_to_network()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/power/brs_stationary_scanner/Destroy()
 	GLOB.bluespace_rifts_scanner_list.Remove(src)
@@ -162,24 +162,28 @@
 			cause = "[src] was working too long within critical range of a rift."
 		)
 
-/obj/machinery/power/brs_stationary_scanner/update_icon()
+/obj/machinery/power/brs_stationary_scanner/update_icon_state()
 	var/prefix = initial(icon_state)
 
-	overlays.Cut()
-	if(panel_open)
-		overlays += image(icon, "[prefix]-panel")
-
-	if (stat & BROKEN)
+	if(stat & BROKEN)
 		icon_state = "[prefix]-broken"
 		return
-	if ((scanning_status == SCAN_OFF) || (!cable_powered))
+	if((scanning_status == SCAN_OFF) || (!cable_powered))
 		icon_state = prefix
 		return
+
 	icon_state = "[prefix]-act"
 
-/obj/machinery/power/brs_stationary_scanner/power_change()
-	// It shouldn't react to the apc
-	..()
+
+/obj/machinery/brs_stationary_scanner/update_overlays()
+	. = ..()
+	if(panel_open)
+		. += image(icon, "[initial(icon_state)]-panel")
+
+
+/obj/machinery/power/brs_stationary_scanner/power_change(forced = FALSE)
+	return
+
 
 /obj/machinery/power/brs_stationary_scanner/proc/on_power_change()
 	if(!cable_powered)
@@ -189,11 +193,11 @@
 	else
 		if(scanning_status != SCAN_OFF)
 			playsound(loc, activation_sound, 100)
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/power/brs_stationary_scanner/obj_break()
 	..()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	SStgui.close_uis(src)
 
 /obj/machinery/power/brs_stationary_scanner/screwdriver_act(mob/living/user, obj/item/I)
@@ -208,7 +212,7 @@
 		return
 
 	default_deconstruction_screwdriver(user, icon_state, icon_state, I)
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/machinery/power/brs_stationary_scanner/crowbar_act(mob/living/user, obj/item/I)
 	. = TRUE
@@ -234,11 +238,12 @@
 		// Reset if the scanner was turned on before the failure.
 		turn_on()
 	else
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/power/brs_stationary_scanner/emag_act(mob/user)
 	if(!emagged)
-		to_chat(user, span_warning("@?%!№@Протоколы безопасности сканера перезаписаны@?%!№@"))
+		if(user)
+			to_chat(user, span_warning("@?%!№@Протоколы безопасности сканера перезаписаны@?%!№@"))
 		emagged = TRUE
 
 /obj/machinery/power/brs_stationary_scanner/emp_act(severity)
@@ -280,10 +285,10 @@
 
 	RefreshParts()
 
-/obj/machinery/power/brs_stationary_scanner/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/power/brs_stationary_scanner/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BluespaceRiftScanner", name, 475, 400)
+		ui = new(user, src, "BluespaceRiftScanner", name)
 		ui.open()
 
 /obj/machinery/power/brs_stationary_scanner/ui_data(mob/user)
@@ -314,7 +319,7 @@
 		// Our state just changed to critical
 		// Set timer to kaboom
 		failure_time = world.time + time_for_failure
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/power/brs_stationary_scanner/proc/toggle()
 	switching = TRUE

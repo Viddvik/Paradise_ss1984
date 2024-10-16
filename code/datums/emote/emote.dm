@@ -1,10 +1,6 @@
 
 // Defines are in code\__DEFINES\emotes.dm
 
-/// Sentinel for emote stats.
-/// If this is set for max stat, then its value will be ignored.
-#define DEFAULT_MAX_STAT_ALLOWED "defaultstat"
-
 /**
  * # Emote
  *
@@ -81,12 +77,12 @@
 	var/stat_allowed = CONSCIOUS
 	/// How unconscious/dead can you be while still being able to use this emote intentionally?
 	/// If this is set to DEFAULT_STAT_ALLOWED, it'll behave as if it isn't set.
-	var/max_stat_allowed = DEFAULT_MAX_STAT_ALLOWED
+	var/max_stat_allowed = DEFAULT_MAX_STAT_ALLOWED_EMOTE
 	/// How conscious do you need to be to have this emote forced out of you?
 	var/unintentional_stat_allowed = CONSCIOUS
 	/// Same as above, how unconscious/dead do you need to be to have this emote forced out of you?
 	/// If this is set to DEFAULT_STAT_ALLOWED, it'll behave as if it isn't set.
-	var/max_unintentional_stat_allowed = DEFAULT_MAX_STAT_ALLOWED
+	var/max_unintentional_stat_allowed = DEFAULT_MAX_STAT_ALLOWED_EMOTE
 	/// Sound to play when emote is called. Might be a list with different sounds. If you want to adjust this dynamically, see get_sound().
 	var/sound
 	/// Whether or not to vary the sound of the emote.
@@ -185,12 +181,12 @@
 			to_chat(user, span_warning("[params]' isn't a valid parameter for [key]."))
 			return TRUE
 
-	msg = genderize_decode(user, msg)
-
 	// Keep em quiet if they can't speak
 	if(!can_vocalize_emotes(user) && ((emote_type & EMOTE_MOUTH) && (emote_type & (EMOTE_AUDIBLE|EMOTE_SOUND))))
 		var/noise_emitted = pick(muzzled_noises)
-		msg = "изда[pluralize_ru(user.gender, "ёт", "ют")] [noise_emitted] звуки."
+		msg = "изда%(ёт,ют)% [noise_emitted] звуки."
+
+	msg = genderize_decode(user, msg)
 
 	var/tmp_sound = get_sound(user)
 	var/sound_volume = get_volume(user)
@@ -214,16 +210,16 @@
 				if(!ghost.client)
 					continue
 				if((ghost.client.prefs.toggles & PREFTOGGLE_CHAT_GHOSTSIGHT) && !(ghost in viewers(user_turf, null)))
-					ghost.show_message(span_italics("[user] ([ghost_follow_link(user, ghost)]) [msg]"))
+					ghost.show_message(span_italics("[user] ([ghost_follow_link(user, ghost)]) [msg]"), chat_message_type = MESSAGE_TYPE_LOCALCHAT)
 
 		if(isobserver(user))
 			for(var/mob/dead/observer/ghost in viewers(user))
-				ghost.show_message(span_deadsay("[displayed_msg]"), EMOTE_VISIBLE)
+				ghost.show_message(span_deadsay("[displayed_msg]"), EMOTE_VISIBLE, chat_message_type = MESSAGE_TYPE_LOCALCHAT)
 
-		else if((emote_type & (EMOTE_AUDIBLE|EMOTE_SOUND)) && !user.mind?.miming)
+		else if((emote_type & (EMOTE_AUDIBLE|EMOTE_SOUND)) && user.mind && !user.mind.miming)
 			user.audible_message(displayed_msg, deaf_message = span_italics("You see how <b>[user]</b> [msg]"))
 		else
-			user.visible_message(displayed_msg, blind_message = span_italics("You hear how someone [msg]"))
+			user.visible_message(displayed_msg)
 
 		if(!(emote_type & (EMOTE_FORCE_NO_RUNECHAT|EMOTE_SOUND)) && !isobserver(user))
 			runechat_emote(user, msg)
@@ -285,21 +281,18 @@
  * * text - The text of the emote.
  */
 /datum/emote/proc/runechat_emote(mob/user, text)
-	var/runechat_text = text
-	if(length_char(text) > 100)
-		runechat_text = "[copytext_char(text, 1, 101)]..."
 	var/list/can_see = get_mobs_in_view(1, user)  //Allows silicon & mmi mobs carried around to see the emotes of the person carrying them around.
 	can_see |= viewers(user, null)
-	for(var/mob/O in can_see)
-		if(O.status_flags & PASSEMOTES)
-			for(var/obj/item/holder/H in O.contents)
-				H.show_message(text, EMOTE_VISIBLE)
+	for(var/mob/viewer in can_see)
+		if(viewer.status_flags & PASSEMOTES)
+			for(var/obj/item/holder/holder in viewer.contents)
+				holder.show_message(text, EMOTE_VISIBLE, chat_message_type = MESSAGE_TYPE_LOCALCHAT)
 
-			for(var/mob/living/M in O.contents)
-				M.show_message(text, EMOTE_VISIBLE)
+			for(var/mob/living/mob in viewer.contents)
+				mob.show_message(text, EMOTE_VISIBLE, chat_message_type = MESSAGE_TYPE_LOCALCHAT)
 
-		if(O.client?.prefs.toggles2 & PREFTOGGLE_2_RUNECHAT)
-			O.create_chat_message(user, runechat_text, emote = TRUE)
+		if((isobserver(viewer) || viewer.stat == CONSCIOUS) && viewer.client?.prefs?.toggles2 & PREFTOGGLE_2_RUNECHAT)
+			viewer.create_chat_message(user, text, list("emote"))
 
 
 /**
@@ -310,11 +303,12 @@
  * Arguments:
  * * user - Person that is trying to send the emote.
  * * intentional - Bool that says whether the emote was forced (FALSE) or not (TRUE).
+ * * ignore_cooldowns - If `TRUE` all cooldowns will be skipped.
  *
  * Returns FALSE if the cooldown is not over, TRUE if the cooldown is over.
  */
-/datum/emote/proc/check_cooldown(mob/user, intentional)
-	if(!intentional && bypass_unintentional_cooldown)
+/datum/emote/proc/check_cooldown(mob/user, intentional, ignore_cooldowns)
+	if((!intentional && bypass_unintentional_cooldown) || ignore_cooldowns)
 		return TRUE
 	// if our emote would play sound but another audio emote is on cooldown, prevent this emote from being used.
 	// Note that this only applies to intentional emotes
@@ -383,7 +377,7 @@
 		. = islist(message_robot) ? pick(message_robot) : message_robot
 	else if(isAI(user) && message_AI)
 		. = islist(message_AI) ? pick(message_AI) : message_AI
-	else if(ismonkeybasic(user) && message_monkey)
+	else if(is_monkeybasic(user) && message_monkey)
 		. = islist(message_monkey) ? pick(message_monkey) : message_monkey
 	else if(isanimal(user) && message_simple)
 		. = islist(message_simple) ? pick(message_simple) : message_simple
@@ -489,13 +483,13 @@
 
 	if(intentional && only_unintentional)
 		return FALSE
-	if(user.client?.prefs.muted & MUTE_EMOTE)
+	if(user.client && check_mute(user.client.ckey, MUTE_EMOTE))
 		to_chat(user, span_warning("You cannot send emotes (muted)."))
 		return FALSE
 
 	if(status_check && !is_type_in_typecache(user, mob_type_ignore_stat_typecache))
-		var/intentional_stat_check = (intentional && (user.stat <= stat_allowed && (max_stat_allowed == DEFAULT_MAX_STAT_ALLOWED || user.stat >= max_stat_allowed)))
-		var/unintentional_stat_check = (!intentional && (user.stat <= unintentional_stat_allowed && (max_unintentional_stat_allowed == DEFAULT_MAX_STAT_ALLOWED || user.stat >= max_unintentional_stat_allowed)))
+		var/intentional_stat_check = (intentional && (user.stat <= stat_allowed && (max_stat_allowed == DEFAULT_MAX_STAT_ALLOWED_EMOTE || user.stat >= max_stat_allowed)))
+		var/unintentional_stat_check = (!intentional && (user.stat <= unintentional_stat_allowed && (max_unintentional_stat_allowed == DEFAULT_MAX_STAT_ALLOWED_EMOTE || user.stat >= max_unintentional_stat_allowed)))
 		if(!intentional_stat_check && !unintentional_stat_check)
 			var/stat = stat_to_text(user.stat)
 			if(!intentional)
@@ -507,26 +501,25 @@
 		if(HAS_TRAIT(user, TRAIT_FAKEDEATH))
 			// Don't let people blow their cover by mistake
 			return FALSE
-		if(hands_use_check && !user.can_use_hands() && iscarbon(user))
+		if(hands_use_check && HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 			if(!intentional)
 				return FALSE
 			to_chat(user, span_warning("You cannot use your hands to [key] right now!"))
 			return FALSE
 
 	if(isliving(user))
-		var/mob/living/sender = user
-		if(HAS_TRAIT(sender, TRAIT_EMOTE_MUTE) && intentional)
+		if(HAS_TRAIT(user, TRAIT_EMOTE_MUTE) && intentional)
 			return FALSE
 	else
 		// deadchat handling
-		if(user.client?.prefs.muted & MUTE_DEADCHAT)
+		if(user.client && check_mute(user.client.ckey, MUTE_DEADCHAT))
 			to_chat(user, span_warning("You cannot send deadchat emotes (muted)."))
 			return FALSE
 		if(!(user.client?.prefs.toggles & PREFTOGGLE_CHAT_DEAD))
 			to_chat(user, span_warning("You have deadchat muted."))
 			return FALSE
 		if(!check_rights(R_ADMIN, FALSE, user) && !CONFIG_GET(flag/dsay_allowed))
-			to_chat(user, span_warning("Deadchat is globally muted"))
+			to_chat(user, span_warning("Deadchat is globally muted."))
 			return FALSE
 
 
@@ -631,7 +624,4 @@
 				ghost.show_message("[ghost_follow_link(src, ghost)] [ghost_text]")
 
 	visible_message(text)
-
-
-#undef DEFAULT_MAX_STAT_ALLOWED
 

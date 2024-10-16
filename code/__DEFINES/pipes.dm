@@ -38,6 +38,7 @@
 #define PIPE_PASV_VENT				37
 #define PIPE_DTVALVE				38
 #define PIPE_CIRCULATOR				39
+#define PIPE_MULTIZ					40
 #define PIPE_GAS_SENSOR				98
 #define PIPE_METER					99
 
@@ -54,6 +55,9 @@
 #define PIPE_DISPOSALS_CHUTE			108
 #define PIPE_DISPOSALS_SORT_RIGHT		109
 #define PIPE_DISPOSALS_SORT_LEFT		110
+#define PIPE_DISPOSALS_MULTIZ_UP		111
+#define PIPE_DISPOSALS_MULTIZ_DOWN		112
+#define PIPE_DISPOSALS_ROTATOR			113
 
 
 //RPD stuff
@@ -72,3 +76,16 @@
 
 #define PIPETYPE_ATMOS		1
 #define PIPETYPE_DISPOSAL	2
+
+// Connection types
+
+#define CONNECT_TYPE_NORMAL 1
+#define CONNECT_TYPE_SUPPLY 2
+#define CONNECT_TYPE_SCRUBBER 3
+
+//Disposal pipe relative connection directions
+#define DISP_DIR_LEFT (1<<0)
+#define DISP_DIR_RIGHT (1<<1)
+#define DISP_DIR_FLIP (1<<2)
+#define DISP_DIR_NONE (1<<3)
+

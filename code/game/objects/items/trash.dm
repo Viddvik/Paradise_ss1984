@@ -64,17 +64,17 @@
 	name = "Kentucky Fried Vox"
 	icon_state = "fried_vox_empty"
 	item_state = "fried_vox_empty"
-	slot_flags = SLOT_HEAD
+	slot_flags = ITEM_SLOT_HEAD
 	dog_fashion = /datum/dog_fashion/head/fried_vox_empty
 	sprite_sheets = list(
-		"Skrell" = 'icons/mob/clothing/species/skrell/head.dmi',
-		"Drask" = 'icons/mob/clothing/species/drask/head.dmi',
-		"Kidan" = 'icons/mob/clothing/species/kidan/head.dmi',
-		"Monkey" = 'icons/mob/clothing/species/monkey/head.dmi',
-		"Farwa" = 'icons/mob/clothing/species/monkey/head.dmi',
-		"Wolpin" = 'icons/mob/clothing/species/monkey/head.dmi',
-		"Neara" = 'icons/mob/clothing/species/monkey/head.dmi',
-		"Stok" = 'icons/mob/clothing/species/monkey/head.dmi'
+		SPECIES_SKRELL = 'icons/mob/clothing/species/skrell/head.dmi',
+		SPECIES_DRASK = 'icons/mob/clothing/species/drask/head.dmi',
+		SPECIES_KIDAN = 'icons/mob/clothing/species/kidan/head.dmi',
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/head.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/head.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/head.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/head.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/head.dmi'
 	)
 
 /obj/item/trash/pistachios
@@ -119,7 +119,7 @@
 	icon = 'icons/obj/weapons/ammo.dmi'
 	name = "bullet casing"
 	desc = "A spent bullet casing. Smells like cordite."
-	icon_state = "gshell"
+	icon_state = "buckshotshell"
 
 /obj/item/trash/tapetrash
 	name = "old duct tape"
@@ -127,13 +127,19 @@
 	desc = "Not sticky anymore."
 	throw_range = 1
 
+/obj/item/trash/tapetrash/thick
+	icon_state = "thicktape"
+	desc = "Still sticky a bit."
+
 /obj/item/trash/doshik
 	name = "packaging from doshik"
 	icon_state = "doshik"
 	desc = "Still has a delicious smell."
 
-/obj/item/trash/attack(mob/M as mob, mob/living/user as mob)
-	return
+
+/obj/item/trash/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
 
 /obj/item/trash/broken_ashtray
 	name = "ashtray shards"
@@ -146,12 +152,12 @@
 
 /obj/item/spentcasing
 	icon = 'icons/obj/weapons/ammo.dmi'
-	icon_state = "gshell"
+	icon_state = "buckshotshell"
 	name = "Old bullet casing"
 	desc = "A spent bullet casing. Smells like rusty metal."
 
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 1
 	w_class = WEIGHT_CLASS_TINY
 	materials = list(MAT_METAL = 100)

@@ -1,6 +1,6 @@
 /obj/item/gun/projectile/automatic
 	w_class = WEIGHT_CLASS_NORMAL
-	var/alarmed = 0
+	var/alarmed = FALSE
 	var/select = 1
 	can_tactical = TRUE
 	can_suppress = 1
@@ -9,44 +9,50 @@
 	fire_delay = 2
 	actions_types = list(/datum/action/item_action/toggle_firemode)
 
-/obj/item/gun/projectile/automatic/update_icon()
-	..()
-	overlays.Cut()
-	if(!select)
-		overlays += "[initial(icon_state)]semi"
-	if(select == 1)
-		overlays += "[initial(icon_state)]burst"
+
+/obj/item/gun/projectile/automatic/update_icon_state()
 	icon_state = "[initial(icon_state)][magazine ? "-[magazine.max_ammo]" : ""][chambered ? "" : "-e"][suppressed ? "-suppressed" : ""]"
-	if(bayonet && can_bayonet)
-		overlays += knife_overlay
 
-/obj/item/gun/projectile/automatic/attackby(var/obj/item/A as obj, mob/user as mob, params)
+
+/obj/item/gun/projectile/automatic/update_overlays()
 	. = ..()
-	if(.)
-		if(alarmed) // Did the empty clip alarm go off already?
-			alarmed = 0 // Reset the alarm once a magazine is loaded
-		return
-	if(istype(A, /obj/item/ammo_box/magazine))
-		var/obj/item/ammo_box/magazine/AM = A
-		if(istype(AM, mag_type))
-			if(magazine)
-				to_chat(user, "<span class='notice'>You perform a tactical reload on \the [src], replacing the magazine.</span>")
-				magazine.loc = get_turf(loc)
-				magazine.update_icon()
-				magazine = null
-			else
-				to_chat(user, "<span class='notice'>You insert the magazine into \the [src].</span>")
-			if(alarmed)
-				alarmed = 0
-			user.drop_transfer_item_to_loc(AM, src)
-			magazine = AM
-			chamber_round()
-			A.update_icon()
-			update_icon()
-			return 1
+	if(!select)
+		. += "[initial(icon_state)]semi"
+	if(select == 1)
+		. += "[initial(icon_state)]burst"
 
-/obj/item/gun/projectile/automatic/ui_action_click(var/owner, var/action_type)
-    if (ispath(action_type, /datum/action/item_action/toggle_firemode))
+	if(gun_light && gun_light_overlay)
+		var/iconF = gun_light_overlay
+		if(gun_light.on)
+			iconF = "[gun_light_overlay]_on"
+		. += image(icon = icon, icon_state = iconF, pixel_x = flight_x_offset, pixel_y = flight_y_offset)
+
+
+/obj/item/gun/projectile/automatic/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/ammo_box/magazine))
+		add_fingerprint(user)
+		var/obj/item/ammo_box/magazine/new_magazine = I
+		if(!istype(new_magazine, mag_type))
+			balloon_alert(user, "не совместимо!")
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(new_magazine, src))
+			return ..()
+		if(magazine)
+			magazine.forceMove(drop_location())
+			magazine.update_appearance()
+		balloon_alert(user, "заряжено")
+		alarmed = FALSE	// Reset the alarm once a magazine is loaded
+		magazine = new_magazine
+		chamber_round()
+		magazine.update_appearance()
+		update_appearance()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
+
+/obj/item/gun/projectile/automatic/ui_action_click(mob/user, datum/action/action, leftclick)
+    if(istype(action, /datum/action/item_action/toggle_firemode))
         burst_select()
         return TRUE
 
@@ -56,11 +62,11 @@
 	if(!select)
 		burst_size = 1
 		fire_delay = 0
-		to_chat(user, "<span class='notice'>You switch to semi-automatic.</span>")
+		balloon_alert(user, "полуавтомат")
 	else
 		burst_size = initial(burst_size)
 		fire_delay = initial(fire_delay)
-		to_chat(user, "<span class='notice'>You switch to [burst_size] round burst.</span>")
+		balloon_alert(user, "отсечка по [burst_size] [declension_ru(burst_size, "патрону",  "патрона",  "патронов")]")
 
 	playsound(user, 'sound/weapons/gun_interactions/selector.ogg', 100, 1)
 	update_icon()
@@ -68,14 +74,14 @@
 		var/datum/action/A = X
 		A.UpdateButtonIcon()
 
-/obj/item/gun/projectile/automatic/can_shoot()
+/obj/item/gun/projectile/automatic/can_shoot(mob/user)
 	return get_ammo()
 
 /obj/item/gun/projectile/automatic/proc/empty_alarm()
 	if(!chambered && !get_ammo() && !alarmed)
-		playsound(loc, 'sound/weapons/smg_empty_alarm.ogg', 40, 1)
+		playsound(loc, 'sound/weapons/smg_empty_alarm.ogg', 40, TRUE)
 		update_icon()
-		alarmed = 1
+		alarmed = TRUE
 
 //Saber SMG//
 /obj/item/gun/projectile/automatic/proto
@@ -98,20 +104,24 @@
 	fire_delay = 2
 	burst_size = 2
 	can_bayonet = TRUE
-	knife_x_offset = 26
-	knife_y_offset = 12
+	bayonet_x_offset = 26
+	bayonet_y_offset = 12
 
-/obj/item/gun/projectile/automatic/c20r/New()
-	..()
+
+/obj/item/gun/projectile/automatic/c20r/Initialize()
+	. = ..()
 	update_icon()
 
-/obj/item/gun/projectile/automatic/c20r/afterattack(atom/target as mob|obj|turf|area, mob/living/user as mob|obj, flag)
+
+/obj/item/gun/projectile/automatic/c20r/afterattack(atom/target, mob/living/user, flag, params)
 	..()
 	empty_alarm()
 
-/obj/item/gun/projectile/automatic/c20r/update_icon()
-	..()
-	icon_state = "c20r[magazine ? "-[CEILING(get_ammo(0)/4, 1)*4]" : ""][chambered ? "" : "-e"][suppressed ? "-suppressed" : ""]"
+
+/obj/item/gun/projectile/automatic/c20r/update_icon_state()
+	icon_state = "c20r[magazine ? "-[CEILING(get_ammo(FALSE)/4, 1)*4]" : ""][chambered ? "" : "-e"][suppressed ? "-suppressed" : ""]"
+
+
 
 //WT550//
 /obj/item/gun/projectile/automatic/wt550
@@ -124,28 +134,56 @@
 	magin_sound = 'sound/weapons/gun_interactions/batrifle_magin.ogg'
 	magout_sound = 'sound/weapons/gun_interactions/batrifle_magout.ogg'
 	fire_delay = 2
-	can_suppress = 0
-	can_flashlight = 1
+	can_suppress = FALSE
+	can_flashlight = TRUE
 	burst_size = 2
 	can_bayonet = TRUE
-	knife_x_offset = 25
-	knife_y_offset = 12
+	bayonet_x_offset = 25
+	bayonet_y_offset = 12
+	gun_light_overlay = "wt-light"
 
-/obj/item/gun/projectile/automatic/wt550/update_icon()
-	..()
-	icon_state = "wt550[magazine ? "-[CEILING(get_ammo(0)/4, 1)*4]" : ""]"
 
-	if(gun_light)
-		var/iconF = "wt-light"
-		if(gun_light.on)
-			iconF = "wt-light-on"
-		overlays += image(icon = icon, icon_state = iconF, pixel_x = 0)
+/obj/item/gun/projectile/automatic/wt550/update_icon_state()
+	icon_state = "wt550[magazine ? "-[CEILING(get_ammo(FALSE)/4, 1)*4]" : ""]"
 
-/obj/item/gun/projectile/automatic/wt550/ui_action_click(var/owner, var/action_type)
-    if(..()) return TRUE
-    if (action_type == /datum/action/item_action/toggle_gunlight)
-        toggle_gunlight()
-        return TRUE
+
+/obj/item/gun/projectile/automatic/wt550/ui_action_click(mob/user, datum/action/action, leftclick)
+	if(..())
+		return TRUE
+	if(istype(action, /datum/action/item_action/toggle_gunlight))
+		toggle_gunlight()
+		return TRUE
+
+//"SP-91-RC//
+/obj/item/gun/projectile/automatic/sp91rc
+	name = "SP-91-RC"
+	desc = "Compact submachine gun designed for riot control."
+	icon_state = "SP-91-RC"
+	item_state = "SP-91-RC"
+	mag_type = /obj/item/ammo_box/magazine/sp91rc
+	fire_sound = 'sound/weapons/gunshots/1sp_91.ogg'
+	magin_sound = 'sound/weapons/gun_interactions/batrifle_magin.ogg'
+	magout_sound = 'sound/weapons/gun_interactions/batrifle_magout.ogg'
+	fire_delay = 2
+	can_suppress = FALSE
+	can_flashlight = TRUE
+	burst_size = 3
+	can_bayonet = FALSE
+	gun_light_overlay = "SP-91-RC-light"
+
+
+/obj/item/gun/projectile/automatic/sp91rc/update_icon_state()
+	icon_state = "SP-91-RC[magazine ? "-[CEILING(get_ammo(FALSE)/5, 1)*5]" : ""]"
+	item_state = "SP-91-RC[magazine ? "-[get_ammo(FALSE) ? "20" : "0"]" : ""]"
+
+
+/obj/item/gun/projectile/automatic/sp91rc/ui_action_click(mob/user, datum/action/action, leftclick)
+	if(..())
+		return TRUE
+	if(istype(action, /datum/action/item_action/toggle_gunlight))
+		toggle_gunlight()
+		return TRUE
+
 
 //Type-U3 Uzi//
 /obj/item/gun/projectile/automatic/mini_uzi
@@ -173,41 +211,50 @@
 	burst_size = 3
 	fire_delay = 2
 
-/obj/item/gun/projectile/automatic/m90/New()
-	..()
+
+/obj/item/gun/projectile/automatic/m90/Initialize(mapload)
+	. = ..()
 	underbarrel = new /obj/item/gun/projectile/revolver/grenadelauncher(src)
 	update_icon()
 
-/obj/item/gun/projectile/automatic/m90/afterattack(var/atom/target, var/mob/living/user, flag, params)
+
+/obj/item/gun/projectile/automatic/m90/afterattack(atom/target, mob/living/user, flag, params)
 	if(select == 0)
 		underbarrel.afterattack(target, user, flag, params)
 	else
 		..()
-		return
 
-/obj/item/gun/projectile/automatic/m90/attackby(var/obj/item/A, mob/user, params)
-	if(istype(A, /obj/item/ammo_casing))
-		if(istype(A, underbarrel.magazine.ammo_type))
-			underbarrel.attack_self()
-			underbarrel.attackby(A, user, params)
-	else
-		return ..()
 
-/obj/item/gun/projectile/automatic/m90/update_icon()
-	..()
-	overlays.Cut()
-	switch(select)
-		if(1)
-			overlays += "[initial(icon_state)]burst"
-		if(0)
-			overlays += "[initial(icon_state)]gren"
+/obj/item/gun/projectile/automatic/m90/attackby(obj/item/I, mob/user, params)
+	if(istype(I, underbarrel.magazine.ammo_type))
+		add_fingerprint(user)
+		var/reload = underbarrel.magazine.reload(I, user, replace_spent = TRUE)
+		if(reload)
+			underbarrel.chamber_round(FALSE)
+			return ATTACK_CHAIN_BLOCKED_ALL
+		return ATTACK_CHAIN_PROCEED
+
+	return ..()
+
+
+/obj/item/gun/projectile/automatic/m90/update_icon_state()
 	icon_state = "[initial(icon_state)][magazine ? "" : "-e"][suppressed ? "-suppressed" : ""]"
 	if(magazine)
-		overlays += image(icon = icon, icon_state = "m90-[CEILING(get_ammo(0)/6, 1)*6]")
-		item_state = "m90-[CEILING(get_ammo(0)/7.5, 1)]"
+		item_state = "m90-[CEILING(get_ammo(FALSE)/7.5, 1)]"
 	else
 		item_state = "m90-0"
-	return
+
+
+/obj/item/gun/projectile/automatic/m90/update_overlays()
+	. = ..()
+	if(magazine)
+		. += image(icon = icon, icon_state = "m90-[CEILING(get_ammo(FALSE)/6, 1)*6]")
+	switch(select)
+		if(0)
+			. += "[initial(icon_state)]gren"
+		if(1)
+			.  += "[initial(icon_state)]burst"
+
 
 /obj/item/gun/projectile/automatic/m90/burst_select()
 	var/mob/living/carbon/human/user = usr
@@ -216,10 +263,10 @@
 			select = 1
 			burst_size = initial(burst_size)
 			fire_delay = initial(fire_delay)
-			to_chat(user, "<span class='notice'>You switch to [burst_size] round burst.</span>")
+			balloon_alert(user, "отсечка по [burst_size] [declension_ru(burst_size, "патрону",  "патрона",  "патронов")]")
 		if(1)
 			select = 0
-			to_chat(user, "<span class='notice'>You switch to grenades.</span>")
+			balloon_alert(user, "подствольный гранатомёт")
 	playsound(user, 'sound/weapons/gun_interactions/selector.ogg', 100, 1)
 	update_icon()
 
@@ -267,8 +314,8 @@
 	magout_sound = 'sound/weapons/gun_interactions/batrifle_magout.ogg'
 	can_suppress = FALSE
 	can_bayonet = TRUE
-	knife_x_offset = 26
-	knife_y_offset = 10
+	bayonet_x_offset = 26
+	bayonet_y_offset = 10
 	burst_size = 2
 	fire_delay = 1
 
@@ -287,16 +334,28 @@
 	can_suppress = 0
 	burst_size = 1
 	fire_delay = 0
-	actions_types = list()
+	actions_types = null
 
-/obj/item/gun/projectile/automatic/shotgun/bulldog/New()
-	..()
-	update_icon()
 
-/obj/item/gun/projectile/automatic/shotgun/bulldog/proc/update_magazine()
+/obj/item/gun/projectile/automatic/shotgun/bulldog/mastiff
+	name = "\improper 'Mastiff' Shotgun"
+	desc = "A cheap copy of famous mag-fed semi-automatic 'Bulldog' shotgun used by multiple pirate groups. A critical duplication failure has made it impossible to use the original drum magazines, so do not lose them."
+	mag_type = /obj/item/ammo_box/magazine/cheap_m12g
+	color = COLOR_ASSEMBLY_BROWN
+
+
+/obj/item/gun/projectile/automatic/shotgun/bulldog/update_icon_state()
+	icon_state = "bulldog[chambered ? "" : "-e"]"
+
+
+/obj/item/gun/projectile/automatic/shotgun/bulldog/update_overlays()
+	. = ..()
 	if(magazine)
-		overlays.Cut()
-		overlays += "[magazine.icon_state]"
+		. += "[magazine.icon_state]"
+
+
+/obj/item/gun/projectile/automatic/shotgun/bulldog/update_weight()
+	if(magazine)
 		if(istype(magazine, /obj/item/ammo_box/magazine/m12g/XtrLrg))
 			w_class = WEIGHT_CLASS_BULKY
 		else
@@ -304,21 +363,18 @@
 	else
 		w_class = WEIGHT_CLASS_NORMAL
 
-/obj/item/gun/projectile/automatic/shotgun/bulldog/update_icon()
-	overlays.Cut()
-	update_magazine()
-	icon_state = "bulldog[chambered ? "" : "-e"]"
 
-/obj/item/gun/projectile/automatic/shotgun/bulldog/attackby(var/obj/item/A as obj, mob/user as mob, params)
-	if(istype(A, /obj/item/ammo_box/magazine/m12g/XtrLrg))
-		if(istype(loc, /obj/item/storage))	// To prevent inventory exploits
-			var/obj/item/storage/Strg = loc
-			if(Strg.max_w_class < WEIGHT_CLASS_BULKY)
-				to_chat(user, "<span class='warning'>You can't reload [src], with a XL mag, while it's in a normal bag.</span>")
-				return
+/obj/item/gun/projectile/automatic/shotgun/bulldog/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/ammo_box/magazine/m12g/XtrLrg) && isstorage(loc))	// To prevent inventory exploits
+		var/obj/item/storage/storage = loc
+		if(storage.max_w_class < WEIGHT_CLASS_BULKY)
+			to_chat(user, span_warning("You cannot reload [src] with a XL mag, while it's in a normal bag."))
+			return ATTACK_CHAIN_PROCEED
+
 	return ..()
 
-/obj/item/gun/projectile/automatic/shotgun/bulldog/afterattack(atom/target as mob|obj|turf|area, mob/living/user as mob|obj, flag)
+
+/obj/item/gun/projectile/automatic/shotgun/bulldog/afterattack(atom/target, mob/living/user, flag, params)
 	..()
 	empty_alarm()
 
@@ -329,6 +385,7 @@
 	icon_state = "minotaur"
 	item_state = "minotaur"
 	w_class = WEIGHT_CLASS_NORMAL
+	weapon_weight = WEAPON_HEAVY
 	origin_tech = "combat=6;materials=4;syndicate=6"
 	mag_type = /obj/item/ammo_box/magazine/m12g
 	fire_sound = 'sound/weapons/gunshots/minotaur.ogg'
@@ -342,7 +399,7 @@
 	magazine = new/obj/item/ammo_box/magazine/m12g/XtrLrg
 	..()
 
-/obj/item/gun/projectile/automatic/shotgun/minotaur/afterattack(atom/target as mob|obj|turf|area, mob/living/user as mob|obj, flag)
+/obj/item/gun/projectile/automatic/shotgun/minotaur/afterattack(atom/target, mob/living/user, flag, params)
 	..()
 	empty_alarm()
 
@@ -360,14 +417,15 @@
 	burst_size = 2
 	can_suppress = 0
 
-/obj/item/gun/projectile/automatic/cats/update_icon()
-	..()
+
+/obj/item/gun/projectile/automatic/cats/update_icon_state()
 	icon_state = "tla_cats[magazine ? "" : "-e"]"
+
 
 /obj/item/gun/projectile/automatic/cats/examine(mob/user)
 	. = ..()
 	if(Adjacent(user))
-		if(user.say_understands(null, GLOB.all_languages["Sol Common"]))
+		if(user.say_understands(null, GLOB.all_languages[LANGUAGE_SOL_COMMON]))
 			. += "Вы видите гравировку на прикладе, написанную на Общесолнечном: 'Свобода через тотальное превосходство'"
 		else
 			. += "Вы видите символы на прикладе, но не понимаете что они значат."
@@ -387,9 +445,8 @@
 	can_suppress = 0
 	burst_size = 2
 
-/obj/item/gun/projectile/automatic/lasercarbine/update_icon()
-	..()
-	icon_state = "lasercarbine[magazine ? "-[CEILING(get_ammo(0)/5, 1)*5]" : ""]"
+/obj/item/gun/projectile/automatic/lasercarbine/update_icon_state()
+	icon_state = "lasercarbine[magazine ? "-[CEILING(get_ammo(FALSE)/5, 1)*5]" : ""]"
 
 /obj/item/gun/projectile/automatic/lr30
 	name = "\improper LR-30 Laser Rifle"
@@ -404,11 +461,10 @@
 	magout_sound = 'sound/weapons/gun_interactions/batrifle_magout.ogg'
 	can_suppress = 0
 	burst_size = 1
-	actions_types = list()
+	actions_types = null
 
-/obj/item/gun/projectile/automatic/lr30/update_icon()
-	..()
-	icon_state = "lr30[magazine ? "-[CEILING(get_ammo(0)/3, 1)*3]" : ""]"
+/obj/item/gun/projectile/automatic/lr30/update_icon_state()
+	icon_state = "lr30[magazine ? "-[CEILING(get_ammo(FALSE)/4, 1)*4]" : ""]"
 
 //Semi-Machine Gun SFG
 
@@ -420,21 +476,19 @@
 	mag_type = /obj/item/ammo_box/magazine/sfg9mm
 	burst_size = 3
 	can_flashlight = TRUE
+	gun_light_overlay = "sfg-light"
 
-/obj/item/gun/projectile/automatic/sfg/update_icon()
-	..()
+
+/obj/item/gun/projectile/automatic/sfg/update_icon_state()
 	icon_state = "[initial(icon_state)][magazine ? "" : "-e"][suppressed ? "-suppressed" : ""]"
-	if(gun_light)
-		var/iconF = "sfg-light"
-		if(gun_light.on)
-			iconF = "sfg-light-on"
-		overlays += image(icon = icon, icon_state = iconF, pixel_x = flight_x_offset, pixel_y = flight_y_offset)
 
-/obj/item/gun/projectile/automatic/sfg/ui_action_click(var/owner, var/action_type)
-    if(..()) return TRUE
-    if (action_type == /datum/action/item_action/toggle_gunlight)
-        toggle_gunlight()
-        return TRUE
+
+/obj/item/gun/projectile/automatic/sfg/ui_action_click(mob/user, datum/action/action, leftclick)
+	if(..())
+		return TRUE
+	if(istype(action, /datum/action/item_action/toggle_gunlight))
+		toggle_gunlight()
+		return TRUE
 
 //Aussec Armory M-52
 

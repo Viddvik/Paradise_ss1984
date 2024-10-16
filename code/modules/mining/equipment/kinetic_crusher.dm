@@ -8,7 +8,7 @@
 	While it is an effective mining tool, it did little to aid any but the most skilled and/or suicidal miners against local fauna."
 	force = 0 //You can't hit stuff unless wielded
 	w_class = WEIGHT_CLASS_BULKY
-	slot_flags = SLOT_BACK
+	slot_flags = ITEM_SLOT_BACK
 	force_unwielded = 0
 	force_wielded = 20
 	throwforce = 5
@@ -24,8 +24,9 @@
 	var/charge_time = 15
 	var/detonation_damage = 50
 	var/backstab_bonus = 30
-	var/light_on = FALSE
-	var/brightness_on = 5
+	light_system = MOVABLE_LIGHT
+	light_range = 5
+	light_on = FALSE
 	var/adaptive_damage_bonus = 0
 	var/upgraded = FALSE //whether is our crusher is magmite-upgraded
 	var/obj/item/projectile/destabilizer/destab = /obj/item/projectile/destabilizer
@@ -42,55 +43,63 @@
 		var/obj/item/crusher_trophy/T = t
 		. += "<span class='notice'>It has \a [T] attached, which causes [T.effect_desc()].</span>"
 
-/obj/item/twohanded/kinetic_crusher/attackby(obj/item/I, mob/living/user)
+
+/obj/item/twohanded/kinetic_crusher/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/crusher_trophy))
-		var/obj/item/crusher_trophy/T = I
-		T.add_to(src, user)
-	else
-		return ..()
+		var/obj/item/crusher_trophy/trophy = I
+		add_fingerprint(user)
+		if(trophy.add_to(src, user))
+			return ATTACK_CHAIN_BLOCKED_ALL
+		return ATTACK_CHAIN_PROCEED
+	return ..()
+
 
 /obj/item/twohanded/kinetic_crusher/crowbar_act(mob/user, obj/item/I)
 	. = TRUE
 	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
 		return
 	if(LAZYLEN(trophies))
-		to_chat(user, "<span class='notice'>You remove [src]'s trophies.</span>")
+		balloon_alert(user, "трофеи сняты")
 		for(var/t in trophies)
 			var/obj/item/crusher_trophy/T = t
 			T.remove_from(src, user)
 	else
-		to_chat(user, "<span class='warning'>There are no trophies on [src].</span>")
+		balloon_alert(user, "нет трофеев!")
 
-/obj/item/twohanded/kinetic_crusher/attack(mob/living/target, mob/living/carbon/user)
-	if(!wielded)
-		to_chat(user, "<span class='warning'>[src] is too heavy to use with one hand. You fumble and drop everything.")
-		user.drop_r_hand()
-		user.drop_l_hand()
-		return
-	var/datum/status_effect/crusher_damage/C = target.has_status_effect(STATUS_EFFECT_CRUSHERDAMAGETRACKING)
-	if(!C)
-		C = target.apply_status_effect(STATUS_EFFECT_CRUSHERDAMAGETRACKING)
+
+/obj/item/twohanded/kinetic_crusher/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!HAS_TRAIT(src, TRAIT_WIELDED))
+		var/warn_message = "The [name] is too heavy to use with one hand."
+		if(user.drop_item_ground(src))
+			warn_message += " You fumble and drop it."
+		to_chat(user, span_warning(warn_message))
+		return ATTACK_CHAIN_BLOCKED_ALL
+	var/datum/status_effect/crusher_damage/damage_track = target.has_status_effect(STATUS_EFFECT_CRUSHERDAMAGETRACKING)
+	if(!damage_track)
+		damage_track = target.apply_status_effect(STATUS_EFFECT_CRUSHERDAMAGETRACKING)
 	var/target_health = target.health
 	var/temp_force_bonus = 0
-	var/datum/status_effect/adaptive_learning/A = target.has_status_effect(STATUS_EFFECT_ADAPTIVELEARNING)
-	if(!A && adaptive_damage_bonus)
-		A = target.apply_status_effect(STATUS_EFFECT_ADAPTIVELEARNING)
-	if(A)
-		temp_force_bonus = A.bonus_damage
-		A.bonus_damage = min((A.bonus_damage + adaptive_damage_bonus), 20)
+	var/datum/status_effect/adaptive_learning/learning = target.has_status_effect(STATUS_EFFECT_ADAPTIVELEARNING)
+	if(!learning && adaptive_damage_bonus)
+		learning = target.apply_status_effect(STATUS_EFFECT_ADAPTIVELEARNING)
+	if(learning)
+		temp_force_bonus = learning.bonus_damage
+		learning.bonus_damage = min((learning.bonus_damage + adaptive_damage_bonus), 20)
 	force += temp_force_bonus
-	..()
+	. = ..()
 	force -= temp_force_bonus
-	for(var/t in trophies)
+	if(!ATTACK_CHAIN_SUCCESS_CHECK(.) || QDELETED(target))
+		return .
+	for(var/obj/item/crusher_trophy/trophy as anything in trophies)
 		if(!QDELETED(target))
-			var/obj/item/crusher_trophy/T = t
-			T.on_melee_hit(target, user)
-	if(!QDELETED(C) && !QDELETED(target))
-		C.total_damage += target_health - target.health //we did some damage, but let's not assume how much we did
+			trophy.on_melee_hit(target, user)
+	if(!QDELETED(damage_track) && !QDELETED(target))
+		damage_track.total_damage += target_health - target.health //we did some damage, but let's not assume how much we did
+
 
 /obj/item/twohanded/kinetic_crusher/afterattack(atom/target, mob/living/user, proximity_flag, clickparams)
 	. = ..()
-	if(!wielded)
+	if(!HAS_TRAIT(src, TRAIT_WIELDED))
 		return
 	if(user.has_status_effect(STATUS_EFFECT_DASH) && user.a_intent == INTENT_HELP)
 		if(user.throw_at(target, range = 3, speed = 3, spin = FALSE, diagonals_first = TRUE))
@@ -135,7 +144,7 @@
 				C.total_damage += target_health - L.health //we did some damage, but let's not assume how much we did
 			new /obj/effect/temp_visual/kinetic_blast(get_turf(L))
 			var/backstab_dir = get_dir(user, L)
-			var/def_check = L.getarmor(type = "bomb")
+			var/def_check = L.getarmor(attack_flag = BOMB)
 			if((user.dir & backstab_dir) && (L.dir & backstab_dir))
 				if(!QDELETED(C))
 					C.total_damage += detonation_damage + backstab_bonus //cheat a little and add the total before killing it, so certain mobs don't have much lower chances of giving an item
@@ -152,33 +161,30 @@
 		update_icon()
 		playsound(src.loc, 'sound/weapons/crusher_reload.ogg', 135)
 
-/obj/item/twohanded/kinetic_crusher/ui_action_click(mob/user, actiontype)
-	light_on = !light_on
+/obj/item/twohanded/kinetic_crusher/ui_action_click(mob/user, datum/action/action, leftclick)
+	set_light_on(!light_on)
 	playsound(user, 'sound/weapons/empty.ogg', 100, TRUE)
-	update_brightness(user)
 	update_icon()
 
-/obj/item/twohanded/kinetic_crusher/proc/update_brightness(mob/user = null)
-	if(light_on)
-		set_light(brightness_on)
-	else
-		set_light(0)
+/obj/item/twohanded/kinetic_crusher/update_icon(updates = ALL)
+	. = ..()
+	for(var/datum/action/action as anything in actions)
+		action.UpdateButtonIcon()
 
-/obj/item/twohanded/kinetic_crusher/update_icon()
-	..()
-	cut_overlays()
-	if(!charged)
-		add_overlay("[icon_state]_uncharged")
-	if(light_on)
-		add_overlay("[icon_state]_lit")
-	spawn(1)
-		for(var/X in actions)
-			var/datum/action/A = X
-			A.UpdateButtonIcon()
-	if(!upgraded)
-		item_state = "crusher[wielded]"
+/obj/item/twohanded/kinetic_crusher/update_icon_state()
+	if(upgraded)
+		item_state = "magmite_crusher[HAS_TRAIT(src, TRAIT_WIELDED)]"
 	else
-		item_state = "magmite_crusher[wielded]"
+		item_state = "crusher[HAS_TRAIT(src, TRAIT_WIELDED)]"
+
+
+/obj/item/twohanded/kinetic_crusher/update_overlays()
+	. = ..()
+	if(!charged)
+		. += "[icon_state]_uncharged"
+	if(light_on)
+		. += "[icon_state]_lit"
+
 
 //destablizing force
 /obj/item/projectile/destabilizer
@@ -231,22 +237,28 @@
 /obj/item/crusher_trophy/proc/effect_desc()
 	return "errors"
 
-/obj/item/crusher_trophy/attackby(obj/item/A, mob/living/user)
-	if(istype(A, /obj/item/twohanded/kinetic_crusher))
-		add_to(A, user)
-	else
-		..()
 
-/obj/item/crusher_trophy/proc/add_to(obj/item/twohanded/kinetic_crusher/H, mob/living/user)
-	for(var/t in H.trophies)
-		var/obj/item/crusher_trophy/T = t
-		if(istype(T, denied_type) || istype(src, T.denied_type))
-			to_chat(user, "<span class='warning'>You can't seem to attach [src] to [H]. Maybe remove a few trophies?</span>")
+/obj/item/crusher_trophy/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/twohanded/kinetic_crusher))
+		add_fingerprint(user)
+		if(add_to(I, user))
+			return ATTACK_CHAIN_BLOCKED_ALL
+		return ATTACK_CHAIN_PROCEED
+	return ..()
+
+
+/obj/item/crusher_trophy/proc/add_to(obj/item/twohanded/kinetic_crusher/crusher, mob/living/user)
+	for(var/obj/item/crusher_trophy/crusher_trophy as anything in crusher.trophies)
+		if(istype(crusher_trophy, denied_type) || istype(src, crusher_trophy.denied_type))
+			to_chat(user, span_warning("You cannot attach [src] to [crusher]. Try to remove a few trophies first."))
 			return FALSE
-	if(!user.drop_transfer_item_to_loc(src, H))
-		return
-	H.trophies += src
-	to_chat(user, "<span class='notice'>You attach [src] to [H].</span>")
+	if(loc == user)
+		if(!user.drop_transfer_item_to_loc(src, crusher))
+			return FALSE
+	else
+		forceMove(crusher)
+	crusher.trophies += src
+	to_chat(user, span_notice("You have attached [src] to [crusher]."))
 	return TRUE
 
 /obj/item/crusher_trophy/proc/remove_from(obj/item/twohanded/kinetic_crusher/H, mob/living/user)
@@ -402,7 +414,8 @@
 	if(.)
 		H.force += bonus_value * 0.2
 		H.force_unwielded += bonus_value * 0.2
-		H.force_wielded += bonus_value * 0.2
+		// don't update force since KCs have 0 force by default
+		H.AddComponent(/datum/component/two_handed, force_wielded = H.force_wielded, force_unwielded = H.force)
 		H.detonation_damage += bonus_value * 0.8
 
 /obj/item/crusher_trophy/demon_claws/remove_from(obj/item/twohanded/kinetic_crusher/H, mob/living/user)
@@ -410,7 +423,7 @@
 	if(.)
 		H.force -= bonus_value * 0.2
 		H.force_unwielded -= bonus_value * 0.2
-		H.force_wielded -= bonus_value * 0.2
+		H.AddComponent(/datum/component/two_handed, force_wielded = H.force_wielded, force_unwielded = H.force)
 		H.detonation_damage -= bonus_value * 0.8
 
 /obj/item/crusher_trophy/demon_claws/on_melee_hit(mob/living/target, mob/living/user)
@@ -463,7 +476,7 @@
 		var/obj/effect/temp_visual/hierophant/chaser/C = new(get_turf(user), user, target, 3, TRUE)
 		C.damage = 10 // Weaker because there is no cooldown
 		C.monster_damage_boost = FALSE
-		add_attack_logs(user, target, "fired a chaser at", src)
+		add_attack_logs(user, target, "fired a chaser at")
 
 //vetus
 /obj/item/crusher_trophy/adaptive_intelligence_core

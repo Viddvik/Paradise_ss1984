@@ -38,35 +38,6 @@
 	new /obj/item/clothing/accessory/medal/service(src)
 	new /obj/item/storage/garmentbag/hop(src)
 
-/*/obj/structure/closet/secure_closet/hop2 //dont realy need this because of garment bag
-	name = "head of personnel's attire"
-	req_access = list(ACCESS_HOP)
-	icon_state = "hopsecure1"
-	icon_closed = "hopsecure"
-	icon_locked = "hopsecure1"
-	icon_opened = "hopsecureopen"
-	icon_broken = "hopsecurebroken"
-	icon_off = "hopsecureoff"
-
-/obj/structure/closet/secure_closet/hop2/populate_contents()
-	new /obj/item/clothing/neck/mantle/head_of_personnel(src)
-	new /obj/item/clothing/neck/cloak/head_of_personnel(src)
-	new /obj/item/clothing/under/dress/dress_hr(src)
-	new /obj/item/clothing/under/lawyer/female(src)
-	new /obj/item/clothing/under/lawyer/black(src)
-	new /obj/item/clothing/under/lawyer/red(src)
-	new /obj/item/clothing/under/lawyer/oldman(src)
-	new /obj/item/clothing/shoes/brown(src)
-	new /obj/item/clothing/shoes/black(src)
-	new /obj/item/clothing/shoes/leather(src)
-	new /obj/item/clothing/shoes/white(src)
-	new /obj/item/clothing/under/rank/head_of_personnel_whimsy(src)
-	new /obj/item/clothing/under/rank/head_of_personnel_alt(src)
-	new /obj/item/clothing/under/rank/head_of_personnel_f(src)
-	new /obj/item/clothing/suit/hop_jacket(src)
-	new /obj/item/clothing/suit/hop_jacket/female(src)
-*/
-
 /obj/structure/closet/secure_closet/hos
 	name = "head of security's locker"
 	req_access = list(ACCESS_HOS)
@@ -116,7 +87,6 @@
 	new /obj/item/storage/box/zipties(src)
 	new /obj/item/storage/box/flashbangs(src)
 	new /obj/item/flashlight/seclite(src)
-	new /obj/item/gun/energy/gun/advtaser(src)
 	new /obj/item/storage/belt/security/sec(src)
 	new /obj/item/storage/box/holobadge(src)
 	new /obj/item/clothing/gloves/color/black/krav_maga/sec(src)
@@ -126,6 +96,17 @@
 	new /obj/item/gun/projectile/automatic/pistol/sp8(src)
 	new /obj/item/ammo_box/magazine/sp8(src)
 	new /obj/item/ammo_box/magazine/sp8(src)
+	new /obj/item/security_voucher(src)
+	new /obj/item/security_voucher(src)
+	new /obj/item/security_voucher(src)
+
+/obj/structure/closet/secure_closet/pilot_sniper
+	name = "sniper gun cabinet"
+	req_access = list(ACCESS_PILOT)
+	icon_state = "sniper"
+
+/obj/structure/closet/secure_closet/pilot_sniper/populate_contents()
+	new /obj/item/gun/energy/sniperrifle/pod_pilot(src)
 
 /obj/structure/closet/secure_closet/security
 	name = "security officer's locker"
@@ -151,7 +132,7 @@
 /obj/structure/closet/secure_closet/brigdoc
 	name = "brig physician's locker"
 	req_access = list(ACCESS_BRIG)
-	icon_state = "med"
+	icon_state = "brigmed"
 
 /obj/structure/closet/secure_closet/brigdoc/populate_contents()
 	if(prob(50))
@@ -192,6 +173,8 @@
 	new /obj/item/clothing/mask/gas/sechailer(src)
 	new /obj/item/sensor_device/advanced/command(src)
 	new /obj/item/storage/garmentbag/blueshield(src)
+	new /obj/item/storage/belt/security/webbing(src)
+
 /obj/structure/closet/secure_closet/ntrep
 	name = "\improper Nanotrasen Representative's locker"
 	req_access = list(ACCESS_NTREP)
@@ -236,39 +219,25 @@
 	new /obj/item/encryptionkey/headset_med(src)
 
 
-/obj/structure/closet/secure_closet/detective
+/obj/structure/closet/secure_closet/cabinet/detective
 	name = "detective's cabinet"
-	req_access = list(ACCESS_FORENSICS_LOCKERS)
 	icon_state = "cabinetdetective"
-	overlay_unlocked = "c_unlocked"
-	overlay_locked = "c_locked"
-	overlay_locker = "c_locker"
-	resistance_flags = FLAMMABLE
-	max_integrity = 70
-	open_sound = 'sound/machines/wooden_closet_open.ogg'
-	close_sound = 'sound/machines/wooden_closet_close.ogg'
+	overlay_locker = "cd_locker"
+	req_access = list(ACCESS_FORENSICS_LOCKERS)
 
-/obj/structure/closet/secure_closet/detective/populate_contents()
+
+/obj/structure/closet/secure_closet/cabinet/detective/populate_contents()
 	new /obj/item/storage/backpack/satchel_detective(src)
 	new /obj/item/storage/backpack/detective(src)
 	new /obj/item/storage/backpack/duffel/detective(src)
 	new /obj/item/clothing/gloves/color/black/forensics(src)
-	new /obj/item/storage/box/evidence(src)
-	new /obj/item/clipboard(src)
 	new /obj/item/radio/headset/headset_sec/alt(src)
 	new /obj/item/detective_scanner(src)
-	new /obj/item/ammo_box/speedloader/c38(src)
-	new /obj/item/ammo_box/speedloader/c38(src)
-	new /obj/item/gun/projectile/revolver/detective(src)
-	new /obj/item/clothing/accessory/holster/armpit(src)
 	new /obj/item/clothing/glasses/sunglasses/yeah(src)
-	new /obj/item/flashlight/seclite(src)
-	new /obj/item/holosign_creator/security(src)
-	new /obj/item/taperecorder(src)
-	new /obj/item/storage/box/tapes(src)
 	new /obj/item/storage/belt/security/detective(src)
 	new /obj/item/clothing/accessory/holobadge/detective(src)
 	new /obj/item/storage/garmentbag/detective(src)
+	new /obj/item/storage/box/revolver_kit(src)
 
 /obj/structure/closet/secure_closet/injection
 	name = "lethal injections locker"
@@ -317,7 +286,7 @@
 	name = "wall locker"
 	req_access = list(ACCESS_SECURITY)
 	icon_state = "wall-locker"
-	density = 1
+	density = TRUE
 
 	//too small to put a man in
 	large = FALSE
@@ -335,7 +304,7 @@
 	new /obj/item/gavelblock(src)
 	new /obj/item/gavelhammer(src)
 	new /obj/item/clothing/accessory/medal/legal(src)
-	new /obj/item/clothing/accessory/lawyers_badge(src)
+	new /obj/item/clothing/accessory/head_strip/lawyers_badge(src)
 	new /obj/item/radio/headset/heads/magistrate/alt(src)	//added here deleted on maps
 	new /obj/item/megaphone(src)
 	new /obj/item/storage/garmentbag/magistrate(src)

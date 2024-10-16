@@ -49,6 +49,10 @@
 	poster_type = /obj/structure/sign/poster/contraband/commando
 	icon_state = "rolled_poster"
 
+/obj/item/poster/cheng
+	poster_type = /obj/structure/sign/poster/official/mr_cheng
+	icon_state = "rolled_poster"
+
 //############################## THE ACTUAL DECALS ###########################
 
 /obj/structure/sign/poster
@@ -173,7 +177,7 @@
 	qdel(P)	//delete it now to cut down on sanity checks afterwards. Agouri's code supports rerolling it anyway
 	playsound(D.loc, 'sound/items/poster_being_created.ogg', 100, 1)
 
-	if(do_after(user, PLACE_SPEED, target = src))
+	if(do_after(user, PLACE_SPEED, src))
 		if(!D || QDELETED(D))
 			return
 
@@ -395,6 +399,31 @@
 	name = "Commandos"
 	desc = "You see a muscular man in combat gear. Just the sight of this poster brings the scent of true masculinity."
 	icon_state = "poster37"
+
+/obj/structure/sign/poster/contraband/lostcat
+	name = "Lost Cat"
+	desc = "Kisik got lost. Armed and dangerous."
+	icon_state = "poster38"
+
+/obj/structure/sign/poster/contraband/bad_guy
+	name = "Bad Guy"
+	desc = "Smoking time. On a poster you can see grub with cigarette that promote people to have a cig and smoke on work."
+	icon_state = "poster39"
+
+/obj/structure/sign/poster/contraband/ninja
+	name = "Space Ninja"
+	desc = "This is a poster depicting the main character of the most popular animated series in the galaxy, \"Space Ninja\". The inscription on it says that the new season will start soon."
+	icon_state = "poster40"
+
+/obj/structure/sign/poster/contraband/Enlist_Syndicate
+	name = "Enlist Syndicate"
+	desc = "See the galaxy! Shatter corrupt megacorporations! Get paid! Join today!"
+	icon_state = "poster41"
+
+/obj/structure/sign/poster/contraband/Enlist_Gorlex
+	name = "Enlist"
+	desc = "Enlist with the Gorlex Marauders today! See the galaxy, kill corpos, get paid!"
+	icon_state = "poster42"
 
 //official posters
 /obj/structure/sign/poster/official
@@ -682,5 +711,15 @@
 	name = "Scientist lady"
 	desc = "A gorgeous looking lady wearing a labcoat. Whoah, hot!"
 	icon_state = "poster1_secret"
+
+/obj/structure/sign/poster/secret/Viper
+	name = "Wanted Syndicate Officer"
+	desc = "On the poster you can see: A red-haired man in aviator glasses, slightly over 30, with a cigar in his mouth, dressed in a fur coat over a tactical turtleneck."
+	icon_state = "poster2_secret"
+
+/obj/structure/sign/poster/secret/lizard
+	name = "Lewd Lizard"
+	desc = "This lewd poster depicts a lizard preparing to mate."
+	icon_state = "poster3_secret"
 
 #undef PLACE_SPEED

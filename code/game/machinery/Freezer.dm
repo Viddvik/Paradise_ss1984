@@ -2,9 +2,9 @@
 	name = "охладитель"
 	icon = 'icons/obj/machines/cryogenic2.dmi'
 	icon_state = "freezer"
-	density = 1
+	density = TRUE
 	var/min_temperature = 0
-	anchored = 1.0
+	anchored = TRUE
 	use_power = IDLE_POWER_USE
 	active_power_usage = 5000	//cooling down massive amounts of air's not cheap. This is still very low considering everything
 	power_channel = EQUIP
@@ -56,10 +56,14 @@
 /obj/machinery/atmospherics/unary/cold_sink/freezer/process()
 	return	// need to overwrite the parent or it returns PROCESS_KILL and it stops processing/using power
 
+
 /obj/machinery/atmospherics/unary/cold_sink/freezer/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/machinery/atmospherics/unary/cold_sink/freezer/crowbar_act(mob/user, obj/item/I)
 	if(default_deconstruction_crowbar(user, I))
@@ -69,7 +73,7 @@
 	if(default_deconstruction_screwdriver(user, "freezer-o", "freezer", I))
 		on = FALSE
 		use_power = IDLE_POWER_USE
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 		return TRUE
 
 /obj/machinery/atmospherics/unary/cold_sink/freezer/wrench_act(mob/user, obj/item/I)
@@ -91,14 +95,14 @@
 	build_network()
 	update_icon()
 
-/obj/machinery/atmospherics/unary/cold_sink/freezer/update_icon()
+/obj/machinery/atmospherics/unary/cold_sink/freezer/update_icon_state()
 	if(panel_open)
 		icon_state = "freezer-o"
-	else if(src.on)
+	else if(on)
 		icon_state = "freezer_1"
 	else
 		icon_state = "freezer"
-	return
+
 
 /obj/machinery/atmospherics/unary/cold_sink/freezer/attack_ai(mob/user as mob)
 	attack_hand(user)
@@ -117,10 +121,10 @@
 	add_fingerprint(user)
 	ui_interact(user)
 
-/obj/machinery/atmospherics/unary/cold_sink/freezer/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/atmospherics/unary/cold_sink/freezer/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "GasFreezer", "Газоохладительная система", 560, 200)
+		ui = new(user, src, "GasFreezer", "Газоохладительная система")
 		ui.open()
 
 /obj/machinery/atmospherics/unary/cold_sink/freezer/ui_data(mob/user)
@@ -160,20 +164,21 @@
 			amount = text2num(amount)
 			current_temperature = clamp(amount, T20C, min_temperature)
 
-/obj/machinery/atmospherics/unary/cold_sink/freezer/power_change()
-	..()
+/obj/machinery/atmospherics/unary/cold_sink/freezer/power_change(forced = FALSE)
+	if(!..())
+		return
 	if(stat & NOPOWER)
-		on = 0
+		on = FALSE
 		use_power = IDLE_POWER_USE
-		update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/
 	name = "нагреватель"
 	icon = 'icons/obj/machines/cryogenic2.dmi'
 	icon_state = "heater"
-	density = 1
+	density = TRUE
 	var/max_temperature = 0
-	anchored = 1.0
+	anchored = TRUE
 	layer = 3
 	current_heat_capacity = 1000
 	active_power_usage = 5000
@@ -228,10 +233,14 @@
 	max_temperature = T20C + (140 * T)
 	current_heat_capacity = 1000 * ((H - 1) ** 2)
 
+
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/crowbar_act(mob/user, obj/item/I)
 	if(default_deconstruction_crowbar(user, I))
@@ -241,7 +250,7 @@
 	if(default_deconstruction_screwdriver(user, "heater-o", "heater", I))
 		on = 0
 		use_power = IDLE_POWER_USE
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 		return TRUE
 
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/wrench_act(mob/user, obj/item/I)
@@ -261,16 +270,17 @@
 			node = target
 			break
 	build_network()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/machinery/atmospherics/unary/heat_reservoir/heater/update_icon()
+
+/obj/machinery/atmospherics/unary/heat_reservoir/heater/update_icon_state()
 	if(panel_open)
 		icon_state = "heater-o"
-	else if(src.on)
+	else if(on)
 		icon_state = "heater_1"
 	else
 		icon_state = "heater"
-	return
+
 
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/attack_ai(mob/user as mob)
 	attack_hand(user)
@@ -286,10 +296,10 @@
 	add_fingerprint(user)
 	ui_interact(user)
 
-/obj/machinery/atmospherics/unary/heat_reservoir/heater/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/atmospherics/unary/heat_reservoir/heater/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "GasFreezer", "Газонагревательная система", 560, 200)
+		ui = new(user, src, "GasFreezer", "Газонагревательная система")
 		ui.open()
 
 /obj/machinery/atmospherics/unary/heat_reservoir/heater/ui_data(mob/user)
@@ -329,9 +339,12 @@
 			amount = text2num(amount)
 			current_temperature = clamp(amount, T20C, T20C + max_temperature)
 
-/obj/machinery/atmospherics/unary/heat_reservoir/heater/power_change()
-	..()
+
+/obj/machinery/atmospherics/unary/heat_reservoir/heater/power_change(forced = FALSE)
+	if(!..())
+		return
 	if(stat & NOPOWER)
-		on = 0
+		on = FALSE
 		use_power = IDLE_POWER_USE
-		update_icon()
+	update_icon(UPDATE_ICON_STATE)
+

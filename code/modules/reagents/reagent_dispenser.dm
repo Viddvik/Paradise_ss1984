@@ -3,8 +3,8 @@
 	desc = "..."
 	icon = 'icons/obj/objects.dmi'
 	icon_state = "watertank"
-	density = 1
-	anchored = 0
+	density = TRUE
+	anchored = FALSE
 	pressure_resistance = 2*ONE_ATMOSPHERE
 	container_type = DRAINABLE | AMOUNT_VISIBLE
 	max_integrity = 300
@@ -19,10 +19,12 @@
 		if(tank_volume && (damage_flag == "bullet" || damage_flag == "laser"))
 			boom(FALSE, TRUE)
 
+
 /obj/structure/reagent_dispensers/attackby(obj/item/I, mob/user, params)
 	if(I.is_refillable())
-		return FALSE //so we can refill them via their afterattack.
+		return ATTACK_CHAIN_PROCEED //so we can refill them via their afterattack.
 	return ..()
+
 
 /obj/structure/reagent_dispensers/Initialize(mapload)
 	. = ..()
@@ -45,7 +47,7 @@
 	qdel(src)
 
 /obj/structure/reagent_dispensers/deconstruct(disassembled = TRUE)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		if(!disassembled)
 			boom(FALSE, TRUE)
 	else
@@ -77,12 +79,24 @@
 	icon_state = "fuel"
 	reagent_id = "fuel"
 	tank_volume = 4000
+	var/icon/rigged_olay
 	var/obj/item/assembly_holder/rig = null
-	var/accepts_rig = 1
+	var/accepts_rig = TRUE
+
+
+/obj/structure/reagent_dispensers/fueltank/Initialize(mapload)
+	. = ..()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/structure/reagent_dispensers/fueltank/Destroy()
 	QDEL_NULL(rig)
+	QDEL_NULL(rigged_olay)
 	return ..()
+
 
 /obj/structure/reagent_dispensers/fueltank/bullet_act(obj/item/projectile/P)
 	var/will_explode = !QDELETED(src) && !P.nodamage && (P.damage_type == BURN || P.damage_type == BRUTE)
@@ -121,44 +135,66 @@
 	if(get_dist(user, src) <= 2 && rig)
 		. += "<span class='notice'>There is some kind of device rigged to the tank.</span>"
 
+
 /obj/structure/reagent_dispensers/fueltank/attack_hand()
 	if(rig)
 		usr.visible_message("<span class='notice'>[usr] begins to detach [rig] from [src].</span>", "<span class='notice'>You begin to detach [rig] from [src].</span>")
-		if(do_after(usr, 20, target = src))
+		if(do_after(usr, 2 SECONDS, src))
 			add_fingerprint(usr)
 			usr.visible_message("<span class='notice'>[usr] detaches [rig] from [src].</span>", "<span class='notice'>You detach [rig] from [src].</span>")
 			rig.forceMove(get_turf(usr))
 			rig = null
 			qdel(GetComponent(/datum/component/proximity_monitor))
 			lastrigger = null
-			overlays.Cut()
+			QDEL_NULL(rigged_olay)
+			update_icon(UPDATE_OVERLAYS)
+
 
 /obj/structure/reagent_dispensers/fueltank/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/assembly_holder) && accepts_rig)
+	if(istype(I, /obj/item/assembly_holder))
+		add_fingerprint(user)
+		var/obj/item/assembly_holder/assembly = I
+		if(!accepts_rig)
+			to_chat(user, span_warning("The [name] is incompatible with [I]."))
+			return ATTACK_CHAIN_PROCEED
 		if(rig)
-			to_chat(user, "<span class='warning'>There is another device in the way.</span>")
-			return ..()
-		user.visible_message("[user] begins rigging [I] to [src].", "You begin rigging [I] to [src]")
-		if(do_after(user, 20, target = src))
-			add_fingerprint(user)
-			user.visible_message("<span class='notice'>[user] rigs [I] to [src].</span>", "<span class='notice'>You rig [I] to [src].</span>")
+			to_chat(user, span_warning("There is another device in the way."))
+			return ATTACK_CHAIN_PROCEED
+		if(isigniter(assembly.a_left) && !isigniter(assembly.a_right))
+			to_chat(user, span_warning("The [assembly.name] is incompatible with [src]."))
+			return ATTACK_CHAIN_PROCEED
+		user.visible_message(
+			span_warning("[user] starts rigging [assembly] to [src]."),
+			span_notice("You start rigging [assembly] to [src]..."),
+		)
+		if(!do_after(user, 2 SECONDS, src, category = DA_CAT_TOOL) || rig || (isigniter(assembly.a_left) && !isigniter(assembly.a_right)))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(assembly, src))
+			return ATTACK_CHAIN_PROCEED
+		user.visible_message(
+			span_warning("[user] has rigged [assembly] to [src]."),
+			span_notice("You have rigged [assembly] to [src]."),
+		)
+		add_attack_logs(user, src, "rigged fuel tank with [assembly.name] for explosion", ATKLOG_FEW)
+		investigate_log("[key_name_log(user)] rigged [name] with [assembly.name] for explosion", INVESTIGATE_BOMB)
+		lastrigger = "[key_name_log(user)]"
+		rig = assembly
+		if(rig.has_prox_sensors())
+			AddComponent(/datum/component/proximity_monitor)
+		rigged_olay = getFlatIcon(assembly)
+		rigged_olay.Shift(NORTH, 1)
+		rigged_olay.Shift(EAST, 6)
+		update_icon(UPDATE_OVERLAYS)
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-			var/obj/item/assembly_holder/H = I
-			if(istype(H.a_left, /obj/item/assembly/igniter) || istype(H.a_right, /obj/item/assembly/igniter))
-				add_attack_logs(user, src, "rigged fuel tank with [I.name] for explosion", ATKLOG_FEW)
-				investigate_log("[key_name_log(user)] rigged [src.name] with [I.name] for explosion", INVESTIGATE_BOMB)
+	return ..()
 
-				lastrigger = "[key_name_log(user)]"
-				rig = H
-				user.drop_transfer_item_to_loc(H, src)
-				if(rig.has_prox_sensors())
-					AddComponent(/datum/component/proximity_monitor)
-				var/icon/test = getFlatIcon(H)
-				test.Shift(NORTH, 1)
-				test.Shift(EAST, 6)
-				overlays += test
-	else
-		return ..()
+
+/obj/structure/reagent_dispensers/fueltank/update_overlays()
+	. = ..()
+	if(rigged_olay)
+		. += rigged_olay
+
 
 /obj/structure/reagent_dispensers/fueltank/welder_act(mob/user, obj/item/I)
 	. = TRUE
@@ -174,7 +210,7 @@
 		I.refill(user, src, reagents.get_reagent_amount("fuel")) //Try dump all fuel into the welder
 
 
-/obj/structure/reagent_dispensers/fueltank/Move()
+/obj/structure/reagent_dispensers/fueltank/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(rig)
 		rig.process_movement()
@@ -183,9 +219,13 @@
 	if(rig)
 		rig.HasProximity(AM)
 
-/obj/structure/reagent_dispensers/fueltank/Crossed(atom/movable/AM, oldloc)
+
+/obj/structure/reagent_dispensers/fueltank/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
 	if(rig)
-		rig.Crossed(AM, oldloc)
+		rig.assembly_crossed(arrived, old_loc)
+
 
 /obj/structure/reagent_dispensers/fueltank/hear_talk(mob/living/M, list/message_pieces)
 	if(rig)
@@ -195,18 +235,20 @@
 	if(rig)
 		rig.hear_message(M, msg)
 
-/obj/structure/reagent_dispensers/fueltank/Bump()
-	..()
-	if(rig)
-		rig.process_movement()
+
+/obj/structure/reagent_dispensers/fueltank/Bump(atom/bumped_atom)
+	. = ..()
+	if(. || !rig)
+		return .
+	rig.process_movement()
 
 
 /obj/structure/reagent_dispensers/peppertank
 	name = "pepper spray refiller"
 	desc = "Contains condensed capsaicin for use in law \"enforcement.\""
 	icon_state = "pepper"
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	reagent_id = "condensedcapsaicin"
 
 /obj/structure/reagent_dispensers/water_cooler
@@ -214,7 +256,7 @@
 	desc = "A machine that dispenses liquid to drink."
 	icon = 'icons/obj/machines/vending.dmi'
 	icon_state = "water_cooler"
-	anchored = 1
+	anchored = TRUE
 	tank_volume = 500
 	reagent_id = "water"
 	var/paper_cups = 25 //Paper cups left from the cooler
@@ -281,22 +323,22 @@
 	name = "virus food dispenser"
 	desc = "A dispenser of low-potency virus mutagenic."
 	icon_state = "virus_food"
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	reagent_id = "virusfood"
 
 /obj/structure/reagent_dispensers/spacecleanertank
 	name = "space cleaner refiller"
 	desc = "Refills space cleaner bottles."
 	icon_state = "cleaner"
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	tank_volume = 5000
 	reagent_id = "cleaner"
 
 /obj/structure/reagent_dispensers/fueltank/chem
 	icon_state = "fuel_chem"
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	accepts_rig = 0
 	tank_volume = 1000

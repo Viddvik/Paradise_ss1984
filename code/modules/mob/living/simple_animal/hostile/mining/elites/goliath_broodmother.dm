@@ -147,13 +147,13 @@
 	ranged_cooldown = world.time + 10 SECONDS * revive_multiplier()
 	visible_message("<span class='warning'>[src] starts picking up speed!</span>")
 	color = "#FF0000"
-	speed = 0
+	set_varspeed(0)
 	move_to_delay = 3
 	addtimer(CALLBACK(src, PROC_REF(reset_rage)), 7 SECONDS)
 
 /mob/living/simple_animal/hostile/asteroid/elite/broodmother/proc/reset_rage()
 	color = "#FFFFFF"
-	speed = 2
+	set_varspeed(2)
 	move_to_delay = 5
 
 /mob/living/simple_animal/hostile/asteroid/elite/broodmother/proc/call_children()
@@ -227,7 +227,7 @@
 	return ..()
 
 
-/mob/living/simple_animal/hostile/asteroid/elite/broodmother_child/death()
+/mob/living/simple_animal/hostile/asteroid/elite/broodmother_child/death(gibbed)
 	. = ..()
 	if(!QDELETED(mother))
 		mother.children_list -= src
@@ -304,16 +304,15 @@
 	if(use_time > world.time)
 		to_chat(living_user, "<b>The tongue looks dried out. You'll need to wait longer to use it again.</b>")
 		return
-	else if("lava" in living_user.weather_immunities)
+	else if(HAS_TRAIT(living_user, TRAIT_LAVA_IMMUNE))
 		to_chat(living_user, "<b>You stare at the tongue. You don't think this is any use to you.</b>")
 		return
-	living_user.weather_immunities += "lava"
+
+	ADD_TRAIT(living_user, TRAIT_LAVA_IMMUNE, BROODMOTHER_TONGUE_TRAIT)
+	addtimer(TRAIT_CALLBACK_REMOVE(living_user, TRAIT_LAVA_IMMUNE, BROODMOTHER_TONGUE_TRAIT), 20 SECONDS)
 	to_chat(living_user, "<b>You squeeze the tongue, and some transluscent liquid shoots out all over you.</b>")
-	addtimer(CALLBACK(src, PROC_REF(remove_lava), living_user), 20 SECONDS)
 	use_time = world.time + 60 SECONDS
 
-/obj/item/crusher_trophy/broodmother_tongue/proc/remove_lava(mob/living/user)
-	user.weather_immunities -= "lava"
 
 #undef TENTACLE_PATCH
 #undef SPAWN_CHILDREN

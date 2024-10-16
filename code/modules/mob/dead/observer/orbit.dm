@@ -6,10 +6,13 @@
 		qdel(src)
 	owner = new_owner
 
-/datum/orbit_menu/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.observer_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/datum/orbit_menu/ui_state(mob/user)
+	return GLOB.observer_state
+
+/datum/orbit_menu/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "Orbit", "Orbit", 700, 500, master_ui, state)
+		ui = new(user, src, "Orbit", "Orbit")
 		ui.open()
 
 /datum/orbit_menu/ui_act(action, list/params, datum/tgui/ui)
@@ -39,11 +42,13 @@
 	var/list/data = list()
 
 	var/list/alive = list()
+	var/list/highlights = list()
 	var/list/antagonists = list()
 	var/list/dead = list()
 	var/list/ghosts = list()
 	var/list/misc = list()
 	var/list/npcs = list()
+	var/length_of_ghosts = length(get_observers())
 
 	var/list/pois = getpois(mobs_only = FALSE, skip_mindless = FALSE)
 	for(var/name in pois)
@@ -62,6 +67,12 @@
 			continue
 
 		serialized["ref"] = "\ref[M]"
+		var/orbiters = 0
+		if(ismob(M))
+			orbiters = M.ghost_orbiting
+
+		if(orbiters > 0)
+			serialized["orbiters"] = orbiters
 
 		if(istype(M))
 			if(isnewplayer(M))  // People in the lobby screen; only have their ckey as a name.
@@ -73,6 +84,8 @@
 			else if(M.stat == DEAD)
 				dead += list(serialized)
 			else
+				if(orbiters >= 0.2 * length_of_ghosts) // They're important if 20% of observers are watching them
+					highlights += list(serialized)
 				alive += list(serialized)
 
 				var/datum/mind/mind = M.mind
@@ -95,6 +108,8 @@
 					// Traitors - the only antags in `.antag_datums` at the time of writing.
 					for(var/_A in mind.antag_datums)
 						var/datum/antagonist/A = _A
+						if(!A.show_in_orbit)
+							continue
 						var/antag_serialized = serialized.Copy()
 						antag_serialized["antag"] = A.name
 						antagonists += list(antag_serialized)
@@ -119,6 +134,7 @@
 							"Wizards — ([length(SSticker.mode.wizards)])" = (mind in SSticker.mode.wizards),
 							"Wizard’s Apprentices — ([length(SSticker.mode.apprentices)])" = (mind in SSticker.mode.apprentices),
 							"Xenomorphs — ([length(SSticker.mode.xenos)])" = (mind in SSticker.mode.xenos),
+							"Blobs — ([length(SSticker.mode.get_blobs_minds())])" = (mind in SSticker.mode.get_blobs_minds())
 						)
 
 				for(var/antag_name in other_antags)
@@ -130,10 +146,13 @@
 					antagonists += list(antag_serialized)
 
 		else
+			if(length(orbiters) >= 0.2 * length_of_ghosts) // If a bunch of people are orbiting an object, like the nuke disk.
+				highlights += list(serialized)
 			misc += list(serialized)
 
 	data["alive"] = alive
 	data["antagonists"] = antagonists
+	data["highlights"] = highlights
 	data["dead"] = dead
 	data["ghosts"] = ghosts
 	data["misc"] = misc

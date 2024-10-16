@@ -2,7 +2,6 @@
 	name = "Invisible Wall"
 	desc = "The mime's performance transmutates into physical reality."
 	school = "mime"
-	panel = "Mime"
 	summon_type = list(/obj/effect/forcefield/mime)
 	invocation_type = "emote"
 	invocation_emote_self = "<span class='notice'>You form a wall in front of yourself.</span>"
@@ -35,7 +34,6 @@
 	name = "Speech"
 	desc = "Make or break a vow of silence."
 	school = "mime"
-	panel = "Mime"
 	clothes_req = FALSE
 	base_cooldown = 5 MINUTES
 	human_req = TRUE
@@ -86,7 +84,6 @@
 	name = "Invisible Greater Wall"
 	desc = "Form an invisible three tile wide blockade."
 	school = "mime"
-	panel = "Mime"
 	wall_type = /obj/effect/forcefield/mime/advanced
 	invocation_type = "emote"
 	invocation_emote_self = "<span class='notice'>You form a blockade in front of yourself.</span>"
@@ -114,7 +111,6 @@
 	name = "Finger Gun"
 	desc = "Shoot lethal, silencing bullets out of your fingers! 3 bullets available per cast. Use your fingers to holster them manually."
 	school = "mime"
-	panel = "Mime"
 	clothes_req = FALSE
 	base_cooldown = 1 MINUTES
 	human_req = TRUE
@@ -138,7 +134,7 @@
 /obj/effect/proc_holder/spell/mime/fingergun/cast(list/targets, mob/user = usr)
 	for(var/mob/living/carbon/human/target in targets)
 		if(!current_gun)
-			to_chat(user, "<span class='notice'>You draw your fingers!</span>")
+			to_chat(user, span_notice("You draw your fingers!"))
 			current_gun = new gun(get_turf(user), src)
 			target.drop_from_active_hand()
 			target.put_in_hands(current_gun)
@@ -152,8 +148,9 @@
 	SIGNAL_HANDLER
 	if(!current_gun || action.owner.get_active_hand() != current_gun)
 		return
-	to_chat(action.owner, "<span class='notice'>You holster your fingers. Another time perhaps...</span>")
+	to_chat(action.owner, span_notice("You holster your fingers. Another time perhaps..."))
 	QDEL_NULL(current_gun)
+	return COMPONENT_CANCEL_DROP
 
 
 // Mime Spellbooks
@@ -167,19 +164,19 @@
 
 
 /obj/item/spellbook/oneuse/mime/attack_self(mob/user)
-	var/obj/effect/proc_holder/spell/S = new spell
-	for(var/obj/effect/proc_holder/spell/knownspell in user.mind.spell_list)
-		if(knownspell.type == S.type)
-			if(user.mind)
-				to_chat(user, "<span class='notice'>You've already read this one.</span>")
+	if(!user.mind)
+		return
+	for(var/obj/effect/proc_holder/spell/knownspell as anything in user.mind.spell_list)
+		if(knownspell.type == spell)
+			to_chat(user, "<span class='notice'>You've already read this one.</span>")
 			return
 	if(used)
 		recoil(user)
 	else
-		user.mind.AddSpell(S)
+		user.mind.AddSpell(new spell)
 		to_chat(user, "<span class='notice'>You flip through the pages. Your understanding of the boundaries of reality increases. You can cast [spellname]!</span>")
-		user.create_log(MISC_LOG, "learned the spell [spellname] ([S])")
-		user.create_attack_log("<font color='orange'>[key_name(user)] learned the spell [spellname] ([S]).</font>")
+		user.create_log(MISC_LOG, "learned the spell [spellname]")
+		user.create_attack_log("<font color='orange'>[key_name(user)] learned the spell [spellname].</font>")
 		onlearned(user)
 
 

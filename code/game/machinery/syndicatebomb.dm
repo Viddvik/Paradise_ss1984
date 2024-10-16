@@ -7,10 +7,12 @@
 	icon_state = "syndicate-bomb"
 	desc = "A large and menacing device. Can be bolted down with a wrench."
 
-	anchored = 0
-	density = 0
+	anchored = FALSE
+	density = FALSE
 	layer = BELOW_MOB_LAYER //so people can't hide it and it's REALLY OBVIOUS
 	resistance_flags = FIRE_PROOF | ACID_PROOF
+	use_power = NO_POWER_USE
+	interact_offline = TRUE
 
 	var/datum/wires/syndicatebomb/wires = null
 	var/minimum_timer = 90
@@ -74,7 +76,7 @@
 	if(active && !defused && ((detonation_timer <= world.time) || explode_now))
 		active = FALSE
 		timer_set = initial(timer_set)
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 		try_detonate(TRUE)
 	//Counter terrorists win
 	else if(defused)
@@ -86,7 +88,7 @@
 	wires 	= new(src)
 	if(payload)
 		payload = new payload(src)
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	countdown = new(src)
 	..()
 
@@ -101,7 +103,7 @@
 	. = ..()
 	. += span_warning("A digital display on it reads \"[seconds_remaining()]\".")
 
-/obj/machinery/syndicatebomb/update_icon()
+/obj/machinery/syndicatebomb/update_icon_state()
 	icon_state = "[initial(icon_state)][active ? "-active" : "-inactive"][open_panel ? "-wires" : ""]"
 
 /obj/machinery/syndicatebomb/proc/seconds_remaining()
@@ -110,22 +112,32 @@
 	else
 		. = timer_set
 
+
 /obj/machinery/syndicatebomb/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/assembly/signaler))
-		if(open_panel)
-			add_fingerprint(user)
-			wires.Interact(user)
-	else if(istype(I, /obj/item/bombcore))
-		if(!payload)
-			if(!user.drop_transfer_item_to_loc(I, src))
-				return
-			add_fingerprint(user)
-			payload = I
-			to_chat(user, span_notice("You place [payload] into [src]."))
-		else
-			to_chat(user, span_notice("[payload] is already loaded into [src], you'll have to remove it first."))
-	else
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(issignaler(I))
+		add_fingerprint(user)
+		if(!open_panel)
+			to_chat(user, span_warning("Open the panel first!"))
+			return ATTACK_CHAIN_PROCEED
+		wires.Interact(user)
+		return ATTACK_CHAIN_PROCEED
+
+	if(istype(I, /obj/item/bombcore))
+		add_fingerprint(user)
+		if(payload)
+			to_chat(user, span_warning("The [payload.name] is already loaded into [src], you'll have to remove it first."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		payload = I
+		to_chat(user, span_notice("You place [payload] into [src]."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/machinery/syndicatebomb/wrench_act(mob/user, obj/item/I)
 	if(!can_unanchor)
@@ -138,13 +150,13 @@
 			to_chat(user, span_notice("The bomb must be placed on solid ground to attach it."))
 		else
 			WRENCH_ANCHOR_MESSAGE
-			anchored = TRUE
+			set_anchored(TRUE)
 			if(active)
 				to_chat(user, span_notice("The bolts lock in place."))
 	else
 		if(!active)
 			WRENCH_UNANCHOR_MESSAGE
-			anchored = FALSE
+			set_anchored(FALSE)
 		else
 			to_chat(user, span_warning("The bolts are locked down!"))
 
@@ -153,7 +165,7 @@
 	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
 		return
 	open_panel = !open_panel
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	to_chat(user, span_notice("You [open_panel ? "open" : "close"] the wire panel."))
 
 /obj/machinery/syndicatebomb/wirecutter_act(mob/user, obj/item/I)
@@ -251,7 +263,7 @@
 	if(can_interact(user)) //No running off and setting bombs from across the station
 		timer_set = clamp(new_timer, minimum_timer, maximum_timer)
 		loc.visible_message(span_notice("[bicon(src)] timer set for [timer_set] seconds."))
-	if(alert(user,"Would you like to start the countdown now?",,"Yes","No") == "Yes" && can_interact(user))
+	if(tgui_alert(user, "Would you like to start the countdown now?", "Countdown", list("Yes", "No")) == "Yes" && can_interact(user))
 		if(defused || active)
 			if(defused)
 				loc.visible_message(span_notice("[bicon(src)] Device error: User intervention required."))
@@ -259,7 +271,7 @@
 		else
 			loc.visible_message(span_danger("[bicon(src)] [timer_set] seconds until detonation, please clear the area."))
 			activate()
-			update_icon()
+			update_icon(UPDATE_ICON_STATE)
 			add_fingerprint(user)
 
 			var/turf/bombturf = get_turf(src)
@@ -381,7 +393,7 @@
 		holder.delayedbig = FALSE
 		holder.delayedlittle = FALSE
 		holder.explode_now = FALSE
-		holder.update_icon()
+		holder.update_icon(UPDATE_ICON_STATE)
 		holder.updateDialog()
 
 /obj/item/bombcore/training/detonate()
@@ -421,7 +433,7 @@
 	var/obj/machinery/syndicatebomb/B = src.loc
 	for(var/i = 0; i < amt_summon; i++)
 		var/atom/movable/X = new summon_path
-		X.admin_spawned = TRUE
+		X.flags |= ADMIN_SPAWNED
 		X.loc = get_turf(src)
 		if(prob(50))
 			for(var/j = 1, j <= rand(1, 3), j++)
@@ -550,18 +562,24 @@
 		qdel(loc)
 	qdel(src)
 
+
 /obj/item/bombcore/chemical/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/reagent_containers/glass/beaker) || istype(I, /obj/item/reagent_containers/glass/bottle))
-		if(beakers.len < max_beakers)
-			if(!user.drop_transfer_item_to_loc(I, src))
-				return
-			beakers += I
-			to_chat(user, span_notice("You load [src] with [I]."))
-		else
-			to_chat(user, span_warning("The [I] wont fit! The [src] can only hold up to [max_beakers] containers."))
-			return
-	else
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(istype(I, /obj/item/reagent_containers/glass/beaker) || istype(I, /obj/item/reagent_containers/glass/bottle))
+		add_fingerprint(user)
+		if(length(beakers) >= max_beakers)
+			to_chat(user, span_warning("The [I.name] wont fit! The [name] can only hold up to [max_beakers] containers."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		beakers += I
+		to_chat(user, span_notice("You load [src] with [I]."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/bombcore/chemical/crowbar_act(mob/user, obj/item/I)
 	. = TRUE
@@ -620,19 +638,27 @@
 	icon_state = "chemcore"
 	var/obj/item/transfer_valve/ttv = null
 
-/obj/item/bombcore/toxins/attackby(obj/item/I, mob/user)
-	if(istype(I, /obj/item/transfer_valve))
-		if(!ttv && !check_attached(I))
-			if(!user.drop_transfer_item_to_loc(I, src))
-				return
-			to_chat(user, span_notice("You load [src] with [I]."))
-			ttv = I
-		else if (ttv)
-			to_chat(user, span_warning("Another tank transfer valve is already loaded."))
-		else
-			to_chat(user, span_warning("Remove the attached assembly component first."))
-	else
+
+/obj/item/bombcore/toxins/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(istype(I, /obj/item/transfer_valve))
+		add_fingerprint(user)
+		if(ttv)
+			to_chat(user, span_warning("Another tank transfer valve is already loaded."))
+			return ATTACK_CHAIN_PROCEED
+		if(check_attached(I))
+			to_chat(user, span_warning("Remove the attached assembly component first."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("You load [src] with [I]."))
+		ttv = I
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/bombcore/toxins/crowbar_act(mob/user, obj/item/I)
 	if(!ttv)
@@ -646,10 +672,10 @@
 
 
 /obj/item/bombcore/toxins/proc/check_attached(obj/item/transfer_valve/ttv)
-	if (ttv.attached_device)
+	if(ttv?.attached_device)
 		return TRUE
-	else
-		return FALSE
+	return FALSE
+
 
 /obj/item/bombcore/toxins/ex_act(severity) //No chain reactions, the explosion only occurs when gas mixes
 	return

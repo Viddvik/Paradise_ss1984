@@ -125,14 +125,6 @@
 	icon_state = "away17"
 	requires_power = TRUE
 
-//Невидимая и неразрушаемая стена, для ограничения уровня
-
-/turf/simulated/wall/indestructible/invisible
-	name = "Deep space"
-	desc = "Deep space nothing"
-	icon = null
-	icon_state = null
-
 //Пустые аптечки с мышеловкой и насмешкой
 
 /obj/item/storage/firstaid/with_mousetrap/tactical
@@ -187,27 +179,33 @@
 	icon = 'icons/obj/machines/turrets.dmi'
 	icon_state = "destroyed_target_prism"
 
-/obj/machinery/broken/porta_turret/attackby(obj/item/I, mob/user)
-	if(istype(I, /obj/item/crowbar))
-		to_chat(user, "<span class='notice'>You begin prying the metal coverings off.</span>")
-	if(do_after(user, 20 * I.toolspeed * gettoolspeedmod(user), target = src))
-		if(prob(70))
-			to_chat(user, "<span class='notice'>You remove the turret and salvage some components.</span>")
-			if(prob(50))
-				new /obj/item/stack/sheet/metal(loc, rand(1,4))
-			if(prob(50))
-				new /obj/item/assembly/prox_sensor(loc)
-		else
-			to_chat(user, "<span class='notice'>You remove the turret but did not manage to salvage anything.</span>")
-		qdel(src)
+
+/obj/machinery/broken/porta_turret/crowbar_act(mob/living/user, obj/item/I)
+	. = TRUE
+	to_chat(user, span_notice("You begin prying the metal coverings off..."))
+	if(!I.use_tool(src, user, 2 SECONDS, volume = I.tool_volume))
+		return .
+	var/salvaged = FALSE
+	if(prob(70))
+		if(prob(50))
+			salvaged = TRUE
+			new /obj/item/stack/sheet/metal(loc, rand(1, 4))
+		if(prob(50))
+			salvaged = TRUE
+			new /obj/item/assembly/prox_sensor(loc)
+	if(salvaged)
+		to_chat(user, span_notice("You have removed the turret and salvage some components."))
+	else
+		to_chat(user, span_notice("You have removed the turret but did not manage to salvage anything."))
+	qdel(src)
+
 
 // Активированная пожарная тревога, проgисать в зоне fire = TRUE
 
 /obj/machinery/firealarm/triggered_nosignals
 	report_fire_alarms = FALSE
 	show_alert_level = FALSE
-	triggered = TRUE
-	icon_state = "fire1"
+
 
 //Spieder spawner
 

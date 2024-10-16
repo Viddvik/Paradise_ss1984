@@ -13,7 +13,7 @@
 	tts_seed = "Shaker"
 	speak_chance = 1
 	turns_per_move = 5
-	see_in_dark = 6
+	nightvision = 6
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/monstermeat/bearmeat= 5, /obj/item/clothing/head/bearpelt = 1)
 	response_help  = "pets"
 	response_disarm = "gently pushes aside"
@@ -36,10 +36,16 @@
 
 	//Space bears aren't affected by atmos.
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 
 	faction = list("russian")
 	gold_core_spawnable = HOSTILE_SPAWN
+	weather_immunities = list(TRAIT_SNOWSTORM_IMMUNE)
+
+/mob/living/simple_animal/hostile/bear/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/bear/handle_automated_movement()
 	if(..())
@@ -55,19 +61,25 @@
 	var/unbearable_pun = pick("He's unbearably cute.", "It looks like he is a bearer of bad news.", "Sadly, he is bearly able to comprehend puns.")
 	desc = "That's Hudson. " +  unbearable_pun// I am not sorry for this.
 
-/mob/living/simple_animal/hostile/bear/Move()
+/mob/living/simple_animal/hostile/bear/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(stat != DEAD)
-		if(loc && istype(loc,/turf/space))
+		if(loc && isspaceturf(loc))
 			icon_state = "[icon_living]"
 		else
 			icon_state = "[icon_living]floor"
 
-/mob/living/simple_animal/hostile/bear/Process_Spacemove(var/movement_dir = 0)
-	return 1	//No drifting in space for space bears!
+/mob/living/simple_animal/hostile/bear/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE	//No drifting in space for space bears!
 
 /mob/living/simple_animal/hostile/bear/brown
 	icon_state = "brownbear"
 	icon_living = "brownbear"
 	icon_dead = "brownbear_dead"
 	icon_gib = "brownbear_gib"
+
+/mob/living/simple_animal/hostile/bear/polar
+	icon_state = "polarbear"
+	icon_living = "polarbear"
+	icon_dead = "polarbear_dead"
+	butcher_results = list(/obj/item/reagent_containers/food/snacks/monstermeat/bearmeat= 5, /obj/item/clothing/head/bearpelt/fluff/polar = 1)

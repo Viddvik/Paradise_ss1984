@@ -1,9 +1,9 @@
 //NOT using the existing /obj/machinery/door type, since that has some complications on its own, mainly based on its machineryness
 /obj/structure/mineral_door
 	name = "metal door"
-	density = 1
-	anchored = 1
-	opacity = 1
+	density = TRUE
+	anchored = TRUE
+	opacity = TRUE
 
 	icon = 'icons/obj/doors/mineral_doors.dmi'
 	icon_state = "metal"
@@ -20,6 +20,7 @@
 	var/openSound = 'sound/effects/stonedoor_openclose.ogg'
 	var/closeSound = 'sound/effects/stonedoor_openclose.ogg'
 	var/damageSound = null
+	var/is_opaque = TRUE
 
 /obj/structure/mineral_door/Initialize()
 	. = ..()
@@ -27,17 +28,17 @@
 	air_update_turf(1)
 
 /obj/structure/mineral_door/Destroy()
-	density = 0
+	set_density(FALSE)
 	air_update_turf(1)
 	return ..()
 
-/obj/structure/mineral_door/Move()
+/obj/structure/mineral_door/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/turf/T = loc
 	. = ..()
 	move_update_air(T)
 
 /obj/structure/mineral_door/Bumped(atom/movable/moving_atom)
-	..()
+	. = ..()
 	if(!state)
 		return TryToSwitchState(moving_atom)
 
@@ -54,14 +55,16 @@
 	if(user.can_advanced_admin_interact())
 		SwitchState()
 
-/obj/structure/mineral_door/CanPass(atom/movable/mover, turf/target, height = 0)
-	if(istype(mover) && mover.checkpass(PASS_OTHER_THINGS))
+
+/obj/structure/mineral_door/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	if(checkpass(mover))
 		return TRUE
 	if(istype(mover, /obj/effect/beam))
 		return !opacity
-	return !density
 
-/obj/structure/mineral_door/CanAtmosPass(turf/T)
+
+/obj/structure/mineral_door/CanAtmosPass(turf/T, vertical)
 	return !density
 
 /obj/structure/mineral_door/proc/TryToSwitchState(atom/user)
@@ -80,7 +83,7 @@
 			else
 				add_fingerprint(user)
 				SwitchState()
-	else if(istype(user, /obj/mecha))
+	else if(ismecha(user))
 		SwitchState()
 
 /obj/structure/mineral_door/proc/SwitchState()
@@ -94,11 +97,12 @@
 	playsound(loc, openSound, 100, 1)
 	flick("[initial_state]opening",src)
 	sleep(10)
-	density = 0
-	opacity = 0
+	set_density(FALSE)
+	if(is_opaque)
+		set_opacity(FALSE)
 	state = 1
 	air_update_turf(1)
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	isSwitchingStates = 0
 
 	if(close_delay != -1)
@@ -107,38 +111,56 @@
 
 /obj/structure/mineral_door/proc/Close()
 	if(isSwitchingStates || state != 1)
-		return
+		return FALSE
 	var/turf/T = get_turf(src)
 	for(var/mob/living/L in T)
-		return
+		return FALSE
+	. = TRUE
 	isSwitchingStates = 1
 	playsound(loc, closeSound, 100, 1)
 	flick("[initial_state]closing",src)
 	sleep(10)
-	density = 1
-	opacity = 1
+	set_density(TRUE)
+	if(is_opaque)
+		set_opacity(TRUE)
 	state = 0
 	air_update_turf(1)
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 	isSwitchingStates = 0
 
-/obj/structure/mineral_door/update_icon()
+
+/obj/structure/mineral_door/update_icon_state()
 	if(state)
 		icon_state = "[initial_state]open"
 	else
 		icon_state = initial_state
 
-/obj/structure/mineral_door/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/pickaxe))
-		var/obj/item/pickaxe/digTool = W
-		to_chat(user, "<span class='notice'>You start digging \the [src].</span>")
-		if(do_after(user, 40 * digTool.toolspeed * gettoolspeedmod(user) * hardness, target = src) && src)
-			to_chat(user, "<span class='notice'>You finished digging.</span>")
-			deconstruct(TRUE)
-	else if(user.a_intent != INTENT_HARM)
+
+/obj/structure/mineral_door/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/pickaxe))
+		add_fingerprint(user)
+		var/obj/item/pickaxe/pickaxe = I
+		user.visible_message(
+			span_notice("[user] start digging into [src]."),
+			span_notice("You start digging into [src]..."),
+		)
+		I.play_tool_sound(src, 100)
+		if(!do_after(user, 4 SECONDS * pickaxe.toolspeed * hardness, src, category = DA_CAT_TOOL))
+			return ATTACK_CHAIN_PROCEED
+		I.play_tool_sound(src, 100)
+		user.visible_message(
+			span_notice("[user] finishes digging into [src]."),
+			span_notice("You have finished digging into [src]."),
+		)
+		deconstruct(TRUE)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(user.a_intent != INTENT_HARM)
 		attack_hand(user)
-	else
-		return ..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/structure/mineral_door/deconstruct(disassembled = TRUE)
 	var/turf/T = get_turf(src)
@@ -177,25 +199,24 @@
 	max_integrity = 100
 
 /obj/structure/mineral_door/transparent
-	opacity = 0
-
-/obj/structure/mineral_door/transparent/Close()
-	..()
-	set_opacity(0)
+	opacity = FALSE
+	is_opaque = FALSE
 
 /obj/structure/mineral_door/transparent/plasma
 	name = "plasma door"
 	icon_state = "plasma"
 	sheetType = /obj/item/stack/sheet/mineral/plasma
 
-/obj/structure/mineral_door/transparent/plasma/attackby(obj/item/W, mob/user)
-	if(is_hot(W))
-		add_fingerprint(user)
-		add_attack_logs(user, src, "Ignited using [W]", ATKLOG_FEW)
+
+/obj/structure/mineral_door/transparent/plasma/attackby(obj/item/I, mob/user, params)
+	var/hot_temp = is_hot(I)
+	if(hot_temp)
+		add_attack_logs(user, src, "Ignited using [I]", ATKLOG_FEW)
 		investigate_log("was <span class='warning'>ignited</span> by [key_name_log(user)]",INVESTIGATE_ATMOS)
-		TemperatureAct(100)
-	else
-		return ..()
+		TemperatureAct(hot_temp)
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
+
 
 /obj/structure/mineral_door/transparent/plasma/temperature_expose(datum/gas_mixture/air, exposed_temperature, exposed_volume)
 	..()
@@ -246,3 +267,13 @@
 /obj/structure/mineral_door/resin/TryToSwitchState(atom/user)
 	if(isalien(user))
 		return ..()
+
+/obj/structure/mineral_door/ginger
+	name = "gingerbread door"
+	icon_state = "gingerbread"
+	openSound = 'sound/effects/doorcreaky.ogg'
+	closeSound = 'sound/effects/doorcreaky.ogg'
+	sheetType = /obj/item/stack/sheet/gingerbread
+	hardness = 0.5
+	resistance_flags = FLAMMABLE
+	max_integrity = 200

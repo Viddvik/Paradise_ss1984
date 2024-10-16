@@ -14,8 +14,8 @@
 	response_help  = "pets"
 	response_disarm = "shoos"
 	response_harm   = "stomps on"
-	ventcrawler = 2
-	density = 0
+	ventcrawler_trait = TRAIT_VENTCRAWLER_ALWAYS
+	density = FALSE
 	pass_flags = PASSTABLE | PASSMOB
 	mob_size = MOB_SIZE_SMALL
 	gender = NEUTER
@@ -25,15 +25,20 @@
 	gold_core_spawnable = FRIENDLY_SPAWN
 	stop_automated_movement_when_pulled = 0
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	faction = list("slime", "neutral")
 	reagents = new()
 	holder_type = /obj/item/holder/snail
 
-/mob/living/simple_animal/snail/Process_Spacemove(var/movement_dir = 0)
-	return 1
+/mob/living/simple_animal/hostile/snail/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
-/mob/living/simple_animal/snail/Move(atom/newloc, direct, movetime)
+/mob/living/simple_animal/snail/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE	// why???
+
+/mob/living/simple_animal/snail/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/oldLoc = src.loc
 	. = ..()
 	if(.)
@@ -76,8 +81,8 @@
 	response_help  = "pets"
 	response_disarm = "shoos"
 	response_harm   = "stomps on"
-	ventcrawler = 0
-	density = 1
+	density = TRUE
+	mobility_flags = MOBILITY_FLAGS_REST_CAPABLE_DEFAULT
 	pass_flags = PASSTABLE | PASSGRILLE
 	status_flags = CANPARALYSE | CANPUSH
 	mob_size = MOB_SIZE_SMALL

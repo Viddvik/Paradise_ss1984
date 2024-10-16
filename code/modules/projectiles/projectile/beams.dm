@@ -10,7 +10,9 @@
 	eyeblur = 4 SECONDS
 	impact_effect_type = /obj/effect/temp_visual/impact_effect/red_laser
 	reflectability = REFLECTABILITY_ENERGY
+	light_system = MOVABLE_LIGHT
 	light_range = 2
+	light_power = 1
 	light_color = LIGHT_COLOR_DARKRED
 	ricochets_max = 50	//Honk!
 	ricochet_chance = 80
@@ -28,11 +30,16 @@
 	damage = 50
 	stamina = 33
 
+/obj/item/projectile/beam/laser/shot
+	name = "laser shot beam"
+	icon_state = "lasershot"
+	damage = 15
+
 /obj/item/projectile/beam/practice
 	name = "practice laser"
 	damage = 0
 	hitsound = 'sound/weapons/tap.ogg'
-	nodamage = 1
+	nodamage = TRUE
 	log_override = TRUE
 
 /obj/item/projectile/beam/scatter
@@ -68,17 +75,27 @@
 	name = "pulse"
 	icon_state = "u_laser"
 	damage = 50
+	var/gib_allowed = TRUE
 	hitsound = 'sound/weapons/resonator_blast.ogg'
 	hitsound_wall = 'sound/weapons/resonator_blast.ogg'
 	impact_effect_type = /obj/effect/temp_visual/impact_effect/blue_laser
 	light_color = LIGHT_COLOR_DARKBLUE
 
 /obj/item/projectile/beam/pulse/on_hit(var/atom/target, var/blocked = 0)
-	if(istype(target, /turf) || istype(target, /obj/structure) || istype(target, /obj/machinery))
+	if(istype(target, /turf) || isstructure(target) || ismachinery(target))
 		target.ex_act(2)
 	..()
 
+/obj/item/projectile/beam/pulse/on_hit(atom/target)
+	. = ..()
+	if(gib_allowed && isliving(target))
+		var/mob/living/L = target
+		if(L.health <= -200)
+			L.visible_message(span_danger("[L] has been terminated!"))
+			L.dust()
+
 /obj/item/projectile/beam/pulse/shot
+	gib_allowed = FALSE
 	damage = 40
 
 /obj/item/projectile/beam/emitter
@@ -96,7 +113,7 @@
 	name = "laser tag beam"
 	icon_state = "omnilaser"
 	hitsound = 'sound/weapons/tap.ogg'
-	nodamage = 1
+	nodamage = TRUE
 	damage = 0
 	damage_type = STAMINA
 	flag = "laser"
@@ -111,7 +128,7 @@
 		var/mob/living/carbon/human/M = target
 		if(istype(M.wear_suit))
 			if(M.wear_suit.type in suit_types)
-				M.adjustStaminaLoss(34)
+				M.apply_damage(34, STAMINA)
 	return 1
 
 /obj/item/projectile/beam/lasertag/omni
@@ -143,6 +160,28 @@
 	impact_effect_type = /obj/effect/temp_visual/impact_effect/purple_laser
 	light_color = LIGHT_COLOR_PINK
 
+/obj/item/projectile/beam/podsniper/disabler
+	name = "sniper disabler beam"
+	icon_state = "LSR_disabler"
+	damage = 40
+	damage_type = STAMINA
+	hitsound = 'sound/weapons/resonator_blast.ogg'
+	flag = ENERGY
+	eyeblur = 0
+	impact_effect_type = /obj/effect/temp_visual/impact_effect/blue_laser
+	light_color = LIGHT_COLOR_CYAN
+
+/obj/item/projectile/beam/podsniper/laser
+	name = "sniper laser beam"
+	icon_state = "LSR_kill"
+	damage = 45
+	damage_type = BURN
+	hitsound = 'sound/weapons/resonator_blast.ogg'
+	flag = LASER
+	eyeblur = 4 SECONDS
+	impact_effect_type = /obj/effect/temp_visual/impact_effect/red_laser
+	light_color = LIGHT_COLOR_DARKRED
+
 /obj/item/projectile/beam/immolator
 	name = "immolation beam"
 	hitsound = 'sound/weapons/plasma_cutter.ogg'
@@ -157,9 +196,13 @@
 	damage = 8
 	icon_state = "scatterlaser"
 
+/obj/item/projectile/beam/immolator/mech
+	name = "mecha immolation beam"
+	damage = 15
+
 /obj/item/projectile/beam/immolator/on_hit(var/atom/target, var/blocked = 0)
 	. = ..()
-	if(istype(target, /mob/living/carbon))
+	if(iscarbon(target))
 		var/mob/living/carbon/M = target
 		M.adjust_fire_stacks(1)
 		M.IgniteMob()

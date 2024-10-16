@@ -7,7 +7,7 @@
 	if (_PART){\
 		var/can_be_absorbed = (_PART:max_damage - _PART:damage);\
 		var/damage_to_be_applied = min(can_be_absorbed, _DAMAGE);\
-		_PART:receive_damage(damage_to_be_applied);\
+		_PART:internal_receive_damage(damage_to_be_applied);\
 		_PART:add_autopsy_data("Toxin Residue", damage_to_be_applied);\
 		_RES -= damage_to_be_applied;\
 	}\
@@ -56,5 +56,5 @@
 
 	process_toxin_damage_on_death(src) // applies TOXIN_TO_INTERNAL_DAMAGE_MULTIPLIER times toxin damage to internal organs
 
-	for(var/obj/item/organ/internal/I in internal_organs)
-		I.on_owner_death()
+	for(var/obj/item/organ/internal/organ as anything in internal_organs)
+		organ.on_owner_death()

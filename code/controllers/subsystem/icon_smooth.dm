@@ -6,6 +6,7 @@ SUBSYSTEM_DEF(icon_smooth)
 	flags = SS_TICKER
 	offline_implications = "Objects will no longer smooth together properly. No immediate action is needed."
 	cpu_display = SS_CPUDISPLAY_LOW
+	ss_id = "icon_smooth"
 
 	var/list/smooth_queue = list()
 
@@ -19,7 +20,6 @@ SUBSYSTEM_DEF(icon_smooth)
 			return
 	if(!smooth_queue.len)
 		can_fire = 0
-
 
 /datum/controller/subsystem/icon_smooth/Initialize()
 	log_startup_progress("Smoothing atoms...")
@@ -43,3 +43,4 @@ SUBSYSTEM_DEF(icon_smooth)
 		smooth_icon(A)
 		CHECK_TICK
 
+	return SS_INIT_SUCCESS

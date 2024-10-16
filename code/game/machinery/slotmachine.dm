@@ -3,8 +3,8 @@
 	desc = "Gambling for the antisocial."
 	icon = 'icons/obj/economy.dmi'
 	icon_state = "slots-off"
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 	var/plays = 0
 	var/working = 0
 	var/datum/money_account/account = null
@@ -15,10 +15,15 @@
 	add_fingerprint(user)
 	ui_interact(user)
 
-/obj/machinery/slot_machine/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = 0, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+
+/obj/machinery/slot_machine/update_icon_state()
+	icon_state = "slots-[working ? "on" : "off"]"
+
+
+/obj/machinery/slot_machine/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SlotMachine", name, 350, 200, master_ui, state)
+		ui = new(user, src, "SlotMachine", name)
 		ui.open()
 
 /obj/machinery/slot_machine/ui_data(mob/user)
@@ -48,7 +53,7 @@
 			return
 		plays++
 		working = TRUE
-		icon_state = "slots-on"
+		update_icon(UPDATE_ICON_STATE)
 		playsound(src.loc, 'sound/machines/ding.ogg', 50, 1)
 		addtimer(CALLBACK(src, PROC_REF(spin_slots), usr.name), 25)
 
@@ -84,7 +89,7 @@
 			result = "No luck!"
 			resultlvl = "orange"
 	working = FALSE
-	icon_state = "slots-off"
+	update_icon(UPDATE_ICON_STATE)
 	SStgui.update_uis(src) // Push a UI update
 
 /obj/machinery/slot_machine/proc/win_money(amt, sound='sound/machines/ping.ogg')

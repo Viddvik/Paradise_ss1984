@@ -73,7 +73,7 @@
 /obj/blob_act(obj/structure/blob/B)
 	if(isturf(loc))
 		var/turf/T = loc
-		if((T.intact && level == 1) || T.transparent_floor) //the blob doesn't destroy thing below the floor
+		if((T.intact && level == 1) || T.transparent_floor == TURF_TRANSPARENT) //the blob doesn't destroy thing below the floor
 			return
 	take_damage(400, BRUTE, "melee", 0, get_dir(src, B))
 
@@ -90,6 +90,10 @@
 /obj/attack_animal(mob/living/simple_animal/M)
 	if((M.a_intent == INTENT_HELP && M.ckey) || (!M.melee_damage_upper && !M.obj_damage))
 		M.custom_emote(EMOTE_VISIBLE, "[M.friendly] [src].")
+		return FALSE
+
+	if(GLOB.pacifism_after_gt || HAS_TRAIT(M, TRAIT_PACIFISM))
+		to_chat(M, span_notice("Немного подумав, Вы решаете не трогать [src]."))
 		return FALSE
 
 	var/play_soundeffect = !M.environment_smash
@@ -155,7 +159,7 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 
 		if(!acid_level)
 			SSacid.processing[src] = src
-			add_overlay(GLOB.acid_overlay, TRUE)
+			add_overlay(GLOB.acid_overlay)
 		var/acid_cap = acidpwr * 300 //so we cannot use huge amounts of weak acids to do as well as strong acids.
 		if(acid_level < acid_cap)
 			acid_level = min(acid_level + acidpwr * acid_volume, acid_cap)
@@ -183,7 +187,7 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 /obj/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
 	if(isturf(loc))
 		var/turf/T = loc
-		if((T.intact && level == 1) || T.transparent_floor) //fire can't damage things hidden below the floor.
+		if((T.intact && level == 1) || T.transparent_floor == TURF_TRANSPARENT) //fire can't damage things hidden below the floor.
 			return
 	..()
 	if(QDELETED(src)) // no taking damage after deletion
@@ -193,8 +197,8 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 	if(!(resistance_flags & ON_FIRE) && (resistance_flags & FLAMMABLE) && !(resistance_flags & FIRE_PROOF))
 		resistance_flags |= ON_FIRE
 		SSfires.processing[src] = src
-		add_overlay(GLOB.fire_overlay, TRUE)
-		return 1
+		add_overlay(custom_fire_overlay ? custom_fire_overlay : GLOB.fire_overlay)
+		return TRUE
 
 ///called when the obj is destroyed by fire
 /obj/proc/burn()
@@ -206,7 +210,7 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 /obj/proc/extinguish()
 	if(resistance_flags & ON_FIRE)
 		resistance_flags &= ~ON_FIRE
-		cut_overlay(GLOB.fire_overlay, TRUE)
+		cut_overlay(custom_fire_overlay ? custom_fire_overlay : GLOB.fire_overlay, TRUE)
 		SSfires.processing -= src
 
 ///Called when the obj is hit by a tesla bolt.
@@ -256,6 +260,13 @@ GLOBAL_DATUM_INIT(acid_overlay, /mutable_appearance, mutable_appearance('icons/e
 		obj_break(damage_type)
 		return TRUE
 	return FALSE
+
+///Only tesla coils, vehicles, and grounding rods currently call this because mobs are already targeted over all other objects, but this might be useful for more things later.
+/obj/proc/zap_buckle_check(strength)
+	if(has_buckled_mobs())
+		for(var/m in buckled_mobs)
+			var/mob/living/buckled_mob = m
+			buckled_mob.electrocute_act((clamp(round(strength * 1.25e-3), 10, 90) + rand(-5, 5)), src, flags = SHOCK_TESLA)
 
 ///returns how much the object blocks an explosion. Used by subtypes.
 /obj/proc/GetExplosionBlock()

@@ -6,7 +6,7 @@
 	item_state = "toolbox_red"
 	flags = CONDUCT
 	force = 10.0
-	throwforce = 10.0
+	throwforce = 15.0
 	throw_speed = 2
 	throw_range = 7
 	w_class = WEIGHT_CLASS_BULKY
@@ -19,24 +19,24 @@
 	pickup_sound = 'sound/items/handling/toolbox_pickup.ogg'
 	var/blurry_chance = 5
 
-/obj/item/storage/toolbox/attack(mob/living/carbon/human/H, mob/living/carbon/user)
+/obj/item/storage/toolbox/Initialize(mapload)
 	. = ..()
+	AddElement(/datum/element/falling_hazard, damage = force, hardhat_safety = TRUE, crushes = FALSE, impact_sound = hitsound)
 
-	if(!istype(H))
-		return
 
-	if(user.zone_selected != "eyes" && user.zone_selected != "head")
-		return
-
+/obj/item/storage/toolbox/attack(mob/living/carbon/human/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ..()
+	if(!ATTACK_CHAIN_SUCCESS_CHECK(.))
+		return .
+	if(!ishuman(target))
+		return .
+	if(user.zone_selected != BODY_ZONE_PRECISE_EYES && user.zone_selected != BODY_ZONE_HEAD)
+		return .
 	if(!prob(blurry_chance))
-		return
+		return .
+	target.AdjustEyeBlurry(8 SECONDS)
+	to_chat(target, span_danger("You feel a buzz in your head and your vision gets blurry."))
 
-	if(force && (HAS_TRAIT(user, TRAIT_PACIFISM) || GLOB.pacifism_after_gt))
-		to_chat(user, SPAN_WARNING("You don't want to harm other living beings!"))
-		return
-
-	H.AdjustEyeBlurry(8 SECONDS)
-	to_chat(H, SPAN_DANGER("You feel a buzz in your head and your vision gets blurry."))
 
 /obj/item/storage/toolbox/emergency
 	name = "emergency toolbox"
@@ -71,7 +71,12 @@
 	new /obj/item/wirecutters(src)
 
 /obj/item/storage/toolbox/mechanical/greytide
-	flags = NODROP
+
+
+/obj/item/storage/toolbox/mechanical/greytide/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
+
 
 /obj/item/storage/toolbox/mechanical/old
 	name = "rusty blue toolbox"
@@ -131,7 +136,7 @@
 	new /obj/item/crowbar/power(src)
 	new /obj/item/multitool/cyborg(src)
 	new /obj/item/stack/cable_coil(src, MAXCOIL)
-	new /obj/item/clothing/gloves/combat(src)
+	new /obj/item/clothing/gloves/combat/swat/syndicate(src)
 	new /obj/item/clothing/glasses/sunglasses(src)
 
 /obj/item/storage/toolbox/fakesyndi

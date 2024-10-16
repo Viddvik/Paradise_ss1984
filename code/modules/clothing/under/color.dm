@@ -1,16 +1,27 @@
 /obj/item/clothing/under/color
 	desc = "A standard issue colored jumpsuit. Variety is the spice of life!"
-	dyeable = TRUE
+	dying_key = DYE_REGISTRY_UNDER
 
 
-/obj/item/clothing/under/color/random/New()
-	..()
-	var/list/excluded = list(/obj/item/clothing/under/color/random, /obj/item/clothing/under/color/blackf, /obj/item/clothing/under/color/blue/dodgeball, /obj/item/clothing/under/color/orange/prison, /obj/item/clothing/under/color/red/dodgeball, /obj/item/clothing/under/color/red/jersey, /obj/item/clothing/under/color/blue/jersey)
-	var/obj/item/clothing/under/color/C = pick(subtypesof(/obj/item/clothing/under/color) - excluded)
-	name = initial(C.name)
-	icon_state = initial(C.icon_state)
-	item_state = initial(C.item_state)
-	item_color = initial(C.item_color)
+/obj/item/clothing/under/color/random/Initialize(mapload)
+	. = ..()
+
+	var/static/list/excluded = list(
+		/obj/item/clothing/under/color/random,
+		/obj/item/clothing/under/color/blackf,
+		/obj/item/clothing/under/color/blue/dodgeball,
+		/obj/item/clothing/under/color/orange/prison,
+		/obj/item/clothing/under/color/red/dodgeball,
+		/obj/item/clothing/under/color/red/jersey,
+		/obj/item/clothing/under/color/blue/jersey,
+	)
+	var/static/list/allowed_colors = subtypesof(/obj/item/clothing/under/color) - excluded
+	var/obj/item/clothing/under/color/new_color = pick(allowed_colors)
+	name = initial(new_color.name)
+	icon_state = initial(new_color.icon_state)
+	item_state = initial(new_color.item_state)
+	item_color = initial(new_color.item_color)
+
 
 /obj/item/clothing/under/color/black
 	name = "black jumpsuit"
@@ -33,7 +44,13 @@
 	item_color = "blue"
 
 /obj/item/clothing/under/color/blue/dodgeball
-	flags = NODROP
+
+
+/obj/item/clothing/under/color/blue/dodgeball/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
+
+
 
 /obj/item/clothing/under/color/green
 	name = "green jumpsuit"
@@ -49,13 +66,18 @@
 	item_color = "grey"
 
 /obj/item/clothing/under/color/grey/greytide
-	flags = NODROP
+
+
+/obj/item/clothing/under/color/grey/greytide/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
+
 
 /obj/item/clothing/under/color/grey/glorf
 	name = "ancient jumpsuit"
 	desc = "A terribly ragged and frayed grey jumpsuit. It looks like it hasn't been washed in over a decade."
 
-/obj/item/clothing/under/color/grey/glorf/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = MELEE_ATTACK)
+/obj/item/clothing/under/color/grey/glorf/hit_reaction(mob/living/carbon/human/owner, atom/movable/hitby, attack_text = "the attack", final_block_chance = 0, damage = 0, attack_type = ITEM_ATTACK)
 	owner.forcesay(GLOB.hit_appends)
 	return 0
 
@@ -89,7 +111,12 @@
 	item_color = "red"
 
 /obj/item/clothing/under/color/red/dodgeball
-	flags = NODROP
+
+
+/obj/item/clothing/under/color/red/dodgeball/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
+
 
 /obj/item/clothing/under/color/white
 	name = "white jumpsuit"
@@ -110,12 +137,12 @@
 	item_color = "psyche"
 
 	sprite_sheets = list(
-		"Vox" = 'icons/mob/clothing/species/vox/uniform.dmi',
-		"Monkey" = 'icons/mob/clothing/species/monkey/uniform.dmi',
-		"Farwa" = 'icons/mob/clothing/species/monkey/uniform.dmi',
-		"Wolpin" = 'icons/mob/clothing/species/monkey/uniform.dmi',
-		"Neara" = 'icons/mob/clothing/species/monkey/uniform.dmi',
-		"Stok" = 'icons/mob/clothing/species/monkey/uniform.dmi'
+		SPECIES_VOX = 'icons/mob/clothing/species/vox/uniform.dmi',
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/uniform.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/uniform.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/uniform.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/uniform.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/uniform.dmi'
 		)
 
 /obj/item/clothing/under/color/lightblue

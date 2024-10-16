@@ -99,7 +99,7 @@
 	if(total_volume <= 0)
 		return
 	var/datum/reagents/R
-	if(istype(target, /obj))
+	if(isobj(target))
 		var/obj/O = target
 		if(!O.reagents)
 			return
@@ -276,6 +276,7 @@
 				R.overdose_start(M)
 			if(R.volume < R.overdose_threshold && R.overdosed)
 				R.overdosed = FALSE
+				R.overdose_end(M)
 			if(R.overdosed)
 				var/list/overdose_results = R.overdose_process(M, R.volume >= R.overdose_threshold * 2 ? 2 : 1)
 				if(overdose_results) // to protect against poorly-coded overdose procs
@@ -315,14 +316,11 @@
 				addiction_list.Remove(R)
 				qdel(R)
 
-	if(update_flags & STATUS_UPDATE_HEALTH)
+	if(update_flags & (STATUS_UPDATE_HEALTH|STATUS_UPDATE_STAMINA))
 		M.updatehealth("reagent metabolism")
 	else if(update_flags & STATUS_UPDATE_STAT)
 		// update_stat is called in updatehealth
 		M.update_stat("reagent metabolism")
-	if(update_flags & STATUS_UPDATE_STAMINA)
-		M.update_stamina()
-		M.update_stamina_hud()
 	if(update_flags & STATUS_UPDATE_BLIND)
 		M.update_blind_effects()
 	if(update_flags & STATUS_UPDATE_NEARSIGHTED)
@@ -547,13 +545,13 @@
 			can_process = TRUE
 	return can_process
 
-/datum/reagents/proc/reaction(atom/A, method = REAGENT_TOUCH, volume_modifier = 1, show_message = TRUE)
+/datum/reagents/proc/reaction(atom/A, method = REAGENT_TOUCH, volume_modifier = 1, show_message = TRUE, ignore_protection = FALSE, def_zone)
 	var/react_type
 	if(isliving(A))
 		react_type = "LIVING"
 	else if(isturf(A))
 		react_type = "TURF"
-	else if(istype(A, /obj))
+	else if(isobj(A))
 		react_type = "OBJ"
 	else
 		return
@@ -561,34 +559,34 @@
 	if(react_type == "LIVING" && ishuman(A))
 		var/mob/living/carbon/human/H = A
 		if(method == REAGENT_TOUCH)
-			var/obj/item/organ/external/head/affecting = H.get_organ("head")
+			var/obj/item/organ/external/head/affecting = H.get_organ(BODY_ZONE_HEAD)
 			if(affecting)
 				if(chem_temp > H.dna.species.heat_level_1)
-					var/mult = H.dna.species.heatmod
+					var/mult = H.dna.species.heatmod * H.physiology.heat_mod
 					if(H.reagent_safety_check())
 						if(mult > 0)
 							to_chat(H, "<span class='danger'>You are scalded by the hot chemicals!</span>")
-							affecting.receive_damage(0, round(log(chem_temp / 50) * 10))
-							H.emote("scream")
+							H.apply_damage(round(log(chem_temp / 50) * 10), BURN, def_zone = affecting)
+							INVOKE_ASYNC(H, TYPE_PROC_REF(/mob, emote), "scream")
 						H.adjust_bodytemperature(min(max((chem_temp - T0C) - 20, 5), 500))
 				else if(chem_temp < H.dna.species.cold_level_1)
-					var/mult = H.dna.species.coldmod
+					var/mult = H.dna.species.coldmod * H.physiology.cold_mod
 					if(H.reagent_safety_check(FALSE))
 						if(mult > 0)
 							to_chat(H, "<span class='danger'>You are frostbitten by the freezing cold chemicals!</span>")
-							affecting.receive_damage(0, round(log(T0C - chem_temp / 50) * 10))
-							H.emote("scream")
+							H.apply_damage(round(log(T0C - chem_temp / 50) * 10), BURN, def_zone = affecting)
+							INVOKE_ASYNC(H, TYPE_PROC_REF(/mob, emote), "scream")
 						H.adjust_bodytemperature(- min(max(T0C - chem_temp - 20, 5), 500))
 
 		if(method == REAGENT_INGEST)
 			if(chem_temp > H.dna.species.heat_level_1)
-				var/mult = H.dna.species.heatmod
+				var/mult = H.dna.species.heatmod * H.physiology.heat_mod
 				if(mult > 0)
 					to_chat(H, "<span class='danger'>You scald yourself trying to consume the boiling hot substance!</span>")
 					H.adjustFireLoss(7)
 				H.adjust_bodytemperature(min(max((chem_temp - T0C) - 20, 5), 700))
 			else if(chem_temp < H.dna.species.cold_level_1)
-				var/mult = H.dna.species.coldmod
+				var/mult = H.dna.species.coldmod * H.physiology.cold_mod
 				if(mult > 0)
 					to_chat(H, "<span class='danger'>You frostburn yourself trying to consume the freezing cold substance!</span>")
 					H.adjustFireLoss(7)
@@ -601,9 +599,24 @@
 				var/check = reaction_check(A, R)
 				if(!check)
 					continue
-				R.reaction_mob(A, method, R.volume * volume_modifier, show_message)
+
+				var/mob/living/L = A
+				var/protection = 0
+				if(method == REAGENT_TOUCH && !ignore_protection)
+					if(def_zone)
+						var/mob/living/carbon/human/H = L
+						if(istype(H))
+							protection = 1 - H.get_permeability_protection_organ(H.get_organ(def_zone))
+					else
+						protection = L.get_permeability_protection()
+					if(protection && show_message)
+						to_chat(L, span_alert("Your clothes protects you from the reaction."))
+
+				R.reaction_mob(A, method, R.volume * volume_modifier * (1 - protection), show_message)
+
 			if("TURF")
 				R.reaction_turf(A, R.volume * volume_modifier, R.color)
+
 			if("OBJ")
 				R.reaction_obj(A, R.volume * volume_modifier)
 
@@ -681,6 +694,14 @@
 				my_atom.on_reagent_change()
 			return FALSE
 	return TRUE
+
+/datum/reagents/proc/has_blood_species(reagent)
+	for(var/datum/reagent/R in reagent_list)
+		if(R.data["blood_species"] == reagent)
+			return R.volume
+		else
+			return FALSE
+	return FALSE
 
 /datum/reagents/proc/has_reagent(reagent, amount = -1)
 	for(var/datum/reagent/R in reagent_list)
@@ -813,34 +834,19 @@
 		trans_data["diseases"] = temp
 	return trans_data
 
-/datum/reagents/proc/generate_taste_message(minimum_percent = TASTE_SENSITIVITY_NORMAL)
+/datum/reagents/proc/generate_taste_message(minimum_percent = TASTE_SENSITIVITY_NORMAL, mob/living/user)
 	var/list/out = list()
 	var/list/reagent_tastes = list() //in the form reagent_tastes["descriptor"] = strength
 	//mobs should get this message when either they cannot taste, the tastes are all too weak for them to detect, or the tastes somehow don't have any strength
 	var/no_taste_text = "something indescribable"
 	if(minimum_percent > 100)
 		return no_taste_text
-	for(var/A in reagent_list)
-		var/datum/reagent/R = A
+	for(var/datum/reagent/R in reagent_list)
 		if(!R.taste_mult)
 			continue
-		//nutriment carries a list of tastes that originates from the snack food that the nutriment came from
-		if(istype(R, /datum/reagent/consumable/nutriment))
-			var/list/nutriment_taste_data = R.data
-			for(var/nutriment_taste in nutriment_taste_data)
-				var/ratio = nutriment_taste_data[nutriment_taste]
-				var/amount = ratio * R.taste_mult * R.volume
-				if(nutriment_taste in reagent_tastes)
-					reagent_tastes[nutriment_taste] += amount
-				else
-					reagent_tastes[nutriment_taste] = amount
-		else
-			var/taste_desc = R.taste_description
-			var/taste_amount = R.volume * R.taste_mult
-			if(taste_desc in reagent_tastes)
-				reagent_tastes[taste_desc] += taste_amount
-			else
-				reagent_tastes[taste_desc] = taste_amount
+		var/list/taste_amount = R.taste_amplification(user)
+		for(var/taste_desc in taste_amount)
+			reagent_tastes[taste_desc] += taste_amount[taste_desc]
 	//deal with percentages
 	//TODO: may want to sort these from strong to weak
 	var/total_taste = counterlist_sum(reagent_tastes)

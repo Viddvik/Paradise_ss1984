@@ -13,11 +13,6 @@
 	var/thrown_alert = FALSE
 	var/wrapping = FALSE
 	var/list/wrapped_victims
-	playstyle_string = "<B>You are the Shadow Demon, a terrible creature from another existence. You have only two desires to survive and to lurk and ambush careless preys.  \
-						You may use the Shadow Crawl ability when near the dark spots, appearing and dissapearing from the station at will. \
-						Your Shadow Grapple ability allows you to pull living preys or to push yourself to the other objects. Also extinguishes all light sources at the area of impact.  \
-						You can wrap dead humanoid bodies by attacking them, use Alt+Click on the shadow cocoon afterwards to lure more victims. \
-						You move quickly and regenerate fast in the shadows, but any light source will hurt you to the death. STAY AWAY FROM THE LIGHT! </B>"
 
 
 /mob/living/simple_animal/demon/shadow/Initialize(mapload)
@@ -32,6 +27,7 @@
 		crawl.phased = TRUE
 		RegisterSignal(loc, COMSIG_MOVABLE_MOVED, TYPE_PROC_REF(/mob/living/simple_animal/demon/shadow, check_darkness))
 	RegisterSignal(src, COMSIG_MOVABLE_MOVED, PROC_REF(check_darkness))
+	add_overlay(emissive_appearance(icon, "shadow_demon_eye_glow_overlay", src))
 
 
 /mob/living/simple_animal/demon/shadow/Life(seconds, times_fired)
@@ -52,19 +48,22 @@
 	if(lum_count > 0.2)
 		if(!thrown_alert)
 			thrown_alert = TRUE
-			throw_alert("light", /obj/screen/alert/lightexposure)
+			throw_alert("light", /atom/movable/screen/alert/lightexposure)
 		animate(src, alpha = 255, time = 0.5 SECONDS)
-		speed = initial(speed)
+		set_varspeed(initial(speed))
 	else
 		if(thrown_alert)
 			thrown_alert = FALSE
 			clear_alert("light")
 		animate(src, alpha = 125, time = 0.5 SECONDS)
-		speed = -0.3
+		set_varspeed(-0.3)
 	return lum_count
 
 
 /mob/living/simple_animal/demon/shadow/UnarmedAttack(atom/target)
+	if(!can_unarmed_attack())
+		return
+
 	if(!ishuman(target))
 		if(isitem(target))
 			target.extinguish_light(TRUE)
@@ -83,7 +82,7 @@
 
 	visible_message(span_danger("[src] begins wrapping [h_target] in shadowy threads."))
 	wrapping = TRUE
-	if(!do_after(src, 4 SECONDS, FALSE, target = h_target))
+	if(!do_after(src, 4 SECONDS, h_target, DEFAULT_DOAFTER_IGNORE|DA_IGNORE_HELD_ITEM))
 		wrapping = FALSE
 		return
 
@@ -138,7 +137,7 @@
 
 
 /obj/structure/shadowcocoon/AltClick(mob/user)
-	if(!isdemon(user))
+	if(!isdemon(user) || user.incapacitated())
 		return ..()
 	if(silent)
 		to_chat(user, span_notice("You twist and change your trapped victim in [src] to lure in more prey."))
@@ -174,7 +173,6 @@
 /obj/effect/proc_holder/spell/fireball/shadow_grapple
 	name = "Shadow Grapple"
 	desc = "Fire one of your hands, if it hits a person it pulls them in. If you hit a structure you get pulled to the structure."
-	panel = "Demon"
 	action_background_icon_state = "shadow_demon_bg"
 	action_icon_state = "shadow_grapple"
 	invocation_type = "none"
@@ -188,7 +186,7 @@
 	fireball_type = /obj/item/projectile/magic/shadow_hand
 
 
-/obj/effect/proc_holder/spell/fireball/shadow_grapple/update_icon()
+/obj/effect/proc_holder/spell/fireball/shadow_grapple/update_icon_state()
 	return
 
 
@@ -202,7 +200,7 @@
 
 /obj/item/projectile/magic/shadow_hand/fire(setAngle)
 	if(firer)
-		firer.Beam(src, icon_state = "grabber_beam", time = INFINITY, maxdistance = INFINITY, beam_sleep_time = 1, beam_type = /obj/effect/ebeam/floor)
+		firer.Beam(src, icon_state = "grabber_beam", time = INFINITY, maxdistance = INFINITY, beam_sleep_time = 1, beam_type = /obj/effect/ebeam/floor, beam_layer = BELOW_MOB_LAYER)
 	return ..()
 
 
@@ -222,10 +220,6 @@
 		firer.throw_at(get_step(target, get_dir(target, firer)), 50, 10)
 
 
-/obj/effect/ebeam/floor
-	plane = FLOOR_PLANE
-
-
 /obj/item/organ/internal/heart/demon/shadow
 	name = "heart of darkness"
 	desc = "It still beats furiously, emitting an aura of fear."
@@ -238,24 +232,29 @@
 	insert(user)
 
 
-/obj/item/organ/internal/heart/demon/shadow/insert(mob/living/carbon/M, special = 0)
+/obj/item/organ/internal/heart/demon/shadow/insert(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	. = ..()
-	if(M.mind)
-		M.mind.AddSpell(new /obj/effect/proc_holder/spell/fireball/shadow_grapple)
+	M?.mind?.AddSpell(new /obj/effect/proc_holder/spell/fireball/shadow_grapple)
 
 
-/obj/item/organ/internal/heart/demon/shadow/remove(mob/living/carbon/M, special = 0)
-	..()
-	if(M.mind)
-		M.mind.RemoveSpell(/obj/effect/proc_holder/spell/fireball/shadow_grapple)
+/obj/item/organ/internal/heart/demon/shadow/remove(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
+	M?.mind?.RemoveSpell(/obj/effect/proc_holder/spell/fireball/shadow_grapple)
+	. = ..()
 
 
 /mob/living/simple_animal/demon/shadow/attempt_objectives()
 	if(!..())
 		return
 
-	to_chat(src, playstyle_string)
-	to_chat(src, span_notice("<B>You are not currently in the same plane of existence as the station. Use the shadow crawl action near any dark spot.</B>"))
+	var/list/messages = list()
+	messages.Add("<b><font size=3 color='red'>You are a Shadow Demon.</font><br></b>")
+	messages.Add("<B>You are a terrible creature from another existence. You have only two desires to survive and to lurk and ambush careless preys.</B>")
+	messages.Add("<B>You may use the Shadow Crawl ability when near the dark spots, appearing and dissapearing from the station at will.</B>")
+	messages.Add("<B>Your Shadow Grapple ability allows you to pull living preys or to push yourself to the other objects. Also extinguishes all light sources at the area of impact.</B>")
+	messages.Add("<B>You can wrap dead humanoid bodies by attacking them, use Alt+Click on the shadow cocoon afterwards to lure more victims.</B>")
+	messages.Add("<B>You move quickly and regenerate fast in the shadows, but any light source will hurt you to the death. STAY AWAY FROM THE LIGHT! </B>")
+	messages.Add(span_notice("<B>You are not currently in the same plane of existence as the station. Use the shadow crawl action near any dark spot.</B>"))
+	messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Shadow_Demon\">Теневой демон</a></span>")
 	src << 'sound/misc/demon_dies.ogg'
 	if(vialspawned)
 		return
@@ -266,7 +265,8 @@
 	survive_objective.owner = mind
 	mind.objectives += wrap_objective
 	mind.objectives += survive_objective
-	mind.announce_objectives()
+	messages.Add(mind.prepare_announce_objectives())
+	to_chat(src, chat_box_red(messages.Join("<br>")))
 
 
 /datum/objective/wrap

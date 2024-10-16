@@ -22,8 +22,6 @@
 	var/obj/item/stock_parts/cell/cell = null    // Used for firing superheated rods.
 	var/list/possible_tensions = list(XBOW_TENSION_20, XBOW_TENSION_40, XBOW_TENSION_60, XBOW_TENSION_80, XBOW_TENSION_FULL)
 
-/obj/item/gun/throw/crossbow/notify_ammo_count()
-	return ""
 
 /obj/item/gun/throw/crossbow/get_cell()
 	return cell
@@ -32,7 +30,8 @@
 	if(cell && severity)
 		emp_act(severity)
 
-/obj/item/gun/throw/crossbow/update_icon()
+
+/obj/item/gun/throw/crossbow/update_icon_state()
 	if(!tension)
 		if(!to_launch)
 			icon_state = "[initial(icon_state)]"
@@ -40,16 +39,18 @@
 			icon_state = "[initial(icon_state)]-nocked"
 	else
 		icon_state = "[initial(icon_state)]-drawn"
-	overlays.Cut()
-	var/bolt_type = "bolt"
-	if(to_launch)
-		if(tension)
-			bolt_type += "_tighten"
-		else
-			bolt_type += "_untighten"
-		var/obj/item/arrow/bolt = to_launch
-		bolt_type += "_[bolt.overlay_prefix]"
-		overlays += image('icons/obj/weapons/crossbow_rod.dmi', bolt_type)
+
+
+/obj/item/gun/throw/crossbow/update_overlays()
+	. = ..()
+
+	if(!to_launch)
+		return
+
+	var/bolt_type = "bolt[tension ? "_tighten" : "_untighten"]"
+	var/obj/item/arrow/bolt = to_launch
+	bolt_type += "_[bolt.overlay_prefix]"
+	. += image('icons/obj/weapons/crossbow_rod.dmi', bolt_type)
 
 
 /obj/item/gun/throw/crossbow/examine(mob/user)
@@ -58,6 +59,8 @@
 		. += span_notice("\A [cell] is mounted onto [src]. Battery cell charge: [cell.charge]/[cell.maxcharge]")
 	else
 		. += span_notice("It has an empty mount for a battery cell.")
+	if(src in user)
+		. += span_info("You can <b>Alt-Click</b> to change the draw tension.")
 
 /obj/item/gun/throw/crossbow/modify_projectile(obj/item/I, on_chamber = 0)
 	if(cell && on_chamber && istype(I, /obj/item/arrow/rod))
@@ -96,12 +99,12 @@
 	if(user.incapacitated())
 		return
 	if(!to_launch)
-		to_chat(user, span_warning("You can't draw [src] without a bolt nocked."))
+		balloon_alert(user, "отсутствует болт!")
 		return
 
 	user.visible_message("[user] begins to draw back the string of [src].","You begin to draw back the string of [src].")
 	if(cell && cell.charge > 499) //I really hope there is no way to get 499.5 charge or something
-		if(do_after(user, 5 * drawtension, target = user))
+		if(do_after(user, 0.5 SECONDS * drawtension, user))
 			tension = drawtension
 			if(to_launch)
 				modify_projectile(to_launch, 1)
@@ -111,39 +114,48 @@
 	else
 		user.visible_message("[usr] struggles to draws back the string of [src]!","[src] string is too tense to draw manually!")
 
+
 /obj/item/gun/throw/crossbow/attackby(obj/item/I, mob/user, params)
-	if(!istype(I, /obj/item/stock_parts/cell))
-		return ..()
+	if(istype(I, /obj/item/stock_parts/cell))
+		add_fingerprint(user)
+		if(cell)
+			balloon_alert(user, "уже установлено!")
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		cell = I
+		balloon_alert(user, "установлено")
+		process_chamber()
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(cell)
-		to_chat(user, span_notice("[src] already has a cell installed."))
-		return
+	return ..()
 
-	user.drop_transfer_item_to_loc(I, src)
-	cell = I
-	to_chat(user, span_notice("You jam [cell] into [src] and wire it to the firing coil."))
-	process_chamber()
 
 /obj/item/gun/throw/crossbow/screwdriver_act(mob/user, obj/item/I)
 	. = ..()
 	if(!cell)
-		to_chat(user, span_notice("[src] doesn't have a cell installed."))
+		balloon_alert(user, "батарейка отсутствует!")
 		return
 
 	cell.forceMove(get_turf(src))
-	to_chat(user, span_notice("You jimmy [cell] out of [src] with [I]."))
+	balloon_alert(user, "батарейка извлечена")
 	cell = null
+
+
+/obj/item/gun/throw/crossbow/AltClick(mob/user)
+	if(src in user)
+		set_tension()
+
 
 /obj/item/gun/throw/crossbow/verb/set_tension()
 	set name = "Adjust Tension"
 	set category = "Object"
-	set src in range(0)
+	set src in usr
 
-	var/mob/user = usr
-	if(user.incapacitated())
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	var/choice = input("Select tension to draw to:", "[src]", XBOW_TENSION_FULL) as null|anything in possible_tensions
-	if(!choice)
+	if(!choice || usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 
 	switch(choice)
@@ -158,10 +170,15 @@
 		if(XBOW_TENSION_FULL)
 			drawtension = maxtension
 
+	to_chat(usr, span_notice("You set the draw tension to <b>[choice]</b>."))
+
+
 /obj/item/gun/throw/crossbow/process_fire(atom/target as mob|obj|turf, mob/living/user as mob|obj, message = 1, params, zone_override)
 	..()
 	tension = 0
 	update_icon()
+
+
 /obj/item/gun/throw/crossbow/french
 	name = "french powered crossbow"
 	icon_state = "fcrossbow"
@@ -249,17 +266,19 @@
 	embedded_ignore_throwspeed_threshold = TRUE
 	superheated = 1
 
+
 /obj/item/arrow/rod/fire/attackby(obj/item/I, mob/user, params)
 	. = ..()
-	if(istype(I, /obj/item/lighter) || istype(I, /obj/item/weldingtool))
+	if(!ATTACK_CHAIN_CANCEL_CHECK(.) && is_hot(I))
 		fire_up()
+
 
 /obj/item/arrow/rod/fire/proc/fire_up(mob/user)
 	icon_state = "flame_rod_act"
 	overlay_prefix = "flame"
 	w_class = WEIGHT_CLASS_SMALL
 	if(user)
-		to_chat(user, span_warning("You fire up a rod!"))
+		balloon_alert(user, "болт подожжен!")
 	flamed = TRUE
 	addtimer(CALLBACK(src, PROC_REF(fire_down)), fire_duration)
 

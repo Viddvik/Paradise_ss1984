@@ -1,19 +1,23 @@
 //Due to how large this one is it gets its own file
 /datum/job/chaplain
-	title = "Chaplain"
-	flag = JOB_CHAPLAIN
+	title = JOB_TITLE_CHAPLAIN
+	flag = JOB_FLAG_CHAPLAIN
 	department_flag = JOBCAT_SUPPORT
 	total_positions = 1
 	spawn_positions = 1
 	is_service = TRUE
 	supervisors = "the head of personnel"
-	department_head = list("Head of Personnel")
-	selection_color = "#dddddd"
+	department_head = list(JOB_TITLE_HOP)
+	selection_color = "#d1e8d3"
 	access = list(ACCESS_MORGUE, ACCESS_CHAPEL_OFFICE, ACCESS_CREMATORIUM, ACCESS_MAINT_TUNNELS)
 	minimal_access = list(ACCESS_MORGUE, ACCESS_CHAPEL_OFFICE, ACCESS_CREMATORIUM, ACCESS_MAINT_TUNNELS)
 	alt_titles = list("Priest","Monk","Preacher","Reverend","Oracle","Nun","Imam","Exorcist")
-	money_factor = 2
 	outfit = /datum/outfit/job/chaplain
+	
+	//God will not give you a salary roflcat
+	salary = 60
+	min_start_money = 10
+	max_start_money = 200
 
 /datum/outfit/job/chaplain
 	name = "Chaplain"

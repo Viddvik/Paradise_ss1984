@@ -1,9 +1,12 @@
+#define DRASK_COOLINGSTARTTEMP 280
+#define ENVIRONMENT_COOLINGSTOPTEMP 400
+
 /datum/species/drask
-	name = "Drask"
+	name = SPECIES_DRASK
 	name_plural = "Drask"
 	icobase = 'icons/mob/human_races/r_drask.dmi'
 	deform = 'icons/mob/human_races/r_drask.dmi'
-	language = "Orluum"
+	language = LANGUAGE_DRASK
 	eyes = "drask_eyes_s"
 
 	speech_sounds = list('sound/voice/drasktalk.ogg')
@@ -19,7 +22,9 @@
 	oxy_mod = 2
 	exotic_blood = "cryoxadone"
 	body_temperature = 273
-	toolspeedmod = 1.2 //20% slower
+	toolspeedmod = 0.2 //20% slower
+	surgeryspeedmod = 0.2
+	bonefragility = 0.8
 	punchdamagelow = 5
 	punchdamagehigh = 12
 	punchstunthreshold = 12
@@ -38,7 +43,10 @@
 		"втягивает теплый воздух!",
 		"задерживает дыхание!")
 
-	species_traits = list(LIPS, IS_WHITELISTED)
+	inherent_traits = list(
+		TRAIT_EXOTIC_BLOOD,
+		TRAIT_HAS_LIPS,
+	)
 	clothing_flags = HAS_UNDERWEAR | HAS_UNDERSHIRT
 	bodyflags = HAS_SKIN_TONE | HAS_BODY_MARKINGS
 	has_gender = FALSE
@@ -61,45 +69,59 @@
 	butt_sprite = "drask"
 
 	has_organ = list(
-		"heart" =      				/obj/item/organ/internal/heart/drask,
-		"lungs" =     				/obj/item/organ/internal/lungs/drask,
-		"metabolic strainer" =      /obj/item/organ/internal/liver/drask,
-		"eyes" =     				/obj/item/organ/internal/eyes/drask, //5 darksight.
-		"brain" =  					/obj/item/organ/internal/brain/drask
-		)
+		INTERNAL_ORGAN_HEART = /obj/item/organ/internal/heart/drask,
+		INTERNAL_ORGAN_LUNGS = /obj/item/organ/internal/lungs/drask,
+		INTERNAL_ORGAN_LIVER = /obj/item/organ/internal/liver/drask,
+		INTERNAL_ORGAN_EYES = /obj/item/organ/internal/eyes/drask, //5 darksight.
+		INTERNAL_ORGAN_EARS = /obj/item/organ/internal/ears,
+		INTERNAL_ORGAN_BRAIN = /obj/item/organ/internal/brain/drask,
+	)
+
+	meat_type = /obj/item/reagent_containers/food/snacks/meat/humanoid/drask
 
 	disliked_food = SUGAR | GROSS
 	liked_food = DAIRY
+	special_diet = MATERIAL_CLASS_SOAP
 
 /datum/species/drask/get_species_runechat_color(mob/living/carbon/human/H)
 	var/obj/item/organ/internal/eyes/E = H.get_int_organ(/obj/item/organ/internal/eyes)
 	return E.eye_colour
 
 /datum/species/drask/on_species_gain(mob/living/carbon/human/H)
-	..()
-	H.verbs |= /mob/living/carbon/human/proc/emote_hum
+	. = ..()
+	add_verb(H, /mob/living/carbon/human/proc/emote_hum)
 
 /datum/species/drask/on_species_loss(mob/living/carbon/human/H)
-	..()
-	H.verbs -= /mob/living/carbon/human/proc/emote_hum
+	. = ..()
+	remove_verb(H, /mob/living/carbon/human/proc/emote_hum)
 
 /datum/species/drask/handle_life(mob/living/carbon/human/H)
 	..()
 	if(H.stat == DEAD)
 		return
+	var/datum/gas_mixture/environment = H.return_air()
+	if(environment && H.bodytemperature > DRASK_COOLINGSTARTTEMP && environment.temperature <= ENVIRONMENT_COOLINGSTOPTEMP)
+		H.adjust_bodytemperature(-5)
 	if(H.bodytemperature < TCRYO)
-		H.adjustCloneLoss(-1)
-		H.adjustOxyLoss(-2)
-		H.adjustToxLoss(-0.5)
-		H.adjustBruteLoss(-2)
-		H.adjustFireLoss(-4)
-		var/obj/item/organ/external/head/head = H.get_organ("head")
-		if(head)
-			head.disfigured = FALSE
+		var/update = NONE
+		update |= H.heal_overall_damage(2, 4, updating_health = FALSE)
+		update |= H.heal_damages(tox = 0.5, oxy = 2, clone = 1, updating_health = FALSE)
+		if(update)
+			H.updatehealth()
+		var/obj/item/organ/external/head/head = H.get_organ(BODY_ZONE_HEAD)
+		head?.undisfigure()
 
 /datum/species/drask/handle_reagents(mob/living/carbon/human/H, datum/reagent/R)
-	if(R.id == "iron")
-		return TRUE
-	if(R.id == "salglu_solution")
-		return TRUE
+	switch(R.id)
+		if("iron")
+			H.reagents.remove_reagent(R.id, REAGENTS_METABOLISM * H.metabolism_efficiency * H.digestion_ratio)
+			return FALSE
+		if("salglu_solution")
+			if(prob(33))
+				H.heal_overall_damage(1, 1, updating_health = FALSE)
+			H.reagents.remove_reagent(R.id, REAGENTS_METABOLISM * H.metabolism_efficiency * H.digestion_ratio)
+			return FALSE
 	return ..()
+
+#undef DRASK_COOLINGSTARTTEMP
+#undef ENVIRONMENT_COOLINGSTOPTEMP

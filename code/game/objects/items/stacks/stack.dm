@@ -59,6 +59,11 @@
 	update_weight()
 	update_icon()
 
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/item/stack/Destroy()
 	if(usr && usr.machine == src)
@@ -93,7 +98,7 @@
 
 		if(istype(E, /datum/stack_recipe_list))
 			var/datum/stack_recipe_list/srl = E
-			t1 += "<a href='?src=[UID()];sublist=[i]'>[srl.title]</a>"
+			t1 += "<a href='byond://?src=[UID()];sublist=[i]'>[srl.title]</a>"
 
 		if(istype(E, /datum/stack_recipe))
 			var/datum/stack_recipe/R = E
@@ -108,7 +113,7 @@
 				title += "[R.title]"
 			title += " ([R.req_amount] [src.singular_name]\s)"
 			if(can_build)
-				t1 += "<A href='?src=[UID()];sublist=[recipes_sublist];make=[i]'>[title]</A>  "
+				t1 += "<a href='byond://?src=[UID()];sublist=[recipes_sublist];make=[i]'>[title]</A>  "
 			else
 				t1 += "[title]"
 				continue
@@ -119,9 +124,9 @@
 				var/list/multipliers = list(5, 10, 25)
 				for(var/n in multipliers)
 					if(max_multiplier >= n)
-						t1 += " <A href='?src=[UID()];sublist=[recipes_sublist];make=[i];multiplier=[n]'>[n * R.res_amount]x</A>"
+						t1 += " <a href='byond://?src=[UID()];sublist=[recipes_sublist];make=[i];multiplier=[n]'>[n * R.res_amount]x</A>"
 				if(!(max_multiplier in multipliers))
-					t1 += " <A href='?src=[UID()];sublist=[recipes_sublist];make=[i];multiplier=[max_multiplier]'>[max_multiplier * R.res_amount]x</A>"
+					t1 += " <a href='byond://?src=[UID()];sublist=[recipes_sublist];make=[i];multiplier=[max_multiplier]'>[max_multiplier * R.res_amount]x</A>"
 
 	var/datum/browser/popup = new(user, "stack", name, recipe_width, recipe_height)
 	popup.set_content(t1)
@@ -158,7 +163,7 @@
 				to_chat(usr, "<span class='warning'>You haven't got enough [src] to build \the [R.title]!</span>")
 			return FALSE
 
-		if(R.window_checks && !valid_window_location(usr.loc, usr.dir))
+		if(R.check_direction && !valid_build_direction(usr.loc, usr.dir, is_fulltile = R.is_fulltile))
 			to_chat(usr, "<span class='warning'>The [R.title] won't fit here!</span>")
 			return FALSE
 
@@ -195,15 +200,22 @@
 			if(istype(A, /area/space))
 				to_chat(usr, "<span class='warning'>The beacon must be inside the station itself to properly work.")
 				return FALSE
-			if(!A.valid_territory)
-				to_chat(usr, "<span class='warning'>This area is too unstable for the beacon!")
+			if(!A.type == /area) //The only one that is made by blueprints
+				to_chat(usr, "<span class='warning'>This area is too fresh for the beacon!")
 				return FALSE
-			if(A.get_beacon())
+			if(locate(/obj/structure/clockwork/functional/beacon) in A)
 				to_chat(usr, "<span class='warning'>This area already has beacon!</span>")
+				return FALSE
+		if(R.result_type == /obj/structure/clockwork/functional/cogscarab_fabricator)
+			if(GLOB.clockwork_fabricators.len >= MAX_COG_FABRICATORS)
+				to_chat(usr, "<span class='warning'>You can't build more than [MAX_COG_FABRICATORS] fabricators!</span>")
+				return FALSE
+			if(usr.type == /mob/living/silicon/robot/cogscarab)
+				to_chat(usr, "<span class='warning'>You're too small to build this machinery.</span>")
 				return FALSE
 		if(R.time)
 			to_chat(usr, "<span class='notice'>Building [R.title] ...</span>")
-			if(!do_after(usr, R.time, target = usr))
+			if(!do_after(usr, R.time, usr))
 				return FALSE
 
 		if(R.cult_structure && locate(/obj/structure/cult) in get_turf(src)) //Check again after do_after to prevent queuing construction exploit.
@@ -231,12 +243,12 @@
 			src = null //dont kill proc after qdel()
 			usr.temporarily_remove_item_from_inventory(oldsrc, force = TRUE)
 			qdel(oldsrc)
-			if(istype(O, /obj/item))
+			if(isitem(O))
 				usr.put_in_hands(O)
 
 		O.add_fingerprint(usr)
 		//BubbleWrap - so newly formed boxes are empty
-		if(istype(O, /obj/item/storage))
+		if(isstorage(O))
 			for(var/obj/item/I in O)
 				qdel(I)
 		//BubbleWrap END
@@ -260,13 +272,7 @@
 			. += "There are [amount] [singular_name]\s in the stack."
 		else
 			. += "There are [amount] [name]\s in the stack."
-		. += SPAN_NOTICE("<b>Alt-click</b> with an empty hand to take a custom amount.")
-
-
-/obj/item/stack/Crossed(obj/item/crossing, oldloc)
-	if(can_merge(crossing, inhand = FALSE))
-		merge(crossing)
-	. = ..()
+		. += span_notice("<b>Alt-click</b> with an empty hand to take a custom amount.")
 
 
 /obj/item/stack/hitby(atom/movable/hitting, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
@@ -284,25 +290,21 @@
 
 
 /obj/item/stack/AltClick(mob/living/user)
-	if(!istype(user) || user.incapacitated())
-		to_chat(user, SPAN_WARNING("You can't do that right now!</span>"))
+	if(!ishuman(user) || amount < 1 || !Adjacent(user))
 		return
-	if(!in_range(src, user))
-		return
-	if(!ishuman(user))
-		return
-	if(amount < 1)
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
+		to_chat(user, span_warning("You can't do that right now!</span>"))
 		return
 	//get amount from user
 	var/max = get_amount()
-	var/stackmaterial = round(input(user, "How many sheets do you wish to take out of this stack? (Maximum: [max])") as null|num)
-	if(stackmaterial == null || stackmaterial <= 0 || stackmaterial > get_amount())
+	var/stackmaterial = tgui_input_number(user, "How many sheets do you wish to take out of this stack? (Max: [max])", "Stack Split", max_value = max)
+	if(isnull(stackmaterial) || stackmaterial <= 0 || stackmaterial > get_amount())
 		return
-	if(!Adjacent(user, 1))
+	if(amount < 1 || !Adjacent(user) || user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return
 	split_stack(user, stackmaterial)
 	do_pickup_animation(user)
-	to_chat(user, SPAN_NOTICE("You take [stackmaterial] sheets out of the stack."))
+	to_chat(user, span_notice("You take [stackmaterial] sheets out of the stack."))
 
 
 /obj/item/stack/attack_tk(mob/user)
@@ -333,14 +335,14 @@
 		. = ..()
 
 
-/obj/item/stack/attackby(obj/item/W, mob/user, params)
-	if(can_merge(W, inhand = TRUE))
+/obj/item/stack/attackby(obj/item/stack/I, mob/user, params)
+	if(can_merge(I, inhand = TRUE))
+		add_fingerprint(user)
 		do_pickup_animation(user)
-		var/obj/item/stack/S = W
-		if(merge(S))
-			to_chat(user, SPAN_NOTICE("Your [S.name] stack now contains [S.get_amount()] [S.singular_name]\s."))
-	else
-		. = ..()
+		if(merge(I))
+			to_chat(user, span_notice("Your [I.name] stack now contains [I.get_amount()] [I.singular_name]\s."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
 
 
 /obj/item/stack/proc/copy_evidences(obj/item/stack/from)
@@ -348,6 +350,22 @@
 	fingerprints		= from.fingerprints
 	fingerprintshidden	= from.fingerprintshidden
 	fingerprintslast	= from.fingerprintslast
+
+
+/// Signal handler for connect_loc element. Called when a movable enters the turf we're currently occupying. Merges if possible.
+/obj/item/stack/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	// Edge case. This signal will also be sent when src has entered the turf. Don't want to merge with ourselves.
+	if(arrived == src)
+		return
+
+	on_movable_entered_occupied_turf(arrived)
+
+
+/obj/item/stack/proc/on_movable_entered_occupied_turf(atom/movable/arrived)
+	if(can_merge(arrived, inhand = FALSE))
+		INVOKE_ASYNC(src, PROC_REF(merge), arrived)
 
 
 /**
@@ -471,7 +489,7 @@
 		return FALSE
 	if(check.throwing)	// no merging for items in middle air
 		return FALSE
-	if(istype(loc, /obj/machinery)) // no merging items in machines that aren't both in componentparts
+	if(ismachinery(loc)) // no merging items in machines that aren't both in componentparts
 		var/obj/machinery/machine = loc
 		if(!(src in machine.component_parts) || !(check in machine.component_parts))
 			return FALSE

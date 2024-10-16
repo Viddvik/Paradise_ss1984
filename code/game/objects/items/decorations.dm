@@ -6,9 +6,10 @@
 /obj/item/decorations/sticky_decorations
 	w_class = WEIGHT_CLASS_TINY
 
+
 /obj/item/decorations/sticky_decorations/New()
 	. = ..()
-	AddComponent(/datum/component/ducttape, src, null, 0, 0, TRUE)//add this to something to make it sticky but without the tape overlay
+	AddComponent(/datum/component/ducttape, 0, 0, TRUE)//add this to something to make it sticky but without the tape overlay
 
 
 
@@ -225,9 +226,34 @@
 /obj/structure/decorative_structures
 	icon = 'icons/obj/decorations.dmi'
 	icon_state = ""
-	density = 1
-	anchored = 0
+	density = TRUE
+	anchored = FALSE
 	max_integrity = 100
+
+/obj/structure/decorative_structures/fireplace
+	name = "Old fireplace"
+	desc = "Looks warm and comfy."
+	icon = 'icons/obj/fireplace.dmi'
+	icon_state = "fireplace"
+	anchored = TRUE
+	density = FALSE
+	pixel_x = -16
+
+/obj/structure/decorative_structures/fireplace/Initialize(mapload)
+	. = ..()
+	add_overlay(icon('icons/obj/fireplace.dmi', "fireplace_fire3"))
+	add_overlay(icon('icons/obj/fireplace.dmi', "fireplace_glow"))
+	set_light(6, ,"#ffb366")
+
+/obj/structure/decorative_structures/garland
+	density = FALSE
+	anchored = TRUE
+	max_integrity = 100
+	icon_state = "xmaslights"
+
+/obj/structure/decorative_structures/garland/Initialize(mapload)
+	. = ..()
+	set_light(2, ,"#ffffffbb")
 
 /obj/structure/decorative_structures/metal
 	flags = CONDUCT
@@ -288,13 +314,13 @@
 /obj/structure/decorative_structures/corpse
 	name = "Bloody body"
 	icon_state = "deadbody2"
-	density = 0
+	density = FALSE
 	max_integrity = 5
 	var/bloodtiles = 8  // number of tiles with blood while pulling
 
 /obj/structure/decorative_structures/corpse/Initialize()
 	START_PROCESSING(SSobj, src)
-	..()
+	. = ..()
 
 /obj/structure/decorative_structures/corpse/Destroy()
 	playsound(src, 'sound/goonstation/effects/gib.ogg', 30, 0)
@@ -319,7 +345,7 @@
 /obj/structure/decorative_structures/corpse/climb_on()
 	return
 
-/obj/structure/decorative_structures/corpse/Move()
+/obj/structure/decorative_structures/corpse/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	bloodtiles -= 1
 	if(bloodtiles >= 0 && prob(40))
@@ -331,7 +357,7 @@
 			var/obj/item/clothing/mask/M = H.wear_mask
 			if(M && (M.flags_cover & MASKCOVERSMOUTH))
 				continue
-			if(NO_BREATHE in H.dna.species.species_traits)
+			if(HAS_TRAIT(H, TRAIT_NO_BREATH))
 				continue //no puking if you can't smell!
 			to_chat(H, "<span class='warning'>You smell something foul...</span>")
 			H.fakevomit()
@@ -353,11 +379,96 @@
 		for(var/mob/living/carbon/M in range(2,src))
 			smoke_mob(M)
 
-/obj/effect/particle_effect/smoke/vomiting/smoke_mob(mob/living/carbon/M)
-	if(..())
-		M.drop_from_active_hand()
-		M.vomit()
-		M.emote("cough")
-		return 1
+
+/obj/effect/particle_effect/smoke/vomiting/smoke_mob(mob/living/carbon/victim)
+	. = ..()
+	if(!.)
+		return .
+	victim.drop_from_active_hand()
+	victim.vomit()
+	INVOKE_ASYNC(victim, TYPE_PROC_REF(/mob, emote), "cough")
+
+
 /datum/effect_system/smoke_spread/vomiting
 	effect_type = /obj/effect/particle_effect/smoke/vomiting
+
+////// Bouquets
+
+/obj/item/decorations/bouquets
+	name = "Flower bouquet"
+	desc = "A bouquet of beautiful flowers, looks a little withered."
+	icon = 'icons/obj/weapons/bouquet.dmi'
+	icon_state = "mixedbouquet"
+	attack_verb = list("attacked", "slashed", "torn", "ripped", "cut", "smashed")
+	max_integrity = 20
+	force = 2
+	throwforce = 1
+	throw_range = 3
+
+	resistance_flags = FLAMMABLE
+
+/obj/item/decorations/bouquets/Initialize(mapload)
+	. = ..()
+	hitsound = pick('sound/effects/footstep/grass1.ogg', 'sound/effects/footstep/grass2.ogg', 'sound/effects/footstep/grass3.ogg')
+
+/obj/item/decorations/bouquets/random
+
+/obj/item/decorations/bouquets/random/Initialize(mapload)
+	. = ..()
+	var/pick_flower = pick("mixedbouquet", "poppybouquet", "rosebouquet", "sunbouquet")
+	icon_state = "[pick_flower]"
+
+////// Cultist's crystal
+
+/obj/structure/decorative_structures/cult_crystal
+	name = "Bloody crystal"
+	icon_state = "cult_crystal"
+	max_integrity = 120
+	anchored = TRUE
+
+/obj/structure/decorative_structures/cult_crystal/Initialize(mapload)
+	. = ..()
+	set_light(2, 1, COLOR_RED)
+
+
+/obj/structure/decorative_structures/cult_crystal/attackby(obj/item/I, mob/user, params)
+	. = ..()
+	if(ATTACK_CHAIN_CANCEL_CHECK(.))
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	electrocute_mob(user, get_area(src), src, 0.5, TRUE)
+	to_chat(user, span_warning("When you touch it, you feel some dark energy."))
+
+
+/obj/structure/decorative_structures/cult_crystal/attack_hand(mob/living/user)
+	electrocute_mob(user, get_area(src), src, 0.5, TRUE)
+	to_chat(user, span_warning("When you touch it, you feel some dark energy."))
+	..()
+
+/obj/structure/decorative_structures/cult_crystal/Destroy()
+	playsound(src, 'sound/effects/glassbr3.ogg', 30, 0)
+	var/turf/T = get_turf(src)
+	var/mob/living/simple_animal/crystal_soul = new /mob/living/simple_animal/hostile/construct/armoured/hostile(T)
+	crystal_soul.loot = list(pick(
+		/obj/item/gun/magic/wand/resurrection,
+		/obj/item/gun/magic/wand/fireball,
+		/obj/item/gun/magic/wand/slipping,
+		/obj/item/spellbook/oneuse/sacredflame,
+		/obj/item/spellbook/oneuse/smoke,
+		/obj/item/spellbook/oneuse/forcewall,
+		/obj/item/soulstone/anybody,
+	))
+	new /obj/effect/particle_effect/smoke/vomiting(T)
+	new /obj/effect/decal/cleanable/blood/gibs(T)
+	new /obj/effect/decal/cleanable/blood(T)
+	..()
+
+/obj/structure/decorative_structures/snowcloud
+	name = "snow cloud"
+	desc = "Let it snow, let it snow, let it snow!"
+	icon = 'icons/effects/effects.dmi'
+	icon_state = "snowcloud"
+	layer = FLY_LAYER
+	anchored = TRUE
+	mouse_opacity = MOUSE_OPACITY_TRANSPARENT
+	density = FALSE

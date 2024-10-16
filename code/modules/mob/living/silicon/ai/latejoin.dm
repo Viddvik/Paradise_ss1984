@@ -6,8 +6,7 @@ GLOBAL_LIST_EMPTY(empty_playable_ai_cores)
 	set desc = "Wipe your core. This is functionally equivalent to cryo or robotic storage, freeing up your job slot."
 
 	// Guard against misclicks, this isn't the sort of thing we want happening accidentally
-	if(alert("WARNING: This will immediately wipe your core and ghost you, removing your character from the round permanently (similar to cryo and robotic storage). Are you entirely sure you want to do this?",
-					"Wipe Core", "No", "No", "Yes") != "Yes")
+	if(tgui_alert(usr, "WARNING: This will immediately wipe your core and ghost you, removing your character from the round permanently (similar to cryo and robotic storage). Are you entirely sure you want to do this?", "Wipe Core", list("No", "Yes")) != "Yes")
 		return
 
 	// We warned you.
@@ -39,7 +38,7 @@ GLOBAL_LIST_EMPTY(empty_playable_ai_cores)
 /mob/living/silicon/ai/proc/moveToAILandmark()
 	var/obj/loc_landmark
 	for(var/obj/effect/landmark/start/sloc in GLOB.landmarks_list)
-		if(sloc.name != "AI")
+		if(sloc.name != JOB_TITLE_AI)
 			continue
 		if(locate(/mob/living) in sloc.loc)
 			continue
@@ -53,7 +52,7 @@ GLOBAL_LIST_EMPTY(empty_playable_ai_cores)
 	if(!loc_landmark)
 		to_chat(src, "Oh god sorry we can't find an unoccupied AI spawn location, so we're spawning you on top of someone.")
 		for(var/obj/effect/landmark/start/sloc in GLOB.landmarks_list)
-			if(sloc.name == "AI")
+			if(sloc.name == JOB_TITLE_AI)
 				loc_landmark = sloc
 
 	forceMove(loc_landmark.loc)

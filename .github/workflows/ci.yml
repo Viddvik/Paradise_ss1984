@@ -2,14 +2,17 @@ name: CI
 on:
   push:
     branches:
-    - master220
-    - whitelist220
-    - testmerge
-    - dev
+      - master220
+      - whitelist220
+      - testmerge
+      - tutorial
+      - dev
   pull_request:
     branches:
-    - master220
-    - whitelist220
+      - master220
+      - whitelist220
+      - tutorial
+  merge_group:
   workflow_call:
 
 jobs:
@@ -17,37 +20,52 @@ jobs:
     name: Run Linters
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/SpacemanDMM
           key: ${{ runner.os }}-spacemandmm
+
       - name: Install Tools
         run: |
           bash tools/ci/install_build_deps.sh
           bash tools/ci/install_dreamchecker.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.6'
+          cache: 'pip'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'
+          cache-dependency-path: ./tgui/yarn.lock
+
+      - name: Install python packages
+        run: pip3 install -r tools/requirements.txt
+
       - name: Run Linters
         run: |
           find . -name "*.json" -not -path "*/node_modules/*" -print0 | xargs -0 python3 ./tools/ci/json_verifier.py
-          tools/ci/build_tgui.sh
+          tgui/bin/tgui --ci
           tools/ci/check_grep.sh
           python3 tools/ci/check_line_endings.py
           python3 tools/ci/unticked_files.py ${GITHUB_WORKSPACE}
-          ~/dreamchecker > ${GITHUB_WORKSPACE}/output-annotations.txt 2>&1
-      - name: Annotate Lints
-        uses: yogstation13/DreamAnnotate@v2
-        if: always()
-        with:
-          outputFile: output-annotations.txt
+
+      - name: Run DreamChecker
+        shell: bash
+        run: ~/dreamchecker 2>&1 | bash tools/ci/annotate_dm.sh
 
   compile_all_maps:
     name: Compile All Maps
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/BYOND
           key: ${{ runner.os }}-byond
@@ -64,8 +82,15 @@ jobs:
     strategy:
       fail-fast: false # Let all map tests run to completion
       matrix:
-        maptype: ['/datum/map/cyberiad', '/datum/map/delta', '/datum/map/cerestation']
-        byondtype: ['STABLE'] # 'BETA'
+        maptype:
+          [
+            '/datum/map/cyberiad',
+            '/datum/map/delta',
+            '/datum/map/cerestation',
+            '/datum/map/celestation',
+            '/datum/map/nova',
+          ]
+        byondtype: ['STABLE']
     services:
       mariadb:
         image: mariadb:latest
@@ -75,9 +100,9 @@ jobs:
           - 3306
         options: --health-cmd "mariadb-admin ping" --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $HOME/BYOND
           key: ${{ runner.os }}-byond
@@ -103,4 +128,3 @@ jobs:
           tools/ci/dm.sh -DCIBUILDING paradise.dme
           echo '${{ matrix.maptype }}' > data/next_map.txt
           tools/ci/run_server.sh
-

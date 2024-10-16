@@ -21,7 +21,7 @@
 	if(owner_AI && owner_AI.malf_cooldown > world.time)
 		return
 
-/datum/action/innate/ai/Trigger()
+/datum/action/innate/ai/Trigger(left_click = TRUE)
 	. = ..()
 	if(auto_use_uses)
 		adjust_uses(-1)
@@ -93,7 +93,7 @@
 	. = ..()
 	owner_AI.malf_picker = new /datum/module_picker
 
-/datum/action/innate/ai/choose_modules/Trigger()
+/datum/action/innate/ai/choose_modules/Trigger(left_click = TRUE)
 	. = ..()
 	owner_AI.malf_picker.use(owner_AI)
 
@@ -104,7 +104,7 @@
 	button_icon_state = "apcemag"
 	auto_use_uses = FALSE // Here just to prevent the "You have X uses remaining" from popping up.
 
-/datum/action/innate/ai/return_to_core/Trigger()
+/datum/action/innate/ai/return_to_core/Trigger(left_click = TRUE)
 	. = ..()
 	var/obj/machinery/power/apc/apc = owner_AI.loc
 	if(!istype(apc)) // This shouldn't happen but here for safety.
@@ -127,7 +127,7 @@
 			possible_modules += AM
 
 /datum/module_picker/proc/use(mob/user)
-	var/dat = {"<meta charset="UTF-8">"}
+	var/dat = {"<!DOCTYPE html><meta charset="UTF-8">"}
 	dat += {"<B>Select use of processing time: (currently #[processing_time] left.)</B><BR>
 			<HR>
 			<B>Install Module:</B><BR>
@@ -239,7 +239,7 @@
 	if(!istype(T) || !is_station_level(T.z))
 		to_chat(owner, "<span class='warning'>You cannot activate the doomsday device while off-station!</span>")
 		return
-	if(alert(owner, "Send arming signal? (true = arm, false = cancel)", "purge_all_life()", "confirm = TRUE;", "confirm = FALSE;") != "confirm = TRUE;")
+	if(tgui_alert(owner, "Send arming signal? (true = arm, false = cancel)", "purge_all_life()", list("confirm = TRUE;", "confirm = FALSE;")) != "confirm = TRUE;")
 		return
 	if(active)
 		return //prevent the AI from activating an already active doomsday
@@ -265,8 +265,8 @@
 	name = "doomsday device"
 	icon_state = "nuclearbomb_base"
 	desc = "A weapon which disintegrates all organic life in a large area."
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 	atom_say_verb = "blares"
 	speed_process = TRUE // Disgusting fix. Please remove once #12952 is merged
 	var/timing = 0
@@ -421,10 +421,10 @@
 	uses = 1
 
 /datum/action/innate/ai/break_fire_alarms/Activate()
-	for(var/obj/machinery/firealarm/F in GLOB.machines)
-		if(!is_station_level(F.z))
+	for(var/obj/machinery/firealarm/alarm as anything in GLOB.firealarms)
+		if(!is_station_level(alarm.z))
 			continue
-		F.emagged = TRUE
+		alarm.emagged = TRUE
 	to_chat(owner, "<span class='notice'>All thermal sensors on the station have been disabled. Fire alerts will no longer be recognized.</span>")
 	owner.playsound_local(owner, 'sound/machines/terminal_off.ogg', 50, FALSE, use_reverb = FALSE)
 
@@ -595,7 +595,7 @@
 	if(!owner_AI.can_place_transformer(src))
 		return
 	active = TRUE
-	if(alert(owner, "Are you sure you want to place the machine here?", "Are you sure?", "Yes", "No") == "No")
+	if(tgui_alert(owner, "Are you sure you want to place the machine here?", "Are you sure?", list("Yes", "No")) != "Yes")
 		active = FALSE
 		return
 	if(!owner_AI.can_place_transformer(src))
@@ -733,23 +733,20 @@
 	AI.update_sight()
 	var/upgraded_cameras = 0
 
-	for(var/V in GLOB.cameranet.cameras)
-		var/obj/machinery/camera/C = V
-		if(C.assembly)
-			var/upgraded = FALSE
+	for(var/obj/machinery/camera/camera_target as anything in GLOB.cameranet.cameras)
+		var/list/obj/item/upgrade_check
 
-			if(!C.isXRay())
-				C.upgradeXRay()
-				//Update what it can see.
-				GLOB.cameranet.updateVisibility(C, 0)
-				upgraded = TRUE
+		if(!camera_target.isXRay())
+			LAZYADD(upgrade_check, new /obj/item/analyzer(camera_target.assembly))
 
-			if(!C.isEmpProof())
-				C.upgradeEmpProof()
-				upgraded = TRUE
+		if(!camera_target.isEmpProof())
+			LAZYADD(upgrade_check, new /obj/item/stack/sheet/mineral/plasma(camera_target.assembly))
 
-			if(upgraded)
-				upgraded_cameras++
+		if(LAZYLEN(upgrade_check))
+			for(var/obj/item/upgrade as anything in upgrade_check)
+				camera_target.assembly.upgrades.Add(upgrade)
+				upgrade.camera_upgrade(camera_target)
+			upgraded_cameras++
 
 	unlock_text = replacetext(unlock_text, "CAMSUPGRADED", "<b>[upgraded_cameras]</b>") //This works, since unlock text is called after upgrade()
 

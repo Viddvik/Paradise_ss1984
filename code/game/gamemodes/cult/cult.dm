@@ -50,7 +50,7 @@ GLOBAL_LIST_EMPTY(all_cults)
 /datum/game_mode/cult
 	name = "cult"
 	config_tag = "cult"
-	restricted_jobs = list("Chaplain", "AI", "Cyborg", "Internal Affairs Agent", "Security Officer", "Warden", "Detective", "Security Pod Pilot", "Head of Security", "Captain", "Head of Personnel", "Blueshield", "Nanotrasen Representative", "Magistrate", "Brig Physician", "Nanotrasen Navy Officer", "Nanotrasen Navy Field Officer", "Special Operations Officer", "Supreme Commander", "Syndicate Officer")
+	restricted_jobs = list(JOB_TITLE_CHAPLAIN, JOB_TITLE_AI, JOB_TITLE_CYBORG, JOB_TITLE_LAWYER, JOB_TITLE_OFFICER, JOB_TITLE_WARDEN, JOB_TITLE_DETECTIVE, JOB_TITLE_PILOT, JOB_TITLE_HOS, JOB_TITLE_CAPTAIN, JOB_TITLE_HOP, JOB_TITLE_BLUESHIELD, JOB_TITLE_REPRESENTATIVE, JOB_TITLE_JUDGE, JOB_TITLE_BRIGDOC, JOB_TITLE_CCOFFICER, "Nanotrasen Navy Field Officer", JOB_TITLE_CCSPECOPS, JOB_TITLE_CCSUPREME, JOB_TITLE_SYNDICATE)
 	protected_jobs = list()
 	required_players = 30
 	required_enemies = 3
@@ -78,12 +78,12 @@ GLOBAL_LIST_EMPTY(all_cults)
 	return (length(cult) > 0)
 
 /datum/game_mode/cult/post_setup()
-	modePlayer += cult
 	cult_objs.setup()
 
 	for(var/datum/mind/cult_mind in cult)
 		SEND_SOUND(cult_mind.current, 'sound/ambience/antag/bloodcult.ogg')
-		to_chat(cult_mind.current, CULT_GREETING)
+		var/list/messages = list(CULT_GREETING)
+		to_chat(cult_mind.current, chat_box_red(messages.Join("<br>")))
 		equip_cultist(cult_mind.current)
 		cult_mind.current.faction |= "cult"
 		ADD_TRAIT(cult_mind.current, TRAIT_HEALS_FROM_CULT_PYLONS, CULT_TRAIT)
@@ -91,11 +91,13 @@ GLOBAL_LIST_EMPTY(all_cults)
 		obj.owner = cult_mind
 		cult_mind.objectives += obj
 
-		if(cult_mind.assigned_role == "Clown")
+		if(cult_mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(cult_mind.current, "<span class='cultitalic'>A dark power has allowed you to overcome your clownish nature, letting you wield weapons without harming yourself.</span>")
-			cult_mind.current.mutations.Remove(CLUMSY)
-			var/datum/action/innate/toggle_clumsy/A = new
-			A.Grant(cult_mind.current)
+			cult_mind.current.force_gene_block(GLOB.clumsyblock, FALSE)
+			// Don't give them another action if they already have one.
+			if(!(locate(/datum/action/innate/toggle_clumsy) in cult_mind.current.actions))
+				var/datum/action/innate/toggle_clumsy/toggle_clumsy = new
+				toggle_clumsy.Grant(cult_mind.current)
 
 		add_cult_actions(cult_mind)
 		update_cult_icons_added(cult_mind)
@@ -159,9 +161,9 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 /datum/game_mode/proc/cult_give_item(obj/item/item_path, mob/living/carbon/human/H)
 	var/list/slots = list(
-		"backpack" = slot_in_backpack,
-		"left pocket" = slot_l_store,
-		"right pocket" = slot_r_store)
+		"backpack" = ITEM_SLOT_BACKPACK,
+		"left pocket" = ITEM_SLOT_POCKET_LEFT,
+		"right pocket" = ITEM_SLOT_POCKET_RIGHT)
 	var/T = new item_path(H)
 	var/item_name = initial(item_path.name)
 	var/where = H.equip_in_one_of_slots(T, slots, qdel_on_fail = TRUE)
@@ -187,11 +189,14 @@ GLOBAL_LIST_EMPTY(all_cults)
 		cult_mind.special_role = SPECIAL_ROLE_CULTIST
 		ADD_TRAIT(cult_mind.current, TRAIT_HEALS_FROM_CULT_PYLONS, CULT_TRAIT)
 
-		if(cult_mind.assigned_role == "Clown")
+		if(cult_mind.assigned_role == JOB_TITLE_CLOWN)
 			to_chat(cult_mind.current, "<span class='cultitalic'>A dark power has allowed you to overcome your clownish nature, letting you wield weapons without harming yourself.</span>")
-			cult_mind.current.mutations.Remove(CLUMSY)
-			var/datum/action/innate/toggle_clumsy/A = new
-			A.Grant(cult_mind.current)
+			cult_mind.current.force_gene_block(GLOB.clumsyblock, FALSE)
+			// Don't give them another action if they already have one.
+			if(!(locate(/datum/action/innate/toggle_clumsy) in cult_mind.current.actions))
+				var/datum/action/innate/toggle_clumsy/toggle_clumsy = new
+				toggle_clumsy.Grant(cult_mind.current)
+
 		SEND_SOUND(cult_mind.current, 'sound/ambience/antag/bloodcult.ogg')
 		add_conversion_logs(cult_mind.current, "converted to the blood cult")
 
@@ -238,7 +243,7 @@ GLOBAL_LIST_EMPTY(all_cults)
 			to_chat(M.current, "<span class='cultlarge'>Your cult is ascendant and the red harvest approaches - you cannot hide your true nature for much longer!")
 			log_admin("The Blood Cult has Ascended. The blood halo started to appear.")
 			addtimer(CALLBACK(src, PROC_REF(ascend), M.current), 20 SECONDS)
-		GLOB.command_announcement.Announce("На вашей станции обнаружена внепространственная активность, связанная с культом [SSticker.cultdat ? SSticker.cultdat.entity_name : "Нар’Си"]. Данные свидетельствуют о том, что в ряды культа обращено около [ascend_percent * 100]% экипажа станции. Служба безопасности получает право свободно применять летальную силу против культистов. Прочий персонал должен быть готов защищать себя и свои рабочие места от нападений культистов (в том числе используя летальную силу в качестве крайней меры самообороны), но не должен выслеживать культистов и охотиться на них. Погибшие члены экипажа должны быть оживлены и деконвертированы, как только ситуация будет взята под контроль.", "Отдел Центрального Командования по делам высших измерений.", 'sound/AI/commandreport.ogg')
+		GLOB.command_announcement.Announce("На вашей станции обнаружена внепространственная активность, связанная с культом [SSticker.cultdat ? SSticker.cultdat.entity_name : "Нар’Си"]. Данные свидетельствуют о том, что в ряды культа обращено около [ascend_percent * 100]% экипажа станции. Служба безопасности получает право свободно применять летальную силу против культистов. Прочий персонал должен быть готов защищать себя и свои рабочие места от нападений культистов (в том числе используя летальную силу в качестве крайней меры самообороны). Погибшие члены экипажа должны быть оживлены и деконвертированы, как только ситуация будет взята под контроль.", "Отдел Центрального Командования по делам высших измерений.", 'sound/AI/commandreport.ogg')
 		log_game("Blood cult reveal. Powergame allowed.")
 
 
@@ -288,13 +293,13 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 /datum/game_mode/proc/update_cult_icons_added(datum/mind/cult_mind)
 	var/datum/atom_hud/antag/culthud = GLOB.huds[ANTAG_HUD_CULT]
-	if(cult_mind.current)
+	if(cult_mind?.current)
 		culthud.join_hud(cult_mind.current)
 		set_antag_hud(cult_mind.current, "hudcultist")
 
 /datum/game_mode/proc/update_cult_icons_removed(datum/mind/cult_mind)
 	var/datum/atom_hud/antag/culthud = GLOB.huds[ANTAG_HUD_CULT]
-	if(cult_mind.current)
+	if(cult_mind?.current)
 		culthud.leave_hud(cult_mind.current)
 		set_antag_hud(cult_mind.current, null)
 
@@ -340,3 +345,8 @@ GLOBAL_LIST_EMPTY(all_cults)
 
 	to_chat(world, endtext)
 	..()
+
+
+/proc/is_cultist(mob/living/user)
+	return istype(user) && user.mind && SSticker && SSticker.mode && (user.mind in SSticker.mode.cult)
+

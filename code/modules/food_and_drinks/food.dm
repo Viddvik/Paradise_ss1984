@@ -10,6 +10,8 @@
 	possible_transfer_amounts = null
 	volume = 50 //Sets the default container amount for all food items.
 	visible_transfer_rate = FALSE
+	righthand_file = 'icons/mob/inhands/foods_righthand.dmi'
+	lefthand_file = 'icons/mob/inhands/foods_lefthand.dmi'
 	var/filling_color = "#FFFFFF" //Used by sandwiches.
 	var/junkiness = 0  //for junk food. used to lower human satiety.
 	var/bitesize = 2
@@ -28,6 +30,8 @@
 	resistance_flags = FLAMMABLE
 	container_type = INJECTABLE
 	var/log_eating = FALSE // do we log if someone eats us?
+	light_system = MOVABLE_LIGHT
+	light_on = FALSE
 
 /obj/item/reagent_containers/food/Initialize(mapload)
 	. = ..()

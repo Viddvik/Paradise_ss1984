@@ -9,15 +9,15 @@
 	for(var/mob/M in GLOB.alive_mob_list)
 		if(M == user)
 			continue
-		if(M.dna?.GetSEState(GLOB.psyresistblock))
+		if(HAS_TRAIT(M, TRAIT_PSY_RESIST))
 			continue
-		if(M.dna?.GetSEState(GLOB.remoteviewblock))
+		if(HAS_TRAIT(M, TRAIT_OPEN_MIND))
 			remoteviewers += M
 
 	if(!length(remoteviewers))
 		return
 
-	var/mob/target = input("Choose the target to spy on.", "Targeting") as null|anything in remoteviewers
+	var/mob/target = tgui_input_list(user, "Choose the target to spy on", "Targeting", remoteviewers)
 
 	if(QDELETED(target))
 		return

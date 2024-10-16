@@ -26,8 +26,8 @@
 	desc = "Communicate telepathically with your guardian."
 	button_icon_state = "communicate"
 
-/datum/action/guardian/communicate/Trigger()
-	var/input = stripped_input(owner, "Enter a message to tell your guardian:", "Message", "")
+/datum/action/guardian/communicate/Trigger(left_click = TRUE)
+	var/input = tgui_input_text(owner, "Enter a message to tell your guardian:", "Message")
 	if(!input)
 		return
 
@@ -51,7 +51,7 @@
 	desc = "Forcibly recall your guardian."
 	button_icon_state = "recall"
 
-/datum/action/guardian/recall/Trigger()
+/datum/action/guardian/recall/Trigger(left_click = TRUE)
 	guardian.Recall()
 
 /**
@@ -70,13 +70,13 @@
 		return FALSE
 	return TRUE
 
-/datum/action/guardian/reset_guardian/Trigger()
+/datum/action/guardian/reset_guardian/Trigger(left_click = TRUE)
 	if(cooldown_timer)
 		to_chat(owner, "<span class='warning'>This ability is still recharging.</span>")
 		return
 
-	var/confirm = alert("Are you sure you want replace your guardian's player?", "Confirm", "Yes", "No")
-	if(confirm == "No")
+	var/confirm = tgui_alert(owner, "Are you sure you want replace your guardian's player?", "Confirm", list("Yes", "No"))
+	if(confirm != "Yes")
 		return
 
 	// Do this immediately, so the user can't spam a bunch of polls.

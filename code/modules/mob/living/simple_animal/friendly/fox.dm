@@ -14,7 +14,8 @@
 	yelp_sound = 'sound/creatures/fox_yelp.ogg' //Used on death.
 	speak_chance = 1
 	turns_per_move = 5
-	see_in_dark = 6
+	nightvision = 6
+	mobility_flags = MOBILITY_FLAGS_REST_CAPABLE_DEFAULT
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/meat = 3)
 	response_help = "pets"
 	response_disarm = "gently pushes aside"
@@ -32,6 +33,16 @@
 	melee_damage_lower = 6
 	melee_damage_upper = 12
 
+
+/mob/living/simple_animal/pet/dog/fox/forest/winter
+	weather_immunities = list(TRAIT_SNOWSTORM_IMMUNE)
+
+/mob/living/simple_animal/pet/dog/fox/forest/winter/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
 //Captain fox
 /mob/living/simple_animal/pet/dog/fox/Renault
 	name = "Renault"
@@ -47,18 +58,24 @@
 	icon_living = "Syndifox"
 	icon_dead = "Syndifox_dead"
 	icon_resting = "Syndifox_rest"
-	mutations = list(BREATHLESS)
 	faction = list("syndicate")
 	unique_pet = TRUE
 	gold_core_spawnable = NO_SPAWN
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	melee_damage_lower = 10
 	melee_damage_upper = 20
 
+/mob/living/simple_animal/pet/dog/fox/SyndiFox/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
 /mob/living/simple_animal/pet/dog/fox/Syndifox/Initialize(mapload)
 	. = ..()
-	add_language("Galactic Common")
+	add_language(LANGUAGE_GALACTIC_COMMON)
+	ADD_TRAIT(src, TRAIT_NO_BREATH, INNATE_TRAIT)
+
 
 //Central Command Fox
 /mob/living/simple_animal/pet/dog/fox/alisa
@@ -68,14 +85,23 @@
 	icon_living = "alisa"
 	icon_dead = "alisa_dead"
 	icon_resting = "alisa_rest"
-	mutations = list(BREATHLESS)
 	faction = list("nanotrasen")
 	unique_pet = TRUE
 	gold_core_spawnable = NO_SPAWN
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 	melee_damage_lower = 10
 	melee_damage_upper = 20
+
+/mob/living/simple_animal/pet/dog/fox/alisa/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
+
+/mob/living/simple_animal/pet/dog/fox/alisa/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NO_BREATH, INNATE_TRAIT)
+
 
 /mob/living/simple_animal/pet/dog/fox/fennec
 	name = "фенек"
@@ -84,5 +110,5 @@
 	icon_living = "fennec"
 	icon_dead = "fennec_dead"
 	icon_resting = "fennec_rest"	//fennec_sit ?
-	see_in_dark = 10
+	nightvision = 10
 	holder_type = /obj/item/holder/fennec

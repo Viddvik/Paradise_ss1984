@@ -9,6 +9,14 @@
 
 #define STATUS_EFFECT_REFRESH 3 // if it only allows one, and new instances just instead refresh the timer
 
+
+///Processing flags - used to define the speed at which the status will work
+///This is fast - 0.2s between ticks (I believe!)
+#define STATUS_EFFECT_FAST_PROCESS 0
+///This is slower and better for more intensive status effects - 1s between ticks
+#define STATUS_EFFECT_NORMAL_PROCESS 1
+
+
 ///////////
 // BUFFS //
 ///////////
@@ -16,6 +24,7 @@
 #define STATUS_EFFECT_SHADOW_MEND /datum/status_effect/shadow_mend //Quick, powerful heal that deals damage afterwards. Heals 15 brute/burn every second for 3 seconds.
 #define STATUS_EFFECT_VOID_PRICE /datum/status_effect/void_price //The price of healing yourself with void energy. Deals 3 brute damage every 3 seconds for 30 seconds.
 #define STATUS_EFFECT_EXERCISED /datum/status_effect/exercised //Prevents heart disease
+#define STATUS_EFFECT_SHADOW_EMPOWER /datum/status_effect/shadow_empower // used in shadowpeople species, grants stronger heal effect
 
 #define STATUS_EFFECT_HIPPOCRATIC_OATH /datum/status_effect/hippocraticOath //Gives you an aura of healing as well as regrowing the Rod of Asclepius if lost
 
@@ -26,6 +35,9 @@
 #define STATUS_EFFECT_TERROR_FOOD_REGEN /datum/status_effect/terror/food_regen   //over time healing for mobs to gain full HP within 25~ seconds
 
 #define STATUS_EFFECT_THRALL_NET /datum/status_effect/thrall_net
+
+/// Healing effect upplied on gorillas from eating bananas.
+#define STATUS_EFFECT_BANANA_POWER /datum/status_effect/banana_power
 
 //#define STATUS_EFFECT_VANGUARD /datum/status_effect/vanguard_shield //Grants temporary stun absorption, but will stun the user based on how many stuns they absorbed.
 //#define STATUS_EFFECT_INATHNEQS_ENDOWMENT /datum/status_effect/inathneqs_endowment //A 15-second invulnerability and stun absorption, granted by Inath-neq.
@@ -58,11 +70,13 @@
 /// Speed boost for gargantua vampires.
 #define STATUS_EFFECT_BLOOD_RUSH /datum/status_effect/blood_rush
 
+/// Slight antistun and healing, along with visual effect. Works only in range of the vault, and for 30 seconds after it ends.
+
+#define STATUS_EFFECT_DRILL_PAYBACK /datum/status_effect/drill_payback
+
 /////////////
 // DEBUFFS //
 /////////////
-
-//#define STATUS_EFFECT_KNOCKDOWN /datum/status_effect/incapacitating/knockdown //the affected is knocked down
 
 //#define STATUS_EFFECT_BELLIGERENT /datum/status_effect/belligerent //forces the affected to walk, doing damage if they try to run
 
@@ -82,6 +96,8 @@
 
 #define STATUS_EFFECT_SAWBLEED /datum/status_effect/saw_bleed //if the bleed builds up enough, takes a ton of damage
 
+#define STATUS_EFFECT_BLOODLETTING /datum/status_effect/saw_bleed/bloodletting //nerfed version
+
 #define STATUS_EFFECT_STAMINADOT /datum/status_effect/stamina_dot
 
 #define STATUS_EFFECT_BLUESPACESLOWDOWN /datum/status_effect/bluespace_slowdown //Halfs victims next move modifier
@@ -98,6 +114,8 @@
 
 #define STATUS_EFFECT_DASH /datum/status_effect/dash // Grants the ability to dash, expiring after a few seconds
 
+#define STATUS_EFFECT_VOMIT /datum/status_effect/tox_vomit // When carbon got enough tox damage - he will vomit.
+
 //#define STATUS_EFFECT_NECROPOLIS_CURSE /datum/status_effect/necropolis_curse
 //#define CURSE_BLINDING	1 //makes the edges of the target's screen obscured
 //#define CURSE_SPAWNING	2 //spawns creatures that attack the target only
@@ -111,9 +129,6 @@
 /// Whether a moth's wings are burnt
 #define STATUS_EFFECT_BURNT_WINGS /datum/status_effect/burnt_wings
 
-/// If a moth is in a cocoon
-#define STATUS_EFFECT_COCOONED /datum/status_effect/cocooned
-
 //human status effects
 // incapacitating
 #define STATUS_EFFECT_STUN /datum/status_effect/incapacitating/stun
@@ -122,6 +137,7 @@
 #define STATUS_EFFECT_SLEEPING /datum/status_effect/incapacitating/sleeping
 #define STATUS_EFFECT_SLOWED /datum/status_effect/incapacitating/slowed
 #define STATUS_EFFECT_PARALYZED /datum/status_effect/incapacitating/paralyzed
+#define STATUS_EFFECT_KNOCKDOWN /datum/status_effect/incapacitating/knockdown
 
 // transient
 #define STATUS_EFFECT_CONFUSION /datum/status_effect/transient/confusion
@@ -154,6 +170,8 @@
 
 #define STATUS_EFFECT_CHARGING /datum/status_effect/charging
 
+#define STATUS_EFFECT_DROPNROLL /datum/status_effect/stop_drop_roll
+
 //#define STATUS_EFFECT_SIGILMARK /datum/status_effect/sigil_mark
 
 #define STATUS_EFFECT_CRUSHERDAMAGETRACKING /datum/status_effect/crusher_damage //tracks total kinetic crusher damage on a target
@@ -164,3 +182,7 @@
 
 /// Status effect given when someone uses the Give Item command to offer an item to another player.
 #define STATUS_EFFECT_OFFERING_ITEM /datum/status_effect/offering_item
+
+#define STATUS_EFFECT_STARING /datum/status_effect/staring //Used in ../human/examine() proc
+
+#define STATUS_EFFECT_RECENTLY_SUCCUMBED /datum/status_effect/recently_succumbed

@@ -50,7 +50,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 		team = team_to_join
 
 
-/datum/objective/Destroy(force, ...)
+/datum/objective/Destroy(force)
 	for(var/datum/mind/user in get_owners())
 		user.remove_objective(src)
 	GLOB.all_objectives -= src
@@ -163,7 +163,10 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 		qdel(src)
 
 	for(var/datum/mind/user in owners)
-		user.announce_objectives()
+		var/list/messages = list()
+		messages.Add(user.prepare_announce_objectives(FALSE))
+		to_chat(user.current, chat_box_red(messages.Join("<br>")))
+
 
 
 /**
@@ -327,14 +330,15 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 
 
 /datum/objective/debrain/find_target(list/target_blacklist)
-	..()
-	if(target?.current)
-		explanation_text = "Steal the brain of [target.current.real_name] the [target.assigned_role]."
-		if(!(target in SSticker.mode.victims))
-			SSticker.mode.victims.Add(target)
-	else
-		explanation_text = "Free Objective"
-	return target
+    ..()
+    if(target?.current)
+        var/obj/item/organ/internal/brains = target.current.get_organ_slot(INTERNAL_ORGAN_BRAIN)
+        explanation_text = "Steal the [brains.name] of [target.current.real_name], the [target.assigned_role]."
+        if(!(target in SSticker.mode.victims))
+            SSticker.mode.victims.Add(target)
+    else
+        explanation_text = "Free Objective"
+    return target
 
 
 /datum/objective/debrain/check_completion()
@@ -366,7 +370,12 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	var/saved_target_name = "Безымянный"
 	var/saved_target_role = "без роли"
 	var/saved_own_text = "лично"
-
+	/// Time when 10 minutes timet started. To moment of its end, target have to exist and live.
+	var/start_of_completing = 0
+	/// Loop timer for checking targer and objective completetion.
+	var/checking_timer = null
+	/// Color of numbers, red - fail, green - success, white - in process
+	var/obj_process_color = ""
 
 /datum/objective/pain_hunter/proc/take_damage(take_damage, take_damage_type)
 	if(damage_type != take_damage_type)
@@ -380,49 +389,77 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 /datum/objective/pain_hunter/New(text)
 	. = ..()
 	update_explain_text()
-
-
-/datum/objective/pain_hunter/Destroy()
-	var/check_other_hunter = FALSE
-	for(var/datum/objective/pain_hunter/objective in GLOB.all_objectives)
-		if (target == objective.target)
-			check_other_hunter = TRUE
-			break
-	if(!check_other_hunter)
-		SSticker.mode.victims.Remove(target)
-	. = ..()
+	checking_timer = addtimer(CALLBACK(src, PROC_REF(target_check)), 30 SECONDS, TIMER_UNIQUE | TIMER_LOOP | TIMER_STOPPABLE | TIMER_DELETE_ME)
 
 
 /datum/objective/pain_hunter/find_target(list/target_blacklist)
 	..()
-	if(target && target.current)
+	if(target && ishuman(target.current))
 		update_find_objective()
-		if (!(target in SSticker.mode.victims))
-			SSticker.mode.victims.Add(target)
 	else
 		explanation_text = "Free Objective"
+		completed = TRUE
+		deltimer(checking_timer)
+		checking_timer = null
 	return target
 
 
 /datum/objective/pain_hunter/proc/update_find_objective()
 	saved_target_name = target.current.real_name
 	saved_target_role = target.assigned_role
+	damage_target = 0
 	random_type()
 	update_explain_text()
 
 
 /datum/objective/pain_hunter/proc/update_explain_text()
-	explanation_text = "Преподать урок и [saved_own_text] нанести [saved_target_name], [saved_target_role], не менее [damage_need] единиц [damage_explain()]. Цель должна выжить. \nПрогресс: [damage_target]/[damage_need]"
+	explanation_text = "Преподать урок и [saved_own_text] нанести [saved_target_name], [saved_target_role], не менее [damage_need] единиц [damage_explain()]. Цель должна выжить. \nПрогресс: <span class = '[obj_process_color]'>[damage_target]/[damage_need]</span>"
+
+/datum/objective/pain_hunter/on_target_cryo()
+	if(completed)
+		return
+	if(start_of_completing && !isnull(checking_timer))
+		completed = TRUE
+		target = null
+		deltimer(checking_timer)
+		obj_process_color = "green"
+		checking_timer = null
+		update_explain_text()
+		for(var/datum/mind/user in get_owners())
+			var/list/messages = list()
+			messages.Add(user.prepare_announce_objectives(FALSE))
+			to_chat(user.current, chat_box_red(messages.Join("<br>")))
+	else
+		..()
 
 
-/datum/objective/pain_hunter/check_completion()
-	if(target && target.current)
-		if(target.current.stat == DEAD)
-			return FALSE
+/datum/objective/pain_hunter/proc/target_check()
+	if(!start_of_completing)
+		if(damage_target >= damage_need)
+			start_of_completing = world.time
+			return
 		if(!ishuman(target.current))
-			return FALSE
-		return damage_target >= damage_need
-	return FALSE
+			target = null
+			find_target(existing_targets_blacklist())
+			alarm_changes()
+			for(var/datum/mind/user in get_owners())
+				var/list/messages = list()
+				messages.Add(user.prepare_announce_objectives(FALSE))
+				to_chat(user.current, chat_box_red(messages.Join("<br>")))
+	else
+		if((world.time - start_of_completing) >= 10	MINUTES)
+			if(target && ishuman(target.current) && target.current.stat != DEAD)
+				completed = TRUE
+				obj_process_color = "green"
+			else
+				obj_process_color = "red"
+			update_explain_text()
+			for(var/datum/mind/user in get_owners())
+				var/list/messages = list()
+				messages.Add(user.prepare_announce_objectives(FALSE))
+				to_chat(user.current, chat_box_red(messages.Join("<br>")))
+			deltimer(checking_timer)
+			checking_timer = null
 
 
 /datum/objective/pain_hunter/proc/random_type()
@@ -448,6 +485,11 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 			damage_explain = "токсинов"
 	return damage_explain
 
+/datum/objective/pain_hunter/check_completion()
+	if(start_of_completing && target && ishuman(target.current) && target.current.stat != DEAD)
+		return TRUE
+	else
+		return completed
 
 /datum/objective/protect //The opposite of killing a dude.
 	name = "Protect"
@@ -636,7 +678,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	RegisterSignal(special_objective, COMSIG_OBJECTIVE_CHECK_VALID_TARGET, PROC_REF(special_objective_checking_target))
 
 
-/datum/objective/escape/escape_with_identity/Destroy(force, ...)
+/datum/objective/escape/escape_with_identity/Destroy(force)
 	special_objective = null
 	return ..()
 
@@ -645,7 +687,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	if(..() || !possible_target.current.client)
 		return TRUE
 	// If the target is geneless, then it's an invalid target.
-	return has_no_DNA(possible_target.current)
+	return HAS_TRAIT(possible_target.current, TRAIT_NO_DNA)
 
 
 /datum/objective/escape/escape_with_identity/find_target(list/target_blacklist)
@@ -663,7 +705,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 
 /datum/objective/escape/escape_with_identity/proc/special_objective_checking_target(datum/source, datum/mind/possible_target)
 	SIGNAL_HANDLER
-	if(!possible_target.current.client || has_no_DNA(possible_target.current))
+	if(!possible_target.current.client || HAS_TRAIT(possible_target.current, TRAIT_NO_DNA))
 		// Stop our linked special objective from choosing a clientless/geneless target.
 		return OBJECTIVE_INVALID_TARGET
 	return OBJECTIVE_VALID_TARGET
@@ -850,11 +892,11 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 /datum/objective/steal/proc/give_kit(obj/item/item_path)
 	var/item = new item_path
 	var/list/slots = list(
-		"backpack" = slot_in_backpack,
-		"left pocket" = slot_l_store,
-		"right pocket" = slot_r_store,
-		"left hand" = slot_l_hand,
-		"right hand" = slot_r_hand,
+		"backpack" = ITEM_SLOT_BACKPACK,
+		"left pocket" = ITEM_SLOT_POCKET_LEFT,
+		"right pocket" = ITEM_SLOT_POCKET_RIGHT,
+		"left hand" = ITEM_SLOT_HAND_LEFT,
+		"right hand" = ITEM_SLOT_HAND_RIGHT,
 	)
 
 	for(var/datum/mind/player in get_owners())
@@ -954,13 +996,13 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 		if(SSticker.current_state == GAME_STATE_SETTING_UP)
 			for(var/mob/new_player/player in GLOB.player_list)
 				if(player.client && player.ready && !(player.mind in get_owners()))
-					if(player.client.prefs && (player.client.prefs.species == "Machine")) // Special check for species that can't be absorbed. No better solution.
+					if(player.client.prefs && (player.client.prefs.species == SPECIES_MACNINEPERSON)) // Special check for species that can't be absorbed. No better solution.
 						continue
 					n_p++
 
 		else if(SSticker.current_state == GAME_STATE_PLAYING)
 			for(var/mob/living/carbon/human/player in GLOB.player_list)
-				if(has_no_DNA(player))
+				if(HAS_TRAIT(player, TRAIT_NO_DNA))
 					continue
 
 				if(player.client && !(player.mind in SSticker.mode.changelings) && !(player.mind in get_owners()))
@@ -1097,11 +1139,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 /datum/objective/blood/check_completion()
 	for(var/datum/mind/player in get_owners())
 		var/datum/antagonist/vampire/vampire = player.has_antag_datum(/datum/antagonist/vampire)
-		if(vampire.bloodtotal >= target_amount)
-			return TRUE
-
-		var/datum/antagonist/goon_vampire/g_vampire = player.has_antag_datum(/datum/antagonist/goon_vampire)
-		if(g_vampire.bloodtotal >= target_amount)
+		if(vampire && (vampire.bloodtotal >= target_amount))
 			return TRUE
 
 		return FALSE
@@ -1129,7 +1167,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 
 
 /datum/objective/heist/kidnap/choose_target()
-	var/list/roles = list("Chief Engineer","Research Director","Chief Medical Officer","Head of Personal","Head of Security","Nanotrasen Representative","Magistrate","Roboticist","Chemist")
+	var/list/roles = list(JOB_TITLE_CHIEF, JOB_TITLE_RD, JOB_TITLE_CMO, JOB_TITLE_HOP, JOB_TITLE_HOS, JOB_TITLE_REPRESENTATIVE, JOB_TITLE_JUDGE, JOB_TITLE_ROBOTICIST, JOB_TITLE_CHEMIST)
 	var/list/possible_targets = list()
 	var/list/priority_targets = list()
 
@@ -1366,7 +1404,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	///Where we should KABOOM
 	var/area/detonation_location
 	var/list/area_blacklist = list(
-		/area/engine/engineering, /area/engine/supermatter,
+		/area/engineering/engine, /area/engineering/supermatter,
 		/area/toxins/test_area, /area/turret_protected/ai)
 	needs_target = FALSE
 
@@ -1393,6 +1431,22 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	. = detonation_location
 	if(.)
 		explanation_text = "Взорвите выданную вам бомбу в [detonation_location]. Учтите, что бомбу нельзя активировать на не предназначенной для подрыва территории!"
+
+
+/datum/objective/plant_explosive/proc/give_bomb(delayed = null)
+	if(isnull(delayed))
+		actual_give_bomb()
+	else if(isnum(delayed))
+		addtimer(CALLBACK(src, PROC_REF(actual_give_bomb)), delayed)
+
+
+/datum/objective/plant_explosive/proc/actual_give_bomb()
+	if(!owner || !owner.current || !detonation_location || completed)
+		return
+	var/mob/ninja = owner.current
+	var/obj/item/grenade/plastic/c4/ninja/bomb_item = new(ninja)
+	bomb_item.detonation_objective = src
+	ninja.equip_or_collect(bomb_item, ITEM_SLOT_POCKET_LEFT)
 
 
 /datum/objective/get_money
@@ -1482,7 +1536,8 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 		update_killers()
 
 	for(var/datum/mind/user in owners)
-		user.announce_objectives()
+		var/list/messages = user.prepare_announce_objectives()
+		to_chat(user.current, chat_box_red(messages.Join("<br>")))
 
 
 /datum/objective/protect/ninja/proc/update_killers()
@@ -1497,7 +1552,7 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 			killer_objective.explanation_text = "Prevent from escaping alive or free [killer_objective.target.current.real_name], the [killer_objective.target.assigned_role]."
 
 		for(var/datum/mind/killer in killer_objective.get_owners())
-			killer.announce_objectives()
+			killer.prepare_announce_objectives()
 
 
 /**
@@ -1577,12 +1632,11 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	var/list/scanned_occupants = list()
 	var/scans_to_win = 3
 	var/list/available_roles = list(
-		"Clown", "Mime", "Cargo Technician",
-		"Shaft Miner", "Scientist", "Roboticist",
-		"Medical Doctor", "Geneticist", "Security Officer",
-		"Chemist", "Station Engineer", "Civilian",
-		"Botanist", "Chemist", "Virologist",
-		"Life Support Specialist",
+		JOB_TITLE_CLOWN, JOB_TITLE_MIME, JOB_TITLE_CARGOTECH,
+		JOB_TITLE_MINER, JOB_TITLE_SCIENTIST, JOB_TITLE_ROBOTICIST,
+		JOB_TITLE_DOCTOR, JOB_TITLE_GENETICIST, JOB_TITLE_OFFICER,
+		JOB_TITLE_CHEMIST, JOB_TITLE_ENGINEER, JOB_TITLE_CIVILIAN,
+		JOB_TITLE_BOTANIST, JOB_TITLE_VIROLOGIST, JOB_TITLE_ATMOSTECH
 	)
 
 
@@ -1676,3 +1730,24 @@ GLOBAL_LIST_EMPTY(admin_objective_list)
 	Подойдёт только консоль в этой зоне из-за уязвимости оставленной заранее для вируса. \
 	Учтите, что установка займёт время и ИИ скорее всего будет уведомлён о вашей попытке взлома!"
 
+
+/datum/objective/blob_critical_mass
+	needs_target = FALSE
+	//Total blob tiles count
+	var/critical_mass = -2
+	//Needed blob tiles count
+	var/needed_critical_mass = -1
+
+
+/datum/objective/blob_critical_mass/check_completion()
+	if(!completed)
+		completed = needed_critical_mass <= critical_mass && GLOB.security_level < SEC_LEVEL_DELTA
+	return ..()
+
+
+/datum/objective/blob_critical_mass/proc/set_target()
+	explanation_text = "Наберите критическую массу, распостраняясь по станции. Текущаяя масса [critical_mass]. Необходимо набрать [needed_critical_mass]. Масса может изменяться в зависимости от количества блобов."
+
+/datum/objective/blob_find_place_to_burst
+	needs_target = FALSE
+	explanation_text = "Найдите укромное место на станции, в котором вас не смогут найти после вылупления до тех пор, пока вы не наберетесь сил."

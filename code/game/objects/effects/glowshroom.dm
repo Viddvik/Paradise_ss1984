@@ -8,7 +8,7 @@
 	name = "glowshroom"
 	desc = "Mycena Bregprox, a species of mushroom that glows in the dark."
 	anchored = TRUE
-	opacity = 0
+	opacity = FALSE
 	density = FALSE
 	icon = 'icons/obj/lighting.dmi'
 	//replaced in Initialize()
@@ -22,8 +22,10 @@
 	var/max_failed_spreads = 5
 	/// Turfs where the glowshroom cannot spread to
 	var/static/list/blacklisted_glowshroom_turfs = typecacheof(list(
-		/turf/simulated/floor/plating/lava,
-		/turf/simulated/floor/beach/water))
+		/turf/simulated/floor/lava,
+		/turf/simulated/floor/chasm,
+		/turf/simulated/floor/beach/water,
+		/turf/simulated/floor/indestructible/beach/water))
 	/// Internal seed of the glowshroom, stats are stored here
 	var/obj/item/seeds/myseed = /obj/item/seeds/glowshroom
 
@@ -54,7 +56,7 @@
 
 /obj/structure/glowshroom/examine(mob/user)
 	. = ..()
-	. += SPAN_NOTICE("This is a [generation]\th generation [name]!")
+	. += span_notice("This is a [generation]\th generation [name]!")
 
 /**
   *	Creates a new glowshroom structure.
@@ -82,7 +84,7 @@
 
 	if(myseed.get_gene(/datum/plant_gene/trait/glow))
 		var/datum/plant_gene/trait/glow/glow_gene = myseed.get_gene(/datum/plant_gene/trait/glow)
-		set_light(glow_gene.glow_range(myseed), glow_gene.glow_power(myseed), glow_gene.glow_color)
+		set_light(glow_gene.glow_range(myseed), glow_gene.glow_power(myseed), glow_gene.glow_color, l_on = TRUE)
 	setDir(calc_dir())
 	var/base_icon_state = initial(icon_state)
 	if(!is_on_floor)
@@ -117,7 +119,7 @@
 	for(var/turf/simulated/floor/earth in RANGE_TURFS(1, src))
 		if(is_type_in_typecache(earth, blacklisted_glowshroom_turfs))
 			continue
-		if(!ownturf.CanAtmosPass(earth))
+		if(!ownturf.CanAtmosPass(earth, vertical = FALSE))
 			continue
 		possible_locs += earth
 
@@ -236,33 +238,48 @@
 
 /obj/structure/glowshroom/acid_act(acidpwr, acid_volume)
 	. = 1
-	visible_message(SPAN_DANGER("[src] melts away!"))
+	visible_message(span_danger("[src] melts away!"))
 	var/obj/effect/decal/cleanable/molten_object/object = new (get_turf(src))
 	object.desc = "Looks like this was \an [src] some time ago."
 	qdel(src)
 
-/obj/structure/glowshroom/attacked_by(obj/item/tool, mob/living/user)
-	var/damage_dealt = tool.force
-	if(istype(tool, /obj/item/scythe))
-		var/obj/item/scythe/weapon = tool
-		//so folded telescythes won't get damage boosts / insta-clears (they instead will be treated like non-scythes)
-		if(weapon.extend)
-			damage_dealt *= 10
-			for(var/obj/structure/glowshroom/shroom in view(1, src))
-				shroom.take_damage(damage_dealt, tool.damtype, "melee", 1)
-			return
 
-	if(is_sharp(tool) || tool.damtype == BURN)
+/obj/structure/glowshroom/proceed_attack_results(obj/item/I, mob/living/user, params, def_zone)
+	. = ATTACK_CHAIN_PROCEED_SUCCESS
+	if(!I.force)
+		user.visible_message(
+			span_warning("[user] gently pokes [src] with [I]."),
+			span_warning("You gently poke [src] with [I]."),
+		)
+		return .
+	user.visible_message(
+		span_danger("[user] has hit [src] with [I]!"),
+		span_danger("You have hit [src] with [I]!"),
+	)
+	var/damage_dealt = I.force
+	var/obj/item/scythe/scythe = I
+	//so folded telescythes won't get damage boosts / insta-clears (they instead will be treated like non-scythes)
+	if(istype(I, /obj/item/scythe) && scythe.extend)
+		damage_dealt *= 10
+		for(var/obj/structure/glowshroom/shroom in (view(1, src) - src))
+			shroom.take_damage(damage_dealt, I.damtype, MELEE, TRUE, get_dir(user, shroom), I.armour_penetration)
+	else if(is_sharp(I) || I.damtype == BURN)
 		damage_dealt *= 4
 
-	take_damage(damage_dealt, tool.damtype, "melee", 1)
+	take_damage(damage_dealt, I.damtype, MELEE, TRUE, get_dir(user, src), I.armour_penetration)
+	if(QDELETED(src))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 
 //Way to check glowshroom stats using plant analyzer
-/obj/structure/glowshroom/attackby(obj/item/plant_analyzer/plant_analyzer, mob/living/user, params)
-	if(istype(plant_analyzer))
+/obj/structure/glowshroom/attackby(obj/item/I, mob/living/user, params)
+	if(istype(I, /obj/item/plant_analyzer))
 		// Hacky I guess
-		return myseed.attackby(plant_analyzer, user, params)
+		I.melee_attack_chain(user, myseed, params)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 #undef SPREAD_DELAY
 #undef DECAY_DELAY

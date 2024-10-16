@@ -2,26 +2,24 @@
 	icon = 'icons/effects/mapping_helpers.dmi'
 	icon_state = "standart"
 	var/lootcount = 1		//how many items will be spawned
-	var/lootdoubles = 1		//if the same item can be spawned twice
+	var/lootdoubles = TRUE		//if the same item can be spawned twice
 	var/list/loot			//a list of possible items to spawn e.g. list(/obj/item, /obj/structure, /obj/effect)
 
-/obj/effect/spawner/lootdrop/New()
-	..()
-	if(loot && loot.len)
-		for(var/i = lootcount, i > 0, i--)
-			if(!loot.len) break
-			var/lootspawn = pickweight(loot)
+/obj/effect/spawner/lootdrop/Initialize(mapload)
+	. = ..()
+	while(lootcount)
+		var/lootspawn = pickweight(loot)
+		if(lootspawn)
+			new lootspawn(get_turf(src))
 			if(!lootdoubles)
 				loot.Remove(lootspawn)
-
-			if(lootspawn)
-				new lootspawn(loc)
-	qdel(src)
+		lootcount--
+	return INITIALIZE_HINT_QDEL
 
 /obj/effect/spawner/lootdrop/armory_contraband
 	name = "armory contraband gun spawner"
 	icon_state ="stechkin"
-	lootdoubles = 0
+	lootdoubles = FALSE
 
 	loot = list(
 				/obj/item/gun/projectile/automatic/pistol = 8,
@@ -125,6 +123,9 @@
 				/obj/item/wirecutters = 10,
 				/obj/item/wrench = 40,
 				/obj/item/relic = 35,
+				/obj/item/weaponcrafting/revolverbarrel = 3,
+				/obj/item/weaponcrafting/revolverbarrel/steel = 2,
+				/obj/item/ammo_box/magazine/internal/cylinder/improvised/steel = 2,
 				/obj/item/weaponcrafting/receiver = 2,
 				/obj/item/clothing/gloves/knuckles = 1,
 				/obj/item/clothing/shoes/brown = 30,
@@ -140,6 +141,7 @@
 				/obj/item/gun/projectile/automatic/pistol = 1,
 				/obj/item/ammo_box/magazine/m10mm = 4,
 				/obj/item/soap/syndie = 7,
+				/obj/item/stack/tape_roll/thick = 7,
 				/obj/item/gun/syringe/syndicate = 2,
 				/obj/item/suppressor = 4,
 				/obj/item/clothing/under/chameleon = 2,
@@ -155,23 +157,13 @@
 				/obj/item/multitool/ai_detect = 2,
 				/obj/item/implanter/storage = 1,
 				/obj/item/storage/box/syndie_kit/dangertray = 2,
-				/obj/item/toy/cards/deck/syndicate = 2,
+				/obj/item/deck/cards/syndicate = 2,
 				/obj/item/storage/secure/briefcase/syndie = 2,
 				/obj/item/storage/fancy/cigarettes/cigpack_syndicate = 2,
 				/obj/item/storage/pill_bottle/fakedeath = 2,
 				/obj/item/storage/box/syndie_kit/mr_chang_technique = 1,
 				/obj/item/clothing/glasses/chameleon/meson = 7,
-				"" = 68
-				)
-
-/obj/effect/spawner/lootdrop/crate_spawner // for ruins
-	name = "lootcrate spawner"
-	icon_state = "lootcrate"
-	lootdoubles = 0
-
-	loot = list(
-				/obj/structure/closet/crate/secure/loot = 20,
-				"" = 80,
+				"" = 61
 				)
 
 /obj/effect/spawner/lootdrop/maintenance/double
@@ -185,7 +177,7 @@
 /obj/effect/spawner/lootdrop/trade_sol/
 	name = "trader item spawner"
 	lootcount = 6
-	lootdoubles = 1
+	lootdoubles = TRUE
 	color = "#00FFFF"
 
 //У нас не используется
@@ -205,13 +197,13 @@
 				/obj/item/stack/nanopaste = 50,
 				/obj/item/clothing/under/psyjump = 50,
 				/obj/item/immortality_talisman = 50,
-				/obj/item/grenade/clusterbuster/smoke = 50
+				/obj/item/grenade/clusterbuster/smoke = 50,
+				/obj/item/clothing/mask/holo_cigar = 50,
 				)
 
 
 /obj/effect/spawner/lootdrop/trade_sol/serv
 	name = "1. Service gear"
-	lootdoubles = 2
 	lootcount = 8
 	loot = list(
 		/obj/item/storage/box/beakers/bluespace = 50,
@@ -238,7 +230,6 @@
 
 /obj/effect/spawner/lootdrop/trade_sol/minerals
 	name = "2. Minerals"
-	lootdoubles = 1
 	loot = list(
 				// Common stuff you get from mining which isn't already present on the station
 				// Note that plasma and derived hybrid materials are NOT included in this list because plasma is the trader's objective!
@@ -260,29 +251,22 @@
 				/obj/item/stack/sheet/mineral/sandstone = 50
 				)
 
-/obj/effect/spawner/lootdrop/trade_sol/minerals/New()
+/obj/effect/spawner/lootdrop/trade_sol/minerals/Initialize(mapload)
+	while(lootcount)
+		var/lootspawn = pickweight(loot)
+		var/obj/item/stack/sheet/S = new lootspawn(get_turf(src))
+		S.amount = 25
+		lootcount--
 	. = ..()
-	if(loot && loot.len)
-		for(var/i = lootcount, i > 0, i--)
-			if(!loot.len)
-				break
-			var/lootspawn = pickweight(loot)
-			if(!lootdoubles)
-				loot.Remove(lootspawn)
-			if(lootspawn)
-				new lootspawn(get_turf(src), 25)
-	qdel(src)
-
 
 /obj/effect/spawner/lootdrop/trade_sol/donksoft
 	name = "3. Donksoft gear"
-	lootdoubles = 2
 	lootcount = 8
 	loot = list(
 		/obj/item/gun/projectile/automatic/c20r/toy = 150,
 		/obj/item/gun/projectile/automatic/l6_saw/toy = 100,
 		/obj/item/gun/projectile/automatic/toy/pistol = 200,
-		/obj/item/gun/projectile/automatic/toy/pistol/enforcer = 100,
+		/obj/item/gun/projectile/automatic/toy/pistol/enforcer/riot = 100,
 		/obj/item/gun/projectile/shotgun/toy = 100,
 		/obj/item/gun/projectile/shotgun/toy/crossbow = 100,
 		/obj/item/gun/projectile/shotgun/toy/tommygun = 100,
@@ -297,7 +281,6 @@
 
 /obj/effect/spawner/lootdrop/trade_sol/sci
 	name = "4. Science gear"
-	lootdoubles = 2
 	lootcount = 8
 	loot = list(
 		/obj/item/mmi/robotic_brain = 50,
@@ -328,7 +311,6 @@
 
 /obj/effect/spawner/lootdrop/trade_sol/med
 	name = "5. Medical gear"
-	lootdoubles = 2
 	lootcount = 8
 	loot = list(
 		/obj/item/storage/fancy/cigarettes/cigpack_med = 50,
@@ -356,7 +338,6 @@
 
 /obj/effect/spawner/lootdrop/trade_sol/sec
 	name = "6. Security gear"
-	lootdoubles = 2
 	lootcount = 10
 	loot = list(
 		/obj/item/clothing/gloves/combat = 50,
@@ -371,7 +352,7 @@
 		/obj/item/clothing/glasses/thermal = 50,
 		/obj/item/storage/box/enforcer_rubber = 100,
 		/obj/item/storage/box/enforcer_lethal = 50,
-		/obj/item/melee/classic_baton/telescopic = 100,
+		/obj/item/melee/baton/telescopic = 100,
 		/obj/item/gun/projectile/shotgun/automatic/combat = 150,
 		/obj/item/gun/projectile/shotgun/automatic/dual_tube = 100,
 		/obj/item/ammo_box/shotgun/buck = 150,
@@ -382,7 +363,6 @@
 
 /obj/effect/spawner/lootdrop/trade_sol/eng
 	name = "7. Eng gear"
-	lootdoubles = 2
 	lootcount = 8
 	loot = list(
 	/obj/item/pickaxe/drill/jackhammer = 50,
@@ -413,22 +393,20 @@
 /obj/effect/spawner/lootdrop/trade_sol/vehicle
 	name = "9. Vehicle"
 	loot = list(
-		/obj/vehicle/motorcycle = 50,
-		/obj/vehicle/snowmobile/key = 50,
-		/obj/vehicle/snowmobile/blue/key = 50,
-		/obj/vehicle/space/speedbike/red = 50,
-		/obj/vehicle/space/speedbike = 50)
+		/obj/vehicle/ridden/motorcycle = 50,
+		/obj/vehicle/ridden/snowmobile/key = 50,
+		/obj/vehicle/ridden/snowmobile/blue/key = 50,
+		/obj/vehicle/ridden/speedbike/red = 50,
+		/obj/vehicle/ridden/speedbike = 50)
 
-/obj/effect/spawner/lootdrop/trade_sol/vehicle/New()
+/obj/effect/spawner/lootdrop/trade_sol/vehicle/Initialize(mapload)
+	while(lootcount)
+		var/lootspawn = pickweight(loot)
+		var/obj/vehicle/V = new lootspawn(get_turf(src))
+		if(V.key_type)
+			V.inserted_key = new V.key_type(V)
+		lootcount--
 	. = ..()
-	if(!loot.len)
-		return
-	var/lootspawn = pickweight(loot)
-	var/obj/vehicle/V = new lootspawn(get_turf(src))
-	if(V.key_type)
-		new V.key_type(get_turf(src))
-	qdel(src)
-
 
 /obj/effect/spawner/lootdrop/three_course_meal
 	name = "three course meal spawner"
@@ -450,7 +428,7 @@
 			/obj/item/reagent_containers/food/snacks/bigbiteburger,
 			/obj/item/reagent_containers/food/snacks/superbiteburger)
 
-/obj/effect/spawner/lootdrop/three_course_meal/New()
+/obj/effect/spawner/lootdrop/three_course_meal/Initialize(mapload)
 	loot = list(pick(soups) = 1,pick(salads) = 1,pick(mains) = 1)
 	. = ..()
 
@@ -469,8 +447,17 @@
 	name = "40% marrow weaver spawner"
 	icon = 'icons/mob/lavaland/lavaland_monsters.dmi'
 	icon_state = "weaver"
-	lootdoubles = 0
+	lootdoubles = FALSE
 	lootcount = 1
 	loot = list(/mob/living/simple_animal/hostile/asteroid/marrowweaver = 40,
-			/mob/living/simple_animal/hostile/asteroid/marrowweaver/frost = 20,
-			"" = 40)
+	/mob/living/simple_animal/hostile/asteroid/marrowweaver/frost = 20,
+	"" = 40)
+
+/obj/effect/spawner/lootdrop/bouquet_spawner
+	name = "50% bouquet spawner"
+	icon_state = "bouquet"
+	lootdoubles = FALSE
+	loot = list(
+				/obj/item/decorations/bouquets/random = 50,
+				"" = 50,
+				)

@@ -36,6 +36,7 @@
 	if(current)
 		qdel(current)
 		to_chat(user, span_notice("You dispel your claws!"))
+		return COMPONENT_CANCEL_DROP
 
 
 /obj/effect/proc_holder/spell/vampire/self/vamp_claws/can_cast(mob/user, charge_check, show_message)
@@ -50,15 +51,16 @@
 	icon = 'icons/effects/vampire_effects.dmi'
 	icon_state = "vamp_claws"
 	w_class = WEIGHT_CLASS_BULKY
-	flags = ABSTRACT | NODROP | DROPDEL
+	item_flags = ABSTRACT|DROPDEL
 	force = 15
 	force_wielded = 15
 	armour_penetration = 40
 	sharp = TRUE
+	attack_speed = 0.4 SECONDS
 	attack_effect_override = ATTACK_EFFECT_CLAW
 	hitsound = 'sound/weapons/bladeslice.ogg'
 	attack_verb = list("slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut", "savaged", "clawed")
-	sprite_sheets_inhand = list("Vox" = 'icons/mob/clothing/species/vox/held.dmi', "Drask" = 'icons/mob/clothing/species/drask/held.dmi')
+	sprite_sheets_inhand = list(SPECIES_VOX = 'icons/mob/clothing/species/vox/held.dmi', SPECIES_DRASK = 'icons/mob/clothing/species/drask/held.dmi')
 	var/durability = 15
 	var/blood_drain_amount = 15
 	var/blood_absorbed_amount = 5
@@ -67,6 +69,7 @@
 
 /obj/item/twohanded/required/vamp_claws/Initialize(mapload, new_parent_spell)
 	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, ABSTRACT_ITEM_TRAIT)
 	parent_spell = new_parent_spell
 
 
@@ -78,7 +81,7 @@
 	return ..()
 
 
-/obj/item/twohanded/required/vamp_claws/afterattack(atom/target, mob/user, proximity)
+/obj/item/twohanded/required/vamp_claws/afterattack(atom/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 
@@ -91,24 +94,19 @@
 	if(iscarbon(target))
 		var/mob/living/carbon/C = target
 		// no parameter in [affects_vampire()] so holy always protects
-		if(C.ckey && C.stat != DEAD && C.affects_vampire() && !(NO_BLOOD in C.dna.species.species_traits))
+		if(C.ckey && C.stat != DEAD && C.affects_vampire() && !HAS_TRAIT(C, TRAIT_NO_BLOOD))
 			C.bleed(blood_drain_amount)
-			V.adjust_blood(C, blood_absorbed_amount)
 			attacker.adjustStaminaLoss(-20) // security is dead
 			attacker.heal_overall_damage(4, 4) // the station is full
-			attacker.AdjustWeakened(-1 SECONDS) // blood is fuel
+			attacker.AdjustKnockdown(-1 SECONDS) // blood is fuel
+			if(!HAS_TRAIT(C, TRAIT_EXOTIC_BLOOD))
+				V.adjust_blood(C, blood_absorbed_amount)
 
 	if(!V.get_ability(/datum/vampire_passive/blood_spill))
 		durability--
 		if(durability <= 0)
 			qdel(src)
 			to_chat(user, span_warning("Your claws shatter!"))
-
-
-/obj/item/twohanded/required/vamp_claws/melee_attack_chain(mob/user, atom/target, params)
-	..()
-	if(wielded)
-		user.changeNext_move(CLICK_CD_MELEE * 0.5)
 
 
 /obj/item/twohanded/required/vamp_claws/attack_self(mob/user)
@@ -154,7 +152,7 @@
 	for(var/mob/living/L in range(distance, T))
 		if(L.affects_vampire(user))
 			L.Slowed(slowed_amount)
-			L.adjustToxLoss(33)
+			L.apply_damage(33, TOX)
 			L.visible_message(span_warning("[L] gets ensnare in blood tendrils, restricting [L.p_their()] movement!"))
 			var/turf/target_turf = get_turf(L)
 			playsound(target_turf, 'sound/magic/tail_swing.ogg', 50, TRUE)
@@ -250,7 +248,7 @@
 		return
 
 	var/wall_count
-	for(var/turf/T in getline(target_turf, start_turf))
+	for(var/turf/T as anything in get_line(target_turf, start_turf))
 		if(max_walls <= wall_count)
 			break
 		new /obj/structure/blood_barrier(T)
@@ -294,7 +292,11 @@
 	return ..()
 
 
-/obj/structure/blood_barrier/CanPass(atom/movable/mover, turf/target, height)
+/obj/structure/blood_barrier/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	if(checkpass(mover))
+		return TRUE
+
 	if(!isliving(mover))
 		return FALSE
 
@@ -316,7 +318,6 @@
 	gain_desc = "You have gained the ability to shift into a pool of blood, allowing you to evade pursuers with great mobility."
 	jaunt_duration = 8 SECONDS
 	clothes_req = FALSE
-	panel = "Vampire"
 	school = "vampire"
 	action_background_icon_state = "bg_vampire"
 	action_icon_state = "blood_pool"
@@ -451,7 +452,7 @@
 	START_PROCESSING(SSobj, src)
 
 
-/datum/vampire_passive/blood_spill/Destroy(force, ...)
+/datum/vampire_passive/blood_spill/Destroy(force)
 	STOP_PROCESSING(SSobj, src)
 	return ..()
 
@@ -460,7 +461,7 @@
 	var/beam_number = 0
 	var/datum/antagonist/vampire/V = owner.mind.has_antag_datum(/datum/antagonist/vampire)
 	for(var/mob/living/carbon/human/H in view(7, owner))
-		if(NO_BLOOD in H.dna.species.species_traits)
+		if(HAS_TRAIT(H, TRAIT_NO_BLOOD))
 			continue
 
 		if(!H.affects_vampire(owner) || H.stat)
@@ -471,8 +472,11 @@
 		H.bleed(drain_amount)
 		H.Beam(owner, icon_state = "drainbeam", time = 2 SECONDS)
 		H.adjustBruteLoss(5)
-		owner.heal_overall_damage(8, 2, TRUE)
-		owner.adjustStaminaLoss(-15)
+		var/update = NONE
+		update |= owner.heal_overall_damage(8, 2, updating_health = FALSE, affect_robotic = TRUE)
+		update |= owner.heal_damage_type(15, STAMINA, updating_health = FALSE)
+		if(update)
+			owner.updatehealth()
 		owner.AdjustStunned(-2 SECONDS)
 		owner.AdjustWeakened(-2 SECONDS)
 		if(drain_amount == 10)

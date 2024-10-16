@@ -15,7 +15,7 @@
 
 	if(!whom)
 		return "INVALID/(INVALID)"
-	if(istype(whom, /client))
+	if(isclient(whom))
 		C = whom
 		M = C.mob
 		key = C.key
@@ -29,7 +29,7 @@
 		M = D.current
 		if(D.current)
 			C = D.current.client
-	else if(istype(whom, /datum))
+	else if(isdatum(whom))
 		var/datum/D = whom
 		return "INVALID/([D.type])"
 	else if(istext(whom))
@@ -42,11 +42,11 @@
 	if(key)
 		if(C && C.holder && C.holder.fakekey && !include_name)
 			if(include_link)
-				. += "<a href='?priv_msg=[C.getStealthKey()];type=[type]'>"
+				. += "<a href='byond://?priv_msg=[C.getStealthKey()];type=[type]'>"
 			. += "Administrator"
 		else
 			if(include_link && C)
-				. += "<a href='?priv_msg=[C.ckey];type=[type]'>"
+				. += "<a href='byond://?priv_msg=[C.ckey];type=[type]'>"
 			. += key
 
 		if(include_link)

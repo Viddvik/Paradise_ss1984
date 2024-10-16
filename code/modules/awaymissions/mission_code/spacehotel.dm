@@ -3,7 +3,6 @@
 /area/awaymission/spacehotel
 	name = "Deep Space Hotel 419"
 	requires_power = FALSE
-	dynamic_lighting = DYNAMIC_LIGHTING_FORCED
 
 /area/awaymission/spacehotel/kitchen
 	name = "Hotel Kitchen"
@@ -15,16 +14,16 @@
 
 /area/awaymission/spacehotel/amazing_place
 	name = "Amazing Place"
-	requires_power = 0
+	static_lighting = FALSE
+	base_lighting_alpha = 255
+	base_lighting_color = COLOR_WHITE
 
 /area/awaymission/spacehotel/snowland
 	name = "Snowland"
-	requires_power = 0
 
 /area/awaymission/spacehotel/undersea
 	name = "Undersea"
 	icon_state = "undersea"
-	requires_power = 0
 
 // "Directional" map template loader for N or S hotel room
 /obj/effect/landmark/map_loader/hotel_room
@@ -69,7 +68,7 @@
 	info = "<h3>Welcome to Deep Space Hotel 419!</h3>Thank you for choosing our hotel. Simply hand your credit or debit card to the concierge and get your room key! To check out, hand your credit card back.<small><h4>Conditions:</h4><ul><li>The hotel is not responsible for any losses due to time or space anomalies.<li>The hotel is not responsible for events that occur outside of the hotel station, including, but not limited to, events that occur inside of dimensional pockets.<li>The hotel is not responsible for overcharging your account.<li>The hotel is not responsible for missing persons.<li>The hotel is not responsible for mind-altering effects due to drugs, magic, demons, or space worms.</ul></small>"
 
 /obj/effect/landmark/map_loader/hotel_room/Initialize()
-	..()
+	. = ..()
 	// load and randomly assign rooms
 	var/global/list/south_room_templates = list()
 	var/global/list/north_room_templates = list()
@@ -144,8 +143,7 @@
 			return 1
 	return 0
 
-/obj/machinery/door/unpowered/hotel_door/update_icon()
-	overlays.Cut()
+/obj/machinery/door/unpowered/hotel_door/update_icon_state()
 	if(density)
 		icon_state = "door_closed"
 	else
@@ -193,27 +191,29 @@
 	icon = 'icons/mob/screen_gen.dmi'
 	icon_state = "x"
 	invisibility = INVISIBILITY_ABSTRACT
-	anchored = 1
-	density = 0
-	opacity = 0
+	anchored = TRUE
+	density = FALSE
+	opacity = FALSE
 	var/list/room_doors[0]			// assoc list of [room id]=hotel_door
 	var/list/vacant_rooms[0]		// list of vacant room doors
 	var/list/guests[0]				// assoc list of [guest mob]=room id
 
 	var/obj/item/radio/radio	// for shouting at deadbeats
 
-/obj/effect/hotel_controller/New()
-	..()
+/obj/effect/hotel_controller/Initialize(mapload)
+	. = ..()
+
 	if(controller)
-		qdel(src)
+		return INITIALIZE_HINT_QDEL
+
 	controller = src
 
 	radio = new()
 	radio.broadcasting = 0
 	radio.listening = 0
-
+	var/area/myArea = get_area(src)
 	// get room doors
-	for(var/obj/machinery/door/unpowered/hotel_door/D in get_area(src))
+	for(var/obj/machinery/door/unpowered/hotel_door/D in myArea?.machinery_cache)
 		add_room(D)
 
 /obj/effect/hotel_controller/proc/add_room(obj/machinery/door/unpowered/hotel_door/D)

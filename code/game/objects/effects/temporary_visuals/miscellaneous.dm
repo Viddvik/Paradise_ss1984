@@ -1,12 +1,3 @@
-/obj/effect/temp_visual/point
-	name = "arrow"
-	desc = "It's an arrow hanging in mid-air. There may be a wizard about."
-	icon = 'icons/mob/screen_gen.dmi'
-	icon_state = "arrow"
-	layer = POINT_LAYER
-	duration = 20
-	randomdir = FALSE
-
 /obj/effect/temp_visual/dir_setting/bloodsplatter
 	icon = 'icons/effects/blood.dmi'
 	duration = 5
@@ -244,6 +235,15 @@
 	icon_state = "explosionfast"
 	duration = 4
 
+/obj/effect/temp_visual/explosion/florawave
+	icon_state = "florawave"
+	duration = 4
+
+/obj/effect/temp_visual/removing_flora
+	icon = 'icons/effects/effects.dmi'
+	icon_state = "greenshatter2"
+	duration = 2
+
 /obj/effect/temp_visual/heart
 	name = "heart"
 	icon = 'icons/mob/animal.dmi'
@@ -301,6 +301,14 @@
 	duration = 12
 	shrink = FALSE
 
+
+/obj/effect/temp_visual/gib
+	name = "gib"
+	icon = 'icons/mob/mob.dmi'
+	icon_state = "gibbed-h"
+	duration = 1.5 SECONDS
+
+
 /obj/effect/temp_visual/small_smoke
 	icon_state = "smoke"
 	duration = 50
@@ -325,7 +333,7 @@
 		else
 			pixel_x = rand(-1,1)
 			pixel_y = rand(-1,1)
-	..()
+	return ..()
 
 /obj/effect/temp_visual/dir_setting/firing_effect/energy
 	icon_state = "firing_effect_energy"

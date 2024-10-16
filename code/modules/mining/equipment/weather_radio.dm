@@ -22,13 +22,14 @@
 	var/state_warning = "urgentwarning"
 	/// Overlay added when you are in danger
 	var/state_danger = "direwarning"
+	light_system = MOVABLE_LIGHT
 
 /obj/item/radio/weather_monitor/Initialize(mapload)
 	. = ..()
 	START_PROCESSING(SSprocessing, src)
 	set_frequency(SUP_FREQ)
 	update_light_color()
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/radio/weather_monitor/Destroy()
 	. = ..()
@@ -41,18 +42,18 @@
 	if(previous_level == warning_level && previous_danger == is_weather_dangerous)
 		return // No change
 	atom_say(get_warning_message())
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 	update_light_color()
 
-/obj/item/radio/weather_monitor/update_icon()
-	overlays.Cut()
+/obj/item/radio/weather_monitor/update_overlays()
+	. = ..()
 	switch(warning_level)
 		if(WEATHER_ALERT_CLEAR)
-			overlays += state_normal
+			. += state_normal
 		if(WEATHER_ALERT_INCOMING)
-			overlays += state_warning
+			. += state_warning
 		if(WEATHER_ALERT_IMMINENT_OR_ACTIVE)
-			overlays += (is_weather_dangerous) ? state_danger : state_warning
+			. += is_weather_dangerous ? state_danger : state_warning
 
 /obj/item/radio/weather_monitor/proc/update_light_color()
 	switch(warning_level)
@@ -62,7 +63,7 @@
 			light_color = LIGHT_COLOR_YELLOW
 		if(WEATHER_ALERT_IMMINENT_OR_ACTIVE)
 			light_color = LIGHT_COLOR_PURE_RED
-	update_light()
+	set_light_color(light_color)
 
 /obj/item/radio/weather_monitor/proc/get_warning_message() //damn tts
 	if(!is_weather_dangerous)
@@ -71,7 +72,7 @@
 		if(WEATHER_ALERT_CLEAR)
 			return "Буря закончилась. Текущая погода не представляет угрозы."
 		if(WEATHER_ALERT_INCOMING)
-			return "Приближающается буря. Преступите к поиску убежища."
+			return "Приближается буря. Приступите к поиску убежища."
 		if(WEATHER_ALERT_IMMINENT_OR_ACTIVE)
 			return "Буря неизбежна. Немедленно найдите убежище."
 	return "Ошибка в просчёте погоды. Пожалуйста сообщите об ошибке в службу поддержки НТ."
@@ -101,10 +102,10 @@
 	var/time_until_next = time_till_storm()
 	if(isnull(time_until_next))
 		return // No problems if there are no mining z levels
-	if(time_until_next >= 2 MINUTES)
+	if(time_until_next >= 1 MINUTES)
 		warning_level = WEATHER_ALERT_CLEAR
 		return
-	if(time_until_next >= 30 SECONDS)
+	if(time_until_next >= 10 SECONDS)
 		warning_level = WEATHER_ALERT_INCOMING
 		return
 	// Weather is here, now we need to figure out if it is dangerous

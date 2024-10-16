@@ -22,7 +22,7 @@
 	return TRUE
 
 
-/datum/antagonist/malf_ai/Destroy(force, ...)
+/datum/antagonist/malf_ai/Destroy(force)
 	var/mob/living/silicon/ai/malf = owner?.current
 	if(istype(malf))
 		malf.clear_zeroth_law()
@@ -55,11 +55,13 @@
 
 /datum/antagonist/malf_ai/finalize_antag()
 	add_malf_tools()
+	var/list/messages = list()
 	if(give_codewords)
-		give_codewords()
+		messages.Add(give_codewords())
 	owner.current.playsound_local(get_turf(owner.current), 'sound/ambience/antag/malf.ogg', 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
 	var/mob/living/silicon/ai/shodan = owner.current
 	shodan.show_laws()
+	return messages
 
 
 /**
@@ -86,26 +88,26 @@
 	if(!owner.current)
 		return
 
-	var/mob/traitor_mob = owner.current
-
 	var/phrases = jointext(GLOB.syndicate_code_phrase, ", ")
 	var/responses = jointext(GLOB.syndicate_code_response, ", ")
 
 	antag_memory += "<b>Code Phrase</b>: <span class='red'>[phrases]</span><br>"
 	antag_memory += "<b>Code Response</b>: <span class='red'>[responses]</span><br>"
-	traitor_mob.client.chatOutput?.notify_syndicate_codes()
 
+	var/list/messages = list()
 	if(!silent)
-		to_chat(traitor_mob, "<U><B>The Syndicate have provided you with the following codewords to identify fellow agents:</B></U>")
-		to_chat(traitor_mob, "<span class='bold body'>Code Phrase: <span class='codephrases'>[phrases]</span></span>")
-		to_chat(traitor_mob, "<span class='bold body'>Code Response: <span class='coderesponses'>[responses]</span></span>")
-		to_chat(traitor_mob, "Use the codewords during regular conversation to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
-		to_chat(traitor_mob, "<b><font color=red>You memorize the codewords, allowing you to recognize them when heard.</font></b>")
-
+		messages.Add("<U><B>The Syndicate have provided you with the following codewords to identify fellow agents:</B></U>")
+		messages.Add("<span class='bold body'>Code Phrase: <span class='codephrases'>[phrases]</span></span>")
+		messages.Add("<span class='bold body'>Code Response: <span class='coderesponses'>[responses]</span></span>")
+		messages.Add("Use the codewords during regular conversation to identify other agents. Proceed with caution, however, as everyone is a potential foe.")
+		messages.Add("<b><font color=red>You memorize the codewords, allowing you to recognize them when heard.</font></b>")
+	return messages
 
 /datum/antagonist/malf_ai/greet()
+	var/list/messages = list()
 	if(owner?.current && !silent)
-		to_chat(owner.current, span_userdanger("You are a [job_rank]!"))
+		messages.Add(span_userdanger("You are a [job_rank]!"))
+	return messages
 
 
 /datum/antagonist/malf_ai/farewell()
@@ -120,12 +122,9 @@
 	if(!source)
 		return FALSE
 
-	if(!has_variable(source, "mind"))
-		if(has_variable(source, "antag_datums"))
-			var/datum/mind/our_mind = source
-			return our_mind.has_antag_datum(/datum/antagonist/malf_ai)
-
-		return FALSE
+	if(istype(source, /datum/mind))
+		var/datum/mind/our_mind = source
+		return our_mind.has_antag_datum(/datum/antagonist/malf_ai)
 
 	if(!isAI(source))
 		return FALSE

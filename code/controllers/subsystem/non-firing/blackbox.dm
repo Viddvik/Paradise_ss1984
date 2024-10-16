@@ -8,6 +8,7 @@ SUBSYSTEM_DEF(blackbox)
 	// The database SS has INIT_ORDER_DBCORE=16, and this SS has INIT_ORDER_BLACKBOX=15
 	// So putting this ensures it shuts down in the right order
 	init_order = INIT_ORDER_BLACKBOX
+	ss_id = "blackbox"
 
 	/// List of all recorded feedback
 	var/list/datum/feedback_variable/feedback = list()
@@ -24,15 +25,15 @@ SUBSYSTEM_DEF(blackbox)
 
 //no touchie
 /datum/controller/subsystem/blackbox/can_vv_get(var_name)
-	if(var_name == "feedback")
+	if(var_name == NAMEOF(src, feedback))
 		return debug_variable(var_name, deepCopyList(feedback), 0, src)
 	return ..()
 
 /datum/controller/subsystem/blackbox/vv_edit_var(var_name, var_value)
 	switch(var_name)
-		if("feedback")
+		if(NAMEOF(src, feedback))
 			return FALSE
-		if("sealed")
+		if(NAMEOF(src, sealed))
 			if(var_value)
 				return Seal()
 			return FALSE
@@ -268,6 +269,7 @@ SUBSYSTEM_DEF(blackbox)
   * * L - The human or cyborg to be logged
   */
 /datum/controller/subsystem/blackbox/proc/ReportDeath(mob/living/L)
+	set waitfor = FALSE
 	if(sealed)
 		return
 	if(!SSdbcore.IsConnected())

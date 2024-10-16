@@ -1,11 +1,12 @@
 /obj/item/clothing/gloves/color
-	dyeable = TRUE
+	dying_key = DYE_REGISTRY_GLOVES
 
 /obj/item/clothing/gloves/color/yellow
 	desc = "These gloves will protect the wearer from electric shock."
 	name = "insulated gloves"
 	icon_state = "yellow"
 	item_state = "ygloves"
+	belt_icon = "ygloves"
 	siemens_coefficient = 0
 	permeability_coefficient = 0.05
 	item_color="yellow"
@@ -19,33 +20,34 @@
 	var/shock_delay = 40
 	var/unlimited_power = FALSE // Does this really need explanation?
 
-/obj/item/clothing/gloves/color/yellow/power/equipped(mob/user, slot, initial)
+
+/obj/item/clothing/gloves/color/yellow/power/equipped(mob/living/carbon/human/user, slot, initial)
 	. = ..()
 
-	if(!ishuman(user))
-		return
-	var/mob/living/carbon/human/H = user
-	if(slot == slot_gloves)
-		if(H.middleClickOverride)
-			old_mclick_override = H.middleClickOverride
-		H.middleClickOverride = mclick_override
-		if(!unlimited_power)
-			to_chat(H, "<span class='notice'>You feel electricity begin to build up in [src].</span>")
-		else
-			to_chat(H, "<span class='biggerdanger'>You feel like you have UNLIMITED POWER!!</span>")
+	if(!ishuman(user) || slot != ITEM_SLOT_GLOVES)
+		return .
 
-/obj/item/clothing/gloves/color/yellow/power/dropped(mob/user, silent = FALSE)
+	if(user.middleClickOverride)
+		old_mclick_override = user.middleClickOverride
+	user.middleClickOverride = mclick_override
+	if(!unlimited_power)
+		to_chat(user, span_notice("You feel electricity begin to build up in [src]."))
+	else
+		to_chat(user, span_dangerbigger("You feel like you have UNLIMITED POWER!!!"))
+
+
+/obj/item/clothing/gloves/color/yellow/power/dropped(mob/living/carbon/human/user, slot, silent = FALSE)
 	. = ..()
 
-	if(!ishuman(user))
-		return
-	var/mob/living/carbon/human/H = user
-	if(H.get_item_by_slot(slot_gloves) == src && H.middleClickOverride == mclick_override)
-		if(old_mclick_override)
-			H.middleClickOverride = old_mclick_override
-			old_mclick_override = null
-		else
-			H.middleClickOverride = null
+	if(!ishuman(user) || slot != ITEM_SLOT_GLOVES || user.middleClickOverride != mclick_override)
+		return .
+
+	if(old_mclick_override)
+		user.middleClickOverride = old_mclick_override
+		old_mclick_override = null
+	else
+		user.middleClickOverride = null
+
 
 /obj/item/clothing/gloves/color/yellow/power/unlimited
 	name = "UNLIMITED POWER gloves"
@@ -54,22 +56,27 @@
 	unlimited_power = TRUE
 
 /obj/item/clothing/gloves/color/yellow/fake
-	desc = "These gloves will protect the wearer from electric shock. They don't feel like rubber..."
 	siemens_coefficient = 1
+
+/obj/item/clothing/gloves/color/yellow/fake/examine(mob/user)
+	. = ..()
+	if(Adjacent(user))
+		. += span_notice("They don't feel like rubber...")
+
 
 /obj/item/clothing/gloves/color/fyellow                             //Cheap Chinese Crap
 	desc = "These gloves are cheap copies of the coveted gloves, no way this can end badly."
 	name = "budget insulated gloves"
-	icon_state = "yellow"
+	icon_state = "fyellow"
 	item_state = "ygloves"
-	siemens_coefficient = 1			//Set to a default of 1, gets overridden in New()
+	siemens_coefficient = 0			//Set to a default of 0
+	belt_icon = "ygloves"
 	permeability_coefficient = 0.05
 	item_color="yellow"
 	resistance_flags = NONE
+	toolspeedmod = 0.2
+	clothing_traits = list(TRAIT_NO_GUNS)
 
-/obj/item/clothing/gloves/color/fyellow/New()
-	..()
-	siemens_coefficient = pick(0,0.5,0.5,0.5,0.5,0.75,1.5)
 
 /obj/item/clothing/gloves/color/fyellow/old
 	desc = "Old and worn out insulated gloves, hopefully they still work."
@@ -100,24 +107,30 @@
 	item_color = "chief"			//Exists for washing machines. Is not different from black gloves in any way.
 
 /obj/item/clothing/gloves/color/black/thief
-	pickpocket = 1
+	pickpocket = TRUE
 
-/obj/item/clothing/gloves/color/black/attackby(obj/item/W as obj, mob/user as mob, params)
-	if(istype(W, /obj/item/wirecutters))
-		if(can_be_cut && icon_state == initial(icon_state))//only if not dyed
-			var/confirm = alert("Do you want to cut off the gloves fingertips? Warning: It might destroy their functionality.","Cut tips?","Yes","No")
-			if(get_dist(user, src) > 1)
-				to_chat(user, "You have moved too far away.")
-				return
-			if(confirm == "Yes")
-				to_chat(user, "<span class='notice'>You snip the fingertips off of [src].</span>")
-				playsound(user.loc, W.usesound, rand(10,50), 1)
-				var/obj/item/clothing/gloves/fingerless/F = new/obj/item/clothing/gloves/fingerless(user.loc)
-				if(pickpocket)
-					F.pickpocket = FALSE
-				qdel(src)
-				return
-	..()
+
+/obj/item/clothing/gloves/color/black/wirecutter_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!can_be_cut || icon_state != initial(icon_state))	// only if not dyed
+		to_chat(user, span_warning("You cannot cut off [src]!"))
+		return .
+	if(loc == user)
+		to_chat(user, span_warning("You cut off [src]'s fingertips while wearing it!"))
+		return .
+	var/confirm = tgui_alert(user, "Do you want to cut off the gloves fingertips? Warning: It might destroy their functionality.", "Cut tips?", list("Yes", "No"))
+	if(confirm != "Yes" || icon_state != initial(icon_state) || !Adjacent(user) || user.incapacitated())
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	to_chat(user, span_notice("You snip the fingertips off of [src]."))
+	var/obj/item/clothing/gloves/fingerless/new_gloves = new(loc)
+	transfer_fingerprints_to(new_gloves)
+	new_gloves.add_fingerprint(user)
+	if(pickpocket)
+		new_gloves.pickpocket = FALSE
+	qdel(src)
+
 
 /obj/item/clothing/gloves/color/black/goliath
 	name = "goliath gloves"
@@ -126,6 +139,23 @@
 	item_state = "goligloves"
 	armor = list("melee" = 20, "bullet" = 10, "laser" = 10, "energy" = 5, "bomb" = 0, "bio" = 0, "rad" = 20, "fire" = 50, "acid" = 50)
 	can_be_cut = FALSE
+
+/obj/item/clothing/gloves/color/black/ballistic
+	name = "armored gloves"
+	desc = "Pair of gloves with some protection"
+	icon_state = "armored_gloves"
+	item_state = "armored_gloves"
+	armor = list("melee" = 5, "bullet" = 5, "laser" = 5, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 0, "acid" = 0)
+	can_be_cut = FALSE
+	sprite_sheets = list(
+		SPECIES_VOX = 'icons/mob/clothing/species/vox/gloves.dmi',
+		SPECIES_DRASK = 'icons/mob/clothing/species/drask/gloves.dmi',
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/gloves.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/gloves.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/gloves.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/gloves.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/gloves.dmi'
+		)
 
 /obj/item/clothing/gloves/color/orange
 	name = "orange gloves"
@@ -221,14 +251,24 @@
 	item_color="white"
 	transfer_prints = TRUE
 	resistance_flags = NONE
+	clothing_traits = list(TRAIT_QUICK_CARRY)
 
 /obj/item/clothing/gloves/color/latex/nitrile
 	name = "nitrile gloves"
 	desc = "Pricy sterile gloves that are stronger than latex."
 	icon_state = "nitrile"
-	item_state = "nitrilegloves"
+	item_state = "nitrile"
 	transfer_prints = FALSE
 	item_color = "medical"
+	clothing_traits = list(TRAIT_QUICKER_CARRY)
+
+/obj/item/clothing/gloves/color/latex/modified
+	name = "modified medical gloves"
+	desc = "They are very soft and light to the touch and do not hinder movement at all."
+	icon_state = "modified"
+	item_state = "modified"
+	item_color = "modified"
+	surgeryspeedmod = -0.3
 
 /obj/item/clothing/gloves/color/white
 	name = "white gloves"

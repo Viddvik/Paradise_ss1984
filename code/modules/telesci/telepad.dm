@@ -4,7 +4,7 @@
 	desc = "A bluespace telepad used for teleporting objects to and from a location."
 	icon = 'icons/obj/telescience.dmi'
 	icon_state = "pad-idle"
-	anchored = 1
+	anchored = TRUE
 	use_power = IDLE_POWER_USE
 	idle_power_usage = 200
 	active_power_usage = 5000
@@ -36,10 +36,16 @@
 		E += C.rating
 	efficiency = E
 
+
 /obj/machinery/telepad/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	return ..()
+
 
 /obj/machinery/telepad/screwdriver_act(mob/user, obj/item/I)
 	. = TRUE
@@ -91,7 +97,7 @@
 
 
 /obj/machinery/telepad_cargo/deconstruct(disassembled = TRUE)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		new /obj/item/stack/sheet/metal(loc)
 		new /obj/item/stack/sheet/glass(loc)
 	..()

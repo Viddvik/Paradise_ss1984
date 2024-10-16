@@ -1,3 +1,4 @@
+#define EMPHASIS_LETTERS_REGEX "\[^\\+\\|_%]"
 // At minimum every mob has a hear_say proc.
 
 /mob/proc/combine_message(list/message_pieces, mob/speaker, always_stars = FALSE)
@@ -10,10 +11,13 @@
 			continue
 
 		if(SP.speaking && SP.speaking.flags & INNATE) // If message contains noise lang parts other parts will be skipped
-			return SP.speaking.format_message(piece)
+			return SP.speaking.format_message(piece, speaker)
 
 		if(iteration_count == 1)
-			piece = capitalize(piece)
+			var/static/regex/my_regex = regex(EMPHASIS_LETTERS_REGEX)
+			var/capital_letter = my_regex.Find(piece)
+			if(capital_letter)
+				piece = my_regex.Replace_char(piece, uppertext(piece[capital_letter]), 1, capital_letter+1)
 
 		if(always_stars)
 			piece = stars(piece)
@@ -29,11 +33,26 @@
 			else
 				piece = stars(piece)
 		if(SP.speaking)
-			piece = SP.speaking.format_message(piece)
+			piece = SP.speaking.format_message(piece, speaker)
 		else
 			piece = "<span class='message'><span class='body'>[piece]</span></span>"
 		msg += (piece + " ")
+
+	if(msg == "")
+		. = ""
+		return
+
+	if(isliving(src))
+		for(var/datum/component/codeword_hearing/hearing_datum in GetComponents(/datum/component/codeword_hearing))
+			var/tmp_msg = hearing_datum.handle_hearing(msg)
+			if(!tmp_msg)
+				continue
+			msg = tmp_msg
+			//log_debug(msg)
+
 	return trim(msg)
+
+#undef EMPHASIS_LETTERS_REGEX
 
 /mob/proc/combine_message_tts(list/message_pieces, mob/speaker, always_stars = FALSE)
 	var/iteration_count = 0
@@ -44,7 +63,7 @@
 		if(piece == "")
 			continue
 
-		if(SP.speaking && SP.speaking.flags & INNATE) // TTS should not read emotes like "laughts"
+		if(SP.speaking == GLOB.all_languages[LANGUAGE_NOISE]) // TTS should not read emotes like "laughts"
 			return ""
 
 		if(iteration_count == 1)
@@ -72,11 +91,11 @@
 	if(message == "")
 		return ""
 	for(var/datum/multilingual_say_piece/SP in message_pieces)
-		if(SP.speaking && SP.speaking.flags & INNATE) // Message contains only emoutes, no need to add verb
+		if(SP.speaking == GLOB.all_languages[LANGUAGE_NOISE]) // Message contains only emoutes, no need to add verb
 			return message
 	return "[verb], \"[message]\""
 
-/mob/proc/hear_say(list/message_pieces, verb = "says", italics = 0, mob/speaker = null, sound/speech_sound, sound_vol, sound_frequency, use_voice = TRUE)
+/mob/proc/hear_say(list/message_pieces, verb = "says", italics = FALSE, mob/speaker = null, sound/speech_sound, sound_vol, sound_frequency, use_voice = TRUE)
 	if(!client)
 		return 0
 
@@ -109,7 +128,7 @@
 		var/mob/living/carbon/human/H = speaker
 		speaker_name = H.GetVoice()
 
-	var/message_clean = combine_message(message_pieces, speaker)
+	var/message_clean = say_emphasis(combine_message(message_pieces, speaker))
 	message_clean = replace_characters(message_clean, list("+"))
 	if(message_clean == "")
 		return
@@ -131,7 +150,7 @@
 	speaker_name = colorize_name(speaker, speaker_name)
 	// Ensure only the speaker is forced to emote, and that the spoken language is inname
 	for(var/datum/multilingual_say_piece/SP in message_pieces)
-		if(SP.speaking && SP.speaking.flags & INNATE)
+		if(SP.speaking == GLOB.all_languages[LANGUAGE_NOISE])
 			if(speaker == src)
 				custom_emote(EMOTE_AUDIBLE, message_clean, TRUE)
 			return
@@ -147,8 +166,8 @@
 		to_chat(src, "<span class='game say'><span class='name'>[speaker_name]</span>[speaker.GetAltName()] [track][verb_message(message_pieces, message, verb)]</span>")
 
 		// Create map text message
-		if (client?.prefs.toggles2 & PREFTOGGLE_2_RUNECHAT) // can_hear is checked up there on L99
-			create_chat_message(speaker, message_clean, FALSE, italics)
+		if(client?.prefs.toggles2 & PREFTOGGLE_2_RUNECHAT) // can_hear is checked up there on L99
+			create_chat_message(speaker, message_clean, italics ? list("italics") : null, get_runechat_language(message_pieces))
 
 		var/effect = SOUND_EFFECT_NONE
 		if(isrobot(speaker))
@@ -218,7 +237,7 @@
 	else
 		to_chat(src, "[part_a][track || speaker_name][part_b][message]</span></span>")
 		if(client?.prefs.toggles2 & PREFTOGGLE_2_RUNECHAT)
-			create_chat_message(speaker, message_clean, TRUE, FALSE)
+			create_chat_message(speaker, message_clean, list("radio"))
 		if(src != speaker || isrobot(src) || isAI(src))
 			var/effect = SOUND_EFFECT_RADIO
 			if(isrobot(speaker))
@@ -284,7 +303,7 @@
 		name = speaker.voice_name
 
 	if((client?.prefs.toggles2 & PREFTOGGLE_2_RUNECHAT) && can_hear())
-		create_chat_message(H, message_clean, TRUE, FALSE)
+		create_chat_message(H, message_clean, list("radio"))
 
 	var/effect = SOUND_EFFECT_RADIO
 	if(isrobot(speaker))
@@ -293,3 +312,14 @@
 
 	var/rendered = "<span class='game say'><span class='name'>[name]</span> [message]</span>"
 	to_chat(src, rendered)
+
+
+/// Gets language for runechat message.
+/// Will return first found language if more than one is present, cause I have no time to remake this for now.
+/proc/get_runechat_language(list/message_pieces)
+	for(var/datum/multilingual_say_piece/piece as anything in message_pieces)
+		if(!piece.message)
+			continue
+		if(piece.speaking?.runechat_span)
+			return piece.speaking
+

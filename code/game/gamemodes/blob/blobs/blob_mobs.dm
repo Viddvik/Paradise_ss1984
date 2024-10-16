@@ -11,8 +11,6 @@
 	faction = list(ROLE_BLOB)
 	bubble_icon = "blob"
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
-	maxbodytemp = 360
 	universal_speak = 1 //So mobs can understand them when a blob uses Blob Broadcast
 	sentience_type = SENTIENCE_OTHER
 	gold_core_spawnable = NO_SPAWN
@@ -20,6 +18,13 @@
 	fire_damage = 3
 	var/mob/camera/blob/overmind = null
 	tts_seed = "Earth"
+
+/mob/living/simple_animal/hostile/blob/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 360, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/blob/proc/adjustcolors(var/a_color)
 	if(a_color)
@@ -53,23 +58,31 @@
 	environment_smash = ENVIRONMENT_SMASH_STRUCTURES
 	attacktext = "ударяет"
 	attack_sound = 'sound/weapons/genhit1.ogg'
-	flying = TRUE
 	speak_emote = list("pulses")
 	var/obj/structure/blob/factory/factory = null
-	var/list/human_overlays = list()
+	var/list/human_overlays
 	var/mob/living/carbon/human/oldguy
 	var/is_zombie = FALSE
 
-/mob/living/simple_animal/hostile/blob/blobspore/CanPass(atom/movable/mover, turf/target, height=0)
+
+/mob/living/simple_animal/hostile/blob/blobspore/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
 	if(istype(mover, /obj/structure/blob))
-		return 1
-	return ..()
+		return TRUE
+
 
 /mob/living/simple_animal/hostile/blob/blobspore/New(loc, var/obj/structure/blob/factory/linked_node)
 	if(istype(linked_node))
 		factory = linked_node
 		factory.spores += src
 	..()
+
+
+/mob/living/simple_animal/hostile/blob/blobspore/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NO_FLOATING_ANIM, INNATE_TRAIT)
+	AddElement(/datum/element/simple_flying)
+
 
 /mob/living/simple_animal/hostile/blob/blobspore/Life(seconds, times_fired)
 
@@ -83,7 +96,7 @@
 /mob/living/simple_animal/hostile/blob/blobspore/proc/Zombify(mob/living/carbon/human/H)
 	if(!H.check_death_method())
 		H.death()
-	var/obj/item/organ/external/head/head_organ = H.get_organ("head")
+	var/obj/item/organ/external/head/head_organ = H.get_organ(BODY_ZONE_HEAD)
 	is_zombie = TRUE
 	if(H.wear_suit)
 		var/obj/item/clothing/suit/armor/A = H.wear_suit
@@ -148,11 +161,15 @@
 	color = a_color
 
 	if(is_zombie)
-		overlays.Cut()
-		overlays = human_overlays
+		cut_overlays()
+		add_overlay(human_overlays)
 		var/image/I = image('icons/mob/blob.dmi', icon_state = "blob_head")
 		I.color = color
-		overlays += I
+		add_overlay(I)
+
+		if(blocks_emissive)
+			add_overlay(get_emissive_block())
+
 
 /////////////////
 // BLOBBERNAUT //
@@ -172,38 +189,43 @@
 	attacktext = "ударяет"
 	attack_sound = 'sound/effects/blobattack.ogg'
 	speak_emote = list("gurgles")
-	minbodytemp = 0
-	maxbodytemp = 360
 	force_threshold = 10
 	mob_size = MOB_SIZE_LARGE
 	environment_smash = ENVIRONMENT_SMASH_STRUCTURES
 	pressure_resistance = 50
 	sight = SEE_TURFS|SEE_MOBS|SEE_OBJS
-	see_in_dark = 8
+	nightvision = 8
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
 	move_resist = MOVE_FORCE_OVERPOWERING
-	var/magpulse = 1
 
-/mob/living/simple_animal/hostile/blob/blobbernaut/mob_negates_gravity()
-	return magpulse
+/mob/living/simple_animal/hostile/ancient_robot_leg/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+		maxbodytemp = 360, \
+	)
 
-/mob/living/simple_animal/hostile/blob/blobbernaut/mob_has_gravity()
-	return ..() || mob_negates_gravity()
+/mob/living/simple_animal/hostile/blob/blobbernaut/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NEGATES_GRAVITY, INNATE_TRAIT)
+
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/experience_pressure_difference(pressure_difference, direction)
-	if(!magpulse)
+	if(!HAS_TRAIT(src, TRAIT_NEGATES_GRAVITY))
 		return ..()
+
+/mob/living/simple_animal/hostile/blob/blobbernaut/proc/add_to_gamemode()
+	var/list/blobernauts = SSticker?.mode?.blobs["blobernauts"]
+	blobernauts |= mind
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/Life(seconds, times_fired)
 	if(stat != DEAD && (getBruteLoss() || getFireLoss())) // Heal on blob structures
 		if(locate(/obj/structure/blob) in get_turf(src))
-			adjustBruteLoss(-0.25)
-			adjustFireLoss(-0.25)
+			heal_overall_damage(0.25, 0.25)
 			if(on_fire)
 				adjust_fire_stacks(-1)	// Slowly extinguish the flames
 		else
-			adjustBruteLoss(0.2) // If you are at full health, you won't lose health. You'll need it. However the moment anybody sneezes on you, the decaying will begin.
-			adjustFireLoss(0.2)
+			take_overall_damage(0.2, 0.2)	// If you are at full health, you won't lose health. You'll need it. However the moment anybody sneezes on you, the decaying will begin.
 	..()
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/New()
@@ -212,6 +234,7 @@
 		name = text("blobbernaut ([rand(1, 1000)])")
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/death(gibbed)
+	mind.name = name
 	// Only execute the below if we successfully died
 	. = ..()
 	if(!.)
@@ -227,9 +250,13 @@
 		blob_talk()
 
 /mob/living/simple_animal/hostile/blob/blobbernaut/proc/blob_talk()
-	var/message = input(src, "Announce to the overmind", "Blob Telepathy")
-	var/rendered = "<font color=\"#EE4000\"><i><span class='game say'>Blob Telepathy, <span class='name'>[name]([overmind])</span> <span class='message'>states, \"[message]\"</span></span></i></font>"
+	var/message = tgui_input_text(usr, "Announce to the overmind", "Blob Telepathy")
+	var/rendered = "<i><span class='blob'>Blob Telepathy,</span> <span class='name'>[name]([overmind]) states, <span class='blob'>\"[message]\"</span></i>"
 	if(message)
 		for(var/mob/M in GLOB.mob_list)
-			if(isovermind(M) || isobserver(M) || istype((M), /mob/living/simple_animal/hostile/blob/blobbernaut))
+			if(isovermind(M) || isblobbernaut(M) || isblobinfected(M.mind))
 				M.show_message(rendered, 2)
+			else if(isobserver(M) && !isnewplayer(M))
+				var/rendered_ghost = "<i><span class='blob'>Blob Telepathy,</span> <span class='name'>[name]([overmind]) </span> \
+				<a href='byond://?src=[M.UID()];follow=[UID()]'>(F)</a> states, <span class='blob'>\"[message]\"</span></i>"
+				M.show_message(rendered_ghost, 2)

@@ -181,7 +181,7 @@
 	var/list/borks = typesof(/obj/item/reagent_containers/food/snacks) - blocked
 	// BORK BORK BORK
 
-	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, 1)
+	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, TRUE)
 
 	for(var/mob/living/carbon/C in viewers(get_turf(holder.my_atom), null))
 		C.flash_eyes()
@@ -193,7 +193,7 @@
 			B.forceMove(get_turf(holder.my_atom))
 			if(prob(50))
 				for(var/j = 1, j <= rand(1, 3), j++)
-					step(B, pick(NORTH,SOUTH,EAST,WEST))
+					step(B, pick(NORTH, SOUTH, EAST, WEST))
 
 
 /datum/chemical_reaction/slimebork2
@@ -226,19 +226,19 @@
 	borks -= blocked
 	// BORK BORK BORK
 
-	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, 1)
+	playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, TRUE)
 
 	for(var/mob/living/carbon/M in viewers(get_turf(holder.my_atom), null))
 		M.flash_eyes()
 
-	for(var/i = 1, i <= 4 + rand(1,2), i++)
+	for(var/i = 1, i <= 4 + rand(1, 2), i++)
 		var/chosen = pick(borks)
 		var/obj/B = new chosen
 		if(B)
 			B.forceMove(get_turf(holder.my_atom))
 			if(prob(50))
 				for(var/j = 1, j <= rand(1, 3), j++)
-					step(B, pick(NORTH,SOUTH,EAST,WEST))
+					step(B, pick(NORTH, SOUTH, EAST, WEST))
 
 
 //Blue
@@ -278,16 +278,21 @@
 	required_container = /obj/item/slime_extract/darkblue
 	required_other = 1
 
+
 /datum/chemical_reaction/slimefreeze/on_reaction(datum/reagents/holder)
 	SSblackbox.record_feedback("tally", "slime_cores_used", 1, type)
 	var/turf/T = get_turf(holder.my_atom)
-	T.visible_message("<span class='danger'>The slime extract begins to vibrate adorably !</span>")
-	spawn(50)
-		if(holder && holder.my_atom)
-			playsound(get_turf(holder.my_atom), 'sound/effects/phasein.ogg', 100, 1)
-			for(var/mob/living/M in range (get_turf(holder.my_atom), 7))
-				M.bodytemperature -= 240
-				to_chat(M, "<span class='notice'>You feel a chill!</span>")
+	T.visible_message(span_danger("The slime extract begins to vibrate adorably!"))
+	addtimer(CALLBACK(src, PROC_REF(delayed_freeze), holder), 5 SECONDS)
+
+
+/datum/chemical_reaction/slimefreeze/proc/delayed_freeze(datum/reagents/holder)
+	if(holder?.my_atom)
+		var/turf/holder_turf = get_turf(holder.my_atom)
+		playsound(holder_turf, 'sound/effects/phasein.ogg', 100, TRUE)
+		for(var/mob/living/victim in range(holder_turf, 7))
+			victim.adjust_bodytemperature(-240)
+			to_chat(victim, span_notice("You feel a chill!"))
 
 
 /datum/chemical_reaction/slimefireproof

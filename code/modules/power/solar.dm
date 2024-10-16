@@ -46,12 +46,12 @@
 	if(!S)
 		S = new /obj/item/solar_assembly(src)
 		S.glass_type = /obj/item/stack/sheet/glass
-		S.anchored = 1
+		S.set_anchored(TRUE)
 	S.loc = src
 	if(S.glass_type == /obj/item/stack/sheet/rglass) //if the panel is in reinforced glass
 		max_integrity *= 2 								 //this need to be placed here, because panels already on the map don't have an assembly linked to
 		obj_integrity = max_integrity
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 
 /obj/machinery/power/solar/crowbar_act(mob/user, obj/item/I)
@@ -75,14 +75,14 @@
 			playsound(loc, 'sound/items/welder.ogg', 100, TRUE)
 
 /obj/machinery/power/solar/obj_break(damage_flag)
-	if(!(stat & BROKEN) && !(flags & NODECONSTRUCT))
+	if(!(stat & BROKEN) && !(obj_flags & NODECONSTRUCT))
 		playsound(loc, 'sound/effects/glassbr3.ogg', 100, TRUE)
 		stat |= BROKEN
 		unset_control()
-		update_icon()
+		update_icon(UPDATE_OVERLAYS)
 
 /obj/machinery/power/solar/deconstruct(disassembled = TRUE)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		if(disassembled)
 			var/obj/item/solar_assembly/S = locate() in src
 			if(S)
@@ -94,15 +94,13 @@
 			new /obj/item/shard(src.loc)
 	qdel(src)
 
-/obj/machinery/power/solar/update_icon()
-	..()
-	overlays.Cut()
+/obj/machinery/power/solar/update_overlays()
+	. = ..()
 	if(stat & BROKEN)
-		overlays += image('icons/obj/engines_and_power/power.dmi', icon_state = "solar_panel-b", layer = FLY_LAYER)
+		. += image('icons/obj/engines_and_power/power.dmi', icon_state = "solar_panel-b", layer = FLY_LAYER)
 	else
-		overlays += image('icons/obj/engines_and_power/power.dmi', icon_state = "solar_panel", layer = FLY_LAYER)
-		src.dir = angle2dir(adir)
-	return
+		. +=  image('icons/obj/engines_and_power/power.dmi', icon_state = "solar_panel", layer = FLY_LAYER)
+		dir = angle2dir(adir)
 
 //calculates the fraction of the sunlight that the panel recieves
 /obj/machinery/power/solar/proc/update_solar_exposure()
@@ -140,7 +138,7 @@
 	. = (!(stat & BROKEN))
 	stat |= BROKEN
 	unset_control()
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/machinery/power/solar/fake/New(var/turf/loc, var/obj/item/solar_assembly/S)
 	..(loc, S, 0)
@@ -167,11 +165,11 @@
 		if(T.x == 1 || T.x==world.maxx || T.y==1 || T.y==world.maxy)		// not obscured if we reach the edge
 			break
 
-		if(T.density)			// if we hit a solid turf, panel is obscured
-			obscured = 1
+		if(IS_OPAQUE_TURF(T))			// if we hit an opaque turf, panel is obscured
+			obscured = TRUE
 			return
 
-	obscured = 0		// if hit the edge or stepped 20 times, not obscured
+	obscured = FALSE		// if hit the edge or stepped 20 times, not obscured
 	update_solar_exposure()
 
 
@@ -186,11 +184,11 @@
 	icon_state = "sp_base"
 	item_state = "electropack"
 	w_class = WEIGHT_CLASS_BULKY // Pretty big!
-	anchored = 0
-	var/tracker = 0
+	anchored = FALSE
+	var/tracker = FALSE
 	var/glass_type = null
 
-/obj/item/solar_assembly/attack_hand(var/mob/user)
+/obj/item/solar_assembly/attack_hand(mob/user)
 	if(!anchored && !isturf(loc)) // You can't pick it up
 		..()
 
@@ -201,57 +199,99 @@
 		glass_type = null
 
 
-/obj/item/solar_assembly/attackby(var/obj/item/W, var/mob/user, params)
-
-	if(!anchored && isturf(loc))
-		if(istype(W, /obj/item/wrench))
-			add_fingerprint(user)
-			anchored = 1
-			user.visible_message("[user] wrenches the solar assembly into place.", "<span class='notice'>You wrench the solar assembly into place.</span>")
-			playsound(src.loc, W.usesound, 50, 1)
-			return 1
+/obj/item/solar_assembly/examine(mob/user)
+	. = ..()
+	. += "<span class='notice'>The solar assembly is <b>[anchored ? "wrenched into place" : "unwrenched"]</b>.</span>"
+	if(tracker)
+		. += "<span class='notice'>The solar assembly has a tracking circuit installed. It can be <b>pried out</b>.</span>"
 	else
-		if(istype(W, /obj/item/wrench))
-			add_fingerprint(user)
-			anchored = 0
-			user.visible_message("[user] unwrenches the solar assembly from its place.", "<span class='notice'>You unwrench the solar assembly from its place.</span>")
-			playsound(src.loc, W.usesound, 50, 1)
-			return 1
+		. += "<span class='notice'>The solar assembly has a slot for a <i>tracking circuit<i> board.</span>"
+	if(anchored)
+		.+= "<span class='notice'>The solar assembly needs <i>glass<i> to be completed.</span>"
 
-		if(istype(W, /obj/item/stack/sheet/glass) || istype(W, /obj/item/stack/sheet/rglass))
-			var/obj/item/stack/sheet/S = W
-			if(S.use(2))
-				add_fingerprint(user)
-				glass_type = W.type
-				playsound(loc, S.usesound, 50, 1)
-				user.visible_message("[user] places the glass on the solar assembly.", "<span class='notice'>You place the glass on the solar assembly.</span>")
-				if(tracker)
-					new /obj/machinery/power/tracker(get_turf(src), src)
-				else
-					new /obj/machinery/power/solar(get_turf(src), src)
-			else
-				to_chat(user, "<span class='warning'>You need two sheets of glass to put them into a solar panel.</span>")
-				return
-			return 1
 
-	if(!tracker)
-		if(istype(W, /obj/item/tracker_electronics))
-			if(!user.drop_transfer_item_to_loc(W, src))
-				return
-			tracker = 1
-			qdel(W)
-			user.visible_message("[user] inserts the electronics into the solar assembly.", "<span class='notice'>You insert the electronics into the solar assembly.</span>")
-			return 1
-	else if(istype(W, /obj/item/crowbar))
+/obj/item/solar_assembly/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/stack/sheet/glass) || istype(I, /obj/item/stack/sheet/rglass))
 		add_fingerprint(user)
-		var/obj/item/tracker_electronics/electronics = new(src.loc)
-		electronics.add_fingerprint(user)
-		tracker = 0
-		playsound(loc, W.usesound, 50, 1)
-		user.visible_message("[user] takes out the electronics from the solar assembly.", "<span class='notice'>You take out the electronics from the solar assembly.</span>")
-		return 1
+		var/obj/item/stack/sheet/glass = I
+		if(!anchored)
+			to_chat(user, span_warning("The solar panel should be secured to the floor first."))
+			return ATTACK_CHAIN_PROCEED
+		var/cached_sound = glass.usesound
+		if(!glass.use(2))
+			to_chat(user, span_warning("You need at least two sheets of glass to put them into the solar panel."))
+			return ATTACK_CHAIN_PROCEED
+		playsound(loc, cached_sound, 50, TRUE)
+		user.visible_message(
+			span_notice("[user] has constructed the glass panels on the solar assembly."),
+			span_notice("You have constructed the glass panels on the solar assembly."),
+		)
+		glass_type = glass.merge_type
+		var/obj/machinery/power/new_panel
+		if(tracker)
+			new_panel = new /obj/machinery/power/tracker(loc, src)
+		else
+			new_panel = new /obj/machinery/power/solar(loc, src)
+		transfer_fingerprints_to(new_panel)
+		new_panel.add_fingerprint(user)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(istype(I, /obj/item/tracker_electronics))
+		add_fingerprint(user)
+		if(!anchored)
+			to_chat(user, span_warning("The solar panel should be secured to the floor first."))
+			return ATTACK_CHAIN_PROCEED
+		if(tracker)
+			to_chat(user, span_warning("The tracker electronics is already installed."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		tracker = TRUE
+		user.visible_message(
+			span_notice("[user] has inserted the tracker electronics into the solar assembly."),
+			span_notice("You have inserted the tracker electronics into the solar assembly."),
+		)
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
+
+/obj/item/solar_assembly/wrench_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!anchored && !isturf(loc))
+		add_fingerprint(user)
+		to_chat(user, span_warning("You cannot wrench [src] [ismob(loc) ? "in inventory" : "in [loc]"]."))
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	set_anchored(!anchored)
+	if(anchored)
+		user.visible_message(
+			span_notice("[user] has wrenched the solar assembly into the floor."),
+			span_notice("You have wrenched the solar assembly into the floor."),
+		)
 	else
-		return ..()
+		user.visible_message(
+			span_notice("[user] has unwrenched the solar assembly from the floor."),
+			span_notice("You have wrenched the solar assembly form the floor."),
+		)
+
+
+/obj/item/solar_assembly/crowbar_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!tracker)
+		to_chat(user, span_warning("The [name] has no tracker electronics installed."))
+		return .
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	var/obj/item/tracker_electronics/electronics = new(drop_location())
+	electronics.add_fingerprint(user)
+	tracker = FALSE
+	user.visible_message(
+		span_notice("[user] has taken out the tracker electronics from the solar assembly."),
+		span_notice("You have taken out the tracker electronics from the solar assembly."),
+	)
 
 //
 // Solar Control Computer
@@ -285,6 +325,12 @@
 	var/autostart = FALSE	// Automatically search for connected devices
 	var/obj/machinery/power/tracker/connected_tracker = null
 	var/list/connected_panels = list()
+
+/obj/machinery/power/solar_control/old_frame
+	icon = 'icons/obj/machines/computer3.dmi'
+	icon_screen = "solar_oldframe"
+	icon_state = "frame-eng"
+	icon_keyboard = "kb14"
 
 // Used for mapping in solar array which automatically starts itself (telecomms, for example)
 /obj/machinery/power/solar_control/autostart
@@ -346,18 +392,20 @@
 		set_panels(cdir)
 	updateDialog()
 
-/obj/machinery/power/solar_control/update_icon()
-	overlays.Cut()
+
+/obj/machinery/power/solar_control/update_overlays()
+	. = ..()
 	if(stat & NOPOWER)
-		overlays += "[icon_keyboard]_off"
+		. += "[icon_keyboard]_off"
 		return
-	overlays += icon_keyboard
+	. += icon_keyboard
 	if(stat & BROKEN)
-		overlays += "[icon_state]_broken"
+		. += "[icon_state]_broken"
 	else
-		overlays += icon_screen
+		. += icon_screen
 	if(cdir > -1)
-		overlays += image('icons/obj/machines/computer.dmi', "solcon-o", FLY_LAYER, angle2dir(cdir))
+		. += image('icons/obj/machines/computer.dmi', icon_state = "solcon-o", layer = FLY_LAYER, dir = angle2dir(cdir))
+
 
 /obj/machinery/power/solar_control/attack_ai(mob/user as mob)
 	add_hiddenprint(user)
@@ -373,10 +421,10 @@
 		return
 	ui_interact(user)
 
-/obj/machinery/power/solar_control/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/power/solar_control/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SolarControl", name, 490, 300)
+		ui = new(user, src, "SolarControl", name)
 		ui.open()
 
 /obj/machinery/power/solar_control/ui_data(mob/user)
@@ -427,42 +475,32 @@
 				connected_tracker.modify_angle(SSsun.angle)
 			set_panels(cdir)
 
-/obj/machinery/power/solar_control/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/screwdriver))
-		playsound(src.loc, I.usesound, 50, 1)
-		if(do_after(user, 20 * I.toolspeed * gettoolspeedmod(user), target = src))
-			if(src.stat & BROKEN)
-				to_chat(user, "<span class='notice'>The broken glass falls out.</span>")
-				var/obj/structure/computerframe/A = new /obj/structure/computerframe(src.loc)
-				A.add_fingerprint(user)
-				var/obj/item/shard/shard = new(src.loc)
-				shard.add_fingerprint(user)
-				var/obj/item/circuitboard/solar_control/M = new /obj/item/circuitboard/solar_control(A)
-				M.add_fingerprint(user)
-				for(var/obj/C in src)
-					C.add_fingerprint(user)
-					C.loc = src.loc
-				A.circuit = M
-				A.state = 3
-				A.icon_state = "3"
-				A.anchored = 1
-				qdel(src)
-			else
-				to_chat(user, "<span class='notice'>You disconnect the monitor.</span>")
-				var/obj/structure/computerframe/A = new /obj/structure/computerframe(src.loc)
-				A.add_fingerprint(user)
-				var/obj/item/circuitboard/solar_control/M = new /obj/item/circuitboard/solar_control(A)
-				M.add_fingerprint(user)
-				for(var/obj/C in src)
-					C.add_fingerprint(user)
-					C.loc = src.loc
-				A.circuit = M
-				A.state = 4
-				A.icon_state = "4"
-				A.anchored = 1
-				qdel(src)
+/obj/machinery/power/solar_control/screwdriver_act(mob/user, obj/item/I)
+	. = TRUE
+	if(!I.tool_use_check(user, 0))
+		return
+	if(!I.use_tool(src, user, 20, volume = I.tool_volume))
+		return
+	var/obj/structure/computerframe/A = new (loc)
+	A.add_fingerprint(user)
+	var/obj/item/circuitboard/solar_control/M = new(A)
+	M.add_fingerprint(user)
+	for(var/obj/C in src)
+		C.forceMove(loc)
+	if(stat & BROKEN)
+		to_chat(user, "<span class='notice'>The broken glass falls out.</span>")
+		A.state = 4	// STATE_WIRES
+		var/obj/item/shard/shard = new(drop_location())
+		shard.add_fingerprint(user)
 	else
-		return ..()
+		to_chat(user, "<span class='notice'>You disconnect the monitor.</span>")
+		A.state = 5	// STATE_GLASS
+	A.dir = dir
+	A.circuit = M
+	A.update_icon(UPDATE_ICON_STATE)
+	A.set_anchored(TRUE)
+	qdel(src)
+
 
 /obj/machinery/power/solar_control/play_attack_sound(damage_amount, damage_type = BRUTE, damage_flag = 0)
 	switch(damage_type)
@@ -475,10 +513,10 @@
 			playsound(src.loc, 'sound/items/welder.ogg', 100, TRUE)
 
 /obj/machinery/power/solar_control/obj_break(damage_flag)
-	if(!(stat & BROKEN) && !(flags & NODECONSTRUCT))
+	if(!(stat & BROKEN) && !(obj_flags & NODECONSTRUCT))
 		playsound(loc, 'sound/effects/glassbr3.ogg', 100, TRUE)
 		stat |= BROKEN
-		update_icon()
+		update_icon(UPDATE_OVERLAYS)
 
 /obj/machinery/power/solar_control/process()
 	lastgen = gen
@@ -503,19 +541,20 @@
 	for(var/obj/machinery/power/solar/S in connected_panels)
 		S.adir = cdir //instantly rotates the panel
 		S.occlusion()//and
-		S.update_icon() //update it
+		S.update_icon(UPDATE_OVERLAYS) //update it
 
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 
 /obj/machinery/power/solar_control/power_change()
-	..()
-	update_icon()
+	if(!..())
+		return
+	update_icon(UPDATE_OVERLAYS)
 
 
 /obj/machinery/power/solar_control/proc/broken()
 	stat |= BROKEN
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 //
 // MISC

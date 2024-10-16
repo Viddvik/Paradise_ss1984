@@ -1,6 +1,6 @@
 /datum/species/shadow/ling
 	//Normal shadowpeople but with enhanced effects
-	name = "Shadowling"
+	name = SPECIES_SHADOWLING
 
 	icobase = 'icons/mob/human_races/r_shadowling.dmi'
 	deform = 'icons/mob/human_races/r_shadowling.dmi'
@@ -9,7 +9,15 @@
 	blood_color = "#555555"
 	flesh_color = "#222222"
 
-	species_traits = list(NO_BLOOD, NO_BREATHE, RADIMMUNE, NOGUNS, NO_HUNGER, NO_EXAMINE) //Can't use guns due to muzzle flash
+	inherent_traits = list(
+		TRAIT_NO_BLOOD,
+		TRAIT_NO_BREATH,
+		TRAIT_RADIMMUNE,
+		TRAIT_NO_GUNS,	// can't use guns due to muzzle flash	// yeah totally not a balance reason
+		TRAIT_VIRUSIMMUNE,
+		TRAIT_NO_SPECIES_EXAMINE,
+		TRAIT_NO_HUNGER,
+	)
 	burn_mod = 1.25
 	heatmod = 1.5
 
@@ -17,8 +25,10 @@
 	grant_vision_toggle = 0
 
 	has_organ = list(
-		"brain" =    /obj/item/organ/internal/brain,
-		"eyes" =     /obj/item/organ/internal/eyes)
+		INTERNAL_ORGAN_BRAIN = /obj/item/organ/internal/brain,
+		INTERNAL_ORGAN_EYES = /obj/item/organ/internal/eyes,
+		INTERNAL_ORGAN_EARS = /obj/item/organ/internal/ears,
+	)
 
 	disliked_food = NONE
 
@@ -28,7 +38,7 @@
 		var/turf/T = H.loc
 		light_amount = T.get_lumcount() * 10
 		if(light_amount > LIGHT_DAM_THRESHOLD && !H.incorporeal_move) //Can survive in very small light levels. Also doesn't take damage while incorporeal, for shadow walk purposes
-			H.throw_alert("lightexposure", /obj/screen/alert/lightexposure)
+			H.throw_alert("lightexposure", /atom/movable/screen/alert/lightexposure)
 			if(is_species(H, /datum/species/shadow/ling/lesser))
 				H.take_overall_damage(0, LIGHT_DAMAGE_TAKEN/2)
 			else
@@ -40,19 +50,22 @@
 			H.clear_alert("lightexposure")
 			var/obj/item/organ/internal/eyes/E = H.get_int_organ(/obj/item/organ/internal/eyes)
 			if(istype(E))
-				E.receive_damage(-1)
+				E.internal_receive_damage(-1)
+			var/update = NONE
 			if(is_species(H, /datum/species/shadow/ling/lesser))
-				H.heal_overall_damage(2, 3)
+				update |= H.heal_overall_damage(2, 3, updating_health = FALSE)
 			else
-				H.heal_overall_damage(5, 7)
-			H.adjustToxLoss(-5)
-			H.adjustBrainLoss(-25) //Shad O. Ling gibbers, "CAN U BE MY THRALL?!!"
+				update |= H.heal_overall_damage(5, 7, updating_health = FALSE)
+			update |= H.heal_damages(tox = 5, clone = 1, brain = 25, updating_health = FALSE)
+			if(update)
+				H.updatehealth()
 			H.AdjustEyeBlurry(-2 SECONDS)
 			H.CureNearsighted()
 			H.CureBlind()
-			H.adjustCloneLoss(-1)
+
 			H.SetWeakened(0)
 			H.SetStunned(0)
+			H.SetKnockdown(0)
 		else
 			if(H.health <= HEALTH_THRESHOLD_CRIT) // to finish shadowlings in rare occations
 				H.adjustBruteLoss(1)
@@ -63,7 +76,7 @@
 	handle_light(H)
 
 /datum/species/shadow/ling/lesser //Empowered thralls. Obvious, but powerful
-	name = "Lesser Shadowling"
+	name = SPECIES_LESSER_SHADOWLING
 
 	icobase = 'icons/mob/human_races/r_lshadowling.dmi'
 	deform = 'icons/mob/human_races/r_lshadowling.dmi'
@@ -71,7 +84,13 @@
 	blood_color = "#CCCCCC"
 	flesh_color = "#AAAAAA"
 
-	species_traits = list(NO_BLOOD, NO_BREATHE, RADIMMUNE, NO_HUNGER, NO_EXAMINE)
+	inherent_traits = list(
+		TRAIT_NO_BLOOD,
+		TRAIT_NO_BREATH,
+		TRAIT_RADIMMUNE,
+		TRAIT_NO_SPECIES_EXAMINE,
+		TRAIT_NO_HUNGER,
+	)
 	burn_mod = 1.1
 	heatmod = 1.1
 

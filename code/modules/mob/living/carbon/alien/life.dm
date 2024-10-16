@@ -1,5 +1,16 @@
+/mob/living/carbon/alien/Life(seconds, times_fired)
+	. = ..()
+	if(. && can_evolve && evolution_points < max_evolution_points)
+		var/points_to_add = 1
+		if(locate(/obj/structure/alien/weeds) in loc)
+			points_to_add *= 2
+		if(body_position == LYING_DOWN)
+			points_to_add *= 2
+		evolution_points = min(evolution_points + points_to_add, max_evolution_points)
+
+
 /mob/living/carbon/alien/check_breath(datum/gas_mixture/breath)
-	if(status_flags & GODMODE)
+	if(HAS_TRAIT(src, TRAIT_GODMODE))
 		return
 
 	if(!breath || (breath.total_moles() == 0))
@@ -15,7 +26,7 @@
 
 	if(Toxins_pp > tox_detect_threshold) // Detect toxins in air
 		adjust_alien_plasma(breath.toxins*250)
-		throw_alert("alien_tox", /obj/screen/alert/alien_tox)
+		throw_alert("alien_tox", /atom/movable/screen/alert/alien_tox)
 
 		toxins_used = breath.toxins
 
@@ -29,11 +40,17 @@
 	//BREATH TEMPERATURE
 	handle_breath_temperature(breath)
 
+
 /mob/living/carbon/alien/handle_status_effects()
 	..()
 	//natural reduction of movement delay due to stun.
 	if(move_delay_add > 0)
 		move_delay_add = max(0, move_delay_add - rand(1, 2))
+		if(move_delay_add > 0)
+			add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/alien_stun_delay, multiplicative_slowdown = move_delay_add)
+		else
+			remove_movespeed_modifier(/datum/movespeed_modifier/alien_stun_delay)
+
 
 /mob/living/carbon/alien/handle_fire()//Aliens on fire code
 	. = ..()
@@ -48,6 +65,6 @@
 			LAZYREMOVE(stomach_contents, M)
 			continue
 		if(stat != DEAD)
-			M.Weaken(3 SECONDS)
-			M.EyeBlind(3 SECONDS)
+			M.SetWeakened(4 SECONDS)
+			M.SetEyeBlind(4 SECONDS)
 			M.adjustBruteLoss(1.5)

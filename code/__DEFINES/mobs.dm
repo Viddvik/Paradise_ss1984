@@ -1,11 +1,13 @@
 ///////////////////ORGAN DEFINES///////////////////
 
 // Organ defines.
-#define ORGAN_BROKEN     1
-#define ORGAN_ROBOT      2
-#define ORGAN_SPLINTED   4
-#define ORGAN_DEAD       8
-#define ORGAN_MUTATED    16
+#define ORGAN_BROKEN		(1<<0)
+#define ORGAN_ROBOT			(1<<1)
+#define ORGAN_SPLINTED		(1<<2)
+#define ORGAN_DEAD			(1<<3)
+#define ORGAN_MUTATED		(1<<4)
+#define ORGAN_INT_BLEED		(1<<5)
+#define ORGAN_DISFIGURED	(1<<6)
 
 #define PROCESS_ACCURACY 10
 
@@ -23,10 +25,6 @@
 #define RIGHT 2
 
 #define SPLINT_LIFE 2000 //number of steps splints stay on
-
-//BONE DEFINE
-
-#define FRAGILITY(A) (ishuman(A) ? A.dna.species.bonefragility : 1)
 
 
 //Pulse levels, very simplified
@@ -85,24 +83,24 @@
 #define SYNTHETIC 2
 
 // Appearance change flags
-#define APPEARANCE_UPDATE_DNA 1
-#define APPEARANCE_RACE	2|APPEARANCE_UPDATE_DNA
-#define APPEARANCE_GENDER 4|APPEARANCE_UPDATE_DNA
-#define APPEARANCE_SKIN 8
-#define APPEARANCE_HAIR 16
-#define APPEARANCE_HAIR_COLOR 32
-#define APPEARANCE_SECONDARY_HAIR_COLOR 64
-#define APPEARANCE_FACIAL_HAIR 128
-#define APPEARANCE_FACIAL_HAIR_COLOR 256
-#define APPEARANCE_SECONDARY_FACIAL_HAIR_COLOR 512
-#define APPEARANCE_EYE_COLOR 1024
+#define APPEARANCE_UPDATE_DNA (1<<0)
+#define APPEARANCE_RACE	(1<<1|APPEARANCE_UPDATE_DNA)
+#define APPEARANCE_GENDER (1<<2|APPEARANCE_UPDATE_DNA)
+#define APPEARANCE_SKIN (1<<3)
+#define APPEARANCE_HAIR (1<<4)
+#define APPEARANCE_HAIR_COLOR (1<<5)
+#define APPEARANCE_SECONDARY_HAIR_COLOR (1<<6)
+#define APPEARANCE_FACIAL_HAIR (1<<7)
+#define APPEARANCE_FACIAL_HAIR_COLOR (1<<8)
+#define APPEARANCE_SECONDARY_FACIAL_HAIR_COLOR (1<<9)
+#define APPEARANCE_EYE_COLOR (1<<10)
 #define APPEARANCE_ALL_HAIR APPEARANCE_HAIR|APPEARANCE_HAIR_COLOR|APPEARANCE_SECONDARY_HAIR_COLOR|APPEARANCE_FACIAL_HAIR|APPEARANCE_FACIAL_HAIR_COLOR|APPEARANCE_SECONDARY_FACIAL_HAIR_COLOR
-#define APPEARANCE_HEAD_ACCESSORY 2048
-#define APPEARANCE_MARKINGS 4096
-#define APPEARANCE_BODY_ACCESSORY 8192
-#define APPEARANCE_ALT_HEAD 16384
+#define APPEARANCE_HEAD_ACCESSORY (1<<11)
+#define APPEARANCE_MARKINGS (1<<12)
+#define APPEARANCE_BODY_ACCESSORY (1<<13)
+#define APPEARANCE_ALT_HEAD (1<<14)
 #define APPEARANCE_ALL_BODY APPEARANCE_ALL_HAIR|APPEARANCE_HEAD_ACCESSORY|APPEARANCE_MARKINGS|APPEARANCE_BODY_ACCESSORY|APPEARANCE_ALT_HEAD
-#define APPEARANCE_ALL 32767
+#define APPEARANCE_ALL APPEARANCE_RACE|APPEARANCE_GENDER|APPEARANCE_SKIN|APPEARANCE_EYE_COLOR|APPEARANCE_ALL_HAIR|APPEARANCE_ALL_BODY
 
 #define STAMINA_REGEN_BLOCK_TIME (10 SECONDS)
 
@@ -130,12 +128,15 @@
 #define SLIME_FRIENDSHIP_STAY				3 //Min friendship to order it to stay
 #define SLIME_FRIENDSHIP_ATTACK				8 //Min friendship to order it to attack
 
+//Hostile simple animals
 //If you add a new status, be sure to add a list for it to the simple_animals global in _globalvars/lists/mobs.dm
-//Hostile Mob AI Status
-#define AI_ON       1
-#define AI_IDLE     2
-#define AI_OFF      3
-#define AI_Z_OFF    4
+#define AI_ON 1
+#define AI_IDLE 2
+#define AI_OFF 3
+#define AI_Z_OFF 4
+
+//The range at which a mob should wake up if you spawn into the z level near it
+#define MAX_SIMPLEMOB_WAKEUP_RANGE 5
 
 // Intents
 #define INTENT_HELP		"help"
@@ -161,10 +162,10 @@
 #define ENVIRONMENT_SMASH_WALLS 2   //walls
 #define ENVIRONMENT_SMASH_RWALLS 4  //rwalls
 
-#define POCKET_STRIP_DELAY			40	//time taken (in deciseconds) to search somebody's pockets
+#define POCKET_STRIP_DELAY			4 SECONDS	//time taken to search somebody's pockets
 
-#define DEFAULT_ITEM_STRIP_DELAY		40  //time taken (in deciseconds) to strip somebody
-#define DEFAULT_ITEM_PUTON_DELAY		20  //time taken (in deciseconsd) to reverse-strip somebody
+#define DEFAULT_ITEM_STRIP_DELAY		4 SECONDS  //time taken to strip somebody
+#define DEFAULT_ITEM_PUTON_DELAY		2 SECONDS  //time taken to reverse-strip somebody
 
 #define IGNORE_ACCESS -1
 
@@ -180,11 +181,11 @@
 #define TINT_BLIND 3			//Threshold of tint level to obscure vision fully
 #define EYE_SHINE_THRESHOLD 6	//dark_view threshold past which a humanoid's eyes will 'shine' in the dark.
 
-#define STATUS_UPDATE_HEALTH 1
-#define STATUS_UPDATE_STAT 2
-#define STATUS_UPDATE_STAMINA 8
-#define STATUS_UPDATE_BLIND 16
-#define STATUS_UPDATE_NEARSIGHTED 64
+#define STATUS_UPDATE_HEALTH (1<<0)
+#define STATUS_UPDATE_STAT (1<<1)
+#define STATUS_UPDATE_STAMINA (1<<2)
+#define STATUS_UPDATE_BLIND (1<<3)
+#define STATUS_UPDATE_NEARSIGHTED (1<<4)
 
 #define STATUS_UPDATE_NONE 0
 #define STATUS_UPDATE_ALL (~0)
@@ -200,7 +201,6 @@
 #define isshadowlinglesser(A) (is_species(A, /datum/species/shadow/ling/lesser))
 #define isabductor(A) (is_species(A, /datum/species/abductor))
 #define isgolem(A) (is_species(A, /datum/species/golem))
-#define ismonkeybasic(A) (is_species(A, /datum/species/monkey))
 #define isfarwa(A) (is_species(A, /datum/species/monkey/tajaran))
 #define iswolpin(A) (is_species(A, /datum/species/monkey/vulpkanin))
 #define isneara(A) (is_species(A, /datum/species/monkey/skrell))
@@ -225,6 +225,64 @@
 #define iswryn(A) (is_species(A, /datum/species/wryn))
 #define ismoth(A) (is_species(A, /datum/species/moth))
 
+//Human sub-species names
+#define SPECIES_ABDUCTOR "Abductor"
+#define SPECIES_DIONA "Diona"
+#define SPECIES_DRASK "Drask"
+
+#define SPECIES_GOLEM_BASIC "Голем" //basic-golem used in gamemodes, but not subtypes? whoever find this comment - take a closer look at this
+#define SPECIES_GOLEM_RANDOM "Случайный Голем"
+#define SPECIES_GOLEM_ADAMANTINE "Адамантиновый Голем"
+#define SPECIES_GOLEM_PLASMA "Плазменный Голем"
+#define SPECIES_GOLEM_DIAMOND "Алмазный Голем"
+#define SPECIES_GOLEM_GOLD "Золотой Голем"
+#define SPECIES_GOLEM_SILVER "Серебрянный Голем"
+#define SPECIES_GOLEM_PLASTEEL "Пласталиевый Голем"
+#define SPECIES_GOLEM_TITANIUM "Титановый Голем"
+#define SPECIES_GOLEM_PLASTITANIUM "Пластитановый Голем"
+#define SPECIES_GOLEM_ALLOY "Голем из инопланетных сплавов"
+#define SPECIES_GOLEM_WOOD "Деревянный Голем"
+#define SPECIES_GOLEM_URANIUM "Урановый Голем"
+#define SPECIES_GOLEM_PLASTIC "Пластиковый Голем"
+#define SPECIES_GOLEM_SAND "Песчаный Голем"
+#define SPECIES_GOLEM_GLASS "Стеклянный Голем"
+#define SPECIES_GOLEM_BLUESPACE "Блюспейс-Голем"
+#define SPECIES_GOLEM_BANANIUM "Бананиевый Голем"
+#define SPECIES_GOLEM_TRANQUILLITITE "Транквилитовый Голем"
+#define SPECIES_GOLEM_CLOCKWORK "Латунный Голем"
+
+#define SPECIES_GREY "Grey"
+#define SPECIES_HUMAN "Human"
+#define SPECIES_KIDAN "Kidan"
+#define SPECIES_MACNINEPERSON "Machine"
+#define SPECIES_MONKEY "Monkey"
+#define SPECIES_FARWA "Farwa"
+#define SPECIES_WOLPIN "Wolpin"
+#define SPECIES_NEARA "Neara"
+#define SPECIES_STOK "Stok"
+#define SPECIES_MOTH "Nian"
+#define SPECIES_NUCLEATION "Nucleation"
+#define SPECIES_PLASMAMAN "Plasmaman"
+
+#define SPECIES_SHADOW_BASIC "Shadow"
+#define SPECIES_SHADOWLING "Shadowling"
+#define SPECIES_LESSER_SHADOWLING "Lesser Shadowling"
+
+#define SPECIES_SKELETON "Skeleton"
+#define SPECIES_SKRELL "Skrell"
+#define SPECIES_SLIMEPERSON "Slime People"
+#define SPECIES_TAJARAN "Tajaran"
+
+#define SPECIES_UNATHI "Unathi"
+#define SPECIES_ASHWALKER_BASIC "Ash Walker"
+#define SPECIES_ASHWALKER_SHAMAN "Ash Walker Shaman"
+#define SPECIES_DRACONOID "Draconid"
+
+#define SPECIES_VOX "Vox"
+#define SPECIES_VOX_ARMALIS "Vox Armalis"
+#define SPECIES_VULPKANIN "Vulpkanin"
+#define SPECIES_WRYN "Wryn"
+
 #define isanimal(A)		(istype((A), /mob/living/simple_animal))
 #define iscat(A)		(istype((A), /mob/living/simple_animal/pet/cat))
 #define isdog(A)		(istype((A), /mob/living/simple_animal/pet/dog))
@@ -239,6 +297,7 @@
 #define isslaughterdemon(A) (istype((A), /mob/living/simple_animal/demon/slaughter))
 #define isdemon(A) 			(istype((A), /mob/living/simple_animal/demon))
 #define ismorph(A)		(istype((A), /mob/living/simple_animal/hostile/morph))
+#define isborer(A)		(istype((A), /mob/living/simple_animal/borer))
 
 #define issilicon(A)	(istype((A), /mob/living/silicon))
 #define isAI(A)			(istype((A), /mob/living/silicon/ai))
@@ -246,10 +305,6 @@
 #define ispAI(A)		(istype((A), /mob/living/silicon/pai))
 #define isdrone(A)		(istype((A), /mob/living/silicon/robot/drone))
 #define iscogscarab(A)	(istype((A), /mob/living/silicon/robot/cogscarab))
-
-// For tools
-
-#define gettoolspeedmod(A) (ishuman(A) ? A.dna.species.toolspeedmod : 1)
 
 // For the tcomms monitor
 #define ispathhuman(A)		(ispath(A, /mob/living/carbon/human))
@@ -271,12 +326,30 @@
 
 #define isnewplayer(A)  (istype((A), /mob/new_player))
 
-#define isorgan(A)		(istype((A), /obj/item/organ/external))
-#define hasorgans(A)	(ishuman(A))
+#define isexternalorgan(A)		(istype((A), /obj/item/organ/external))
+
+#define hasorgans(A)	(iscarbon(A))
 
 #define is_admin(user)	(check_rights(R_ADMIN, 0, (user)) != 0)
 
-#define SLEEP_CHECK_DEATH(X) sleep(X); if(QDELETED(src) || stat == DEAD) return;
+#define SLEEP_CHECK_DEATH(A, X) \
+	sleep(X); \
+	if(QDELETED(A)) return; \
+	if(ismob(A)) { \
+		var/mob/sleep_check_death_mob = A; \
+		if(sleep_check_death_mob.stat == DEAD) return; \
+	}
+
+/// Until a condition is true, sleep. If target is qdeleted or dead, return.
+#define UNTIL_DEATH_CHECK(target, expression) \
+	while(!(expression)) { \
+		stoplag(); \
+		if(QDELETED(target)) return; \
+		if(ismob(target)) { \
+			var/mob/sleep_check_death_mob = target; \
+			if(sleep_check_death_mob.stat == DEAD) return; \
+		}; \
+	};
 
 // Locations
 #define is_ventcrawling(A)  (istype(A.loc, /obj/machinery/atmospherics))
@@ -287,4 +360,99 @@
 #define HEARING_PROTECTION_MAJOR	2
 #define HEARING_PROTECTION_TOTAL	3
 
-#define FIRE_DMI (issmall(src) ? 'icons/mob/clothing/species/monkey/OnFire.dmi' : 'icons/mob/OnFire.dmi')
+// Eye protection
+#define FLASH_PROTECTION_VERYVUNERABLE -4
+#define FLASH_PROTECTION_SENSITIVE -1
+#define FLASH_PROTECTION_NONE 0
+#define FLASH_PROTECTION_FLASH 1
+#define FLASH_PROTECTION_WELDER 2
+
+#define MAX_EYE_BLURRY_FILTER_SIZE 5
+#define EYE_BLUR_TO_FILTER_SIZE_MULTIPLIER 0.1
+
+#define FIRE_DMI(target) (is_monkeybasic(target) ? 'icons/mob/clothing/species/monkey/OnFire.dmi' : 'icons/mob/OnFire.dmi')
+
+///Define for spawning megafauna instead of a mob for cave gen
+#define SPAWN_MEGAFAUNA "bluh bluh huge boss"
+
+// Body position defines.
+/// Mob is standing up, usually associated with lying_angle value of 0.
+#define STANDING_UP 0
+/// Mob is lying down, usually associated with lying_angle values of 90 or 270.
+#define LYING_DOWN 1
+
+///How much a mob's sprite should be moved when they're lying down
+#define PIXEL_Y_OFFSET_LYING -6
+
+// Slip flags, also known as lube flags
+/// The mob will not slip if they're walking intent
+#define NO_SLIP_WHEN_WALKING (1<<0)
+/// Slipping on this will send them sliding a few tiles down
+#define SLIDE (1<<1)
+/// Ice slides only go one tile and don't knock you over, they're intended to cause a "slip chain"
+/// where you slip on ice until you reach a non-slippable tile (ice puzzles)
+#define SLIDE_ICE (1<<2)
+/// [TRAIT_NO_SLIP_WATER] does not work on this slip. ONLY [TRAIT_NO_SLIP_ALL] will
+#define SLIP_IGNORE_NO_SLIP_WATER (1<<3)
+/// Slip works even if you're already on the ground
+#define SLIP_WHEN_LYING (1<<4)
+/// the mob won't slip if the turf has the TRAIT_TURF_IGNORE_SLIPPERY trait.
+#define SLIPPERY_TURF (1<<5)
+
+/// Possible value of [/atom/movable/buckle_lying]. If set to a different (positive-or-zero) value than this, the buckling thing will force a lying angle on the buckled.
+#define NO_BUCKLE_LYING -1
+
+#define GRAB_PIXEL_SHIFT_PASSIVE 6
+#define GRAB_PIXEL_SHIFT_AGGRESSIVE 12
+#define GRAB_PIXEL_SHIFT_NECK 10
+#define GRAB_PIXEL_SHIFT_KILL 16
+
+#define PULL_LYING_MOB_SLOWDOWN 1.3
+#define PUSH_STANDING_MOB_SLOWDOWN 1.3
+#define HUMAN_CARRY_SLOWDOWN 0.6
+
+#define ACTIVE_HAND_RIGHT 0
+#define ACTIVE_HAND_LEFT 1
+
+#define PULL_WITHOUT_HANDS "pull_without_hands"
+#define PULL_HAND_RIGHT 0
+#define PULL_HAND_LEFT 1
+
+/// Times it takes for a mob to be eaten by default.
+#define DEVOUR_TIME_DEFAULT (10 SECONDS)
+/// Time it takes for a simple mob to be eaten.
+#define DEVOUR_TIME_ANIMAL (3 SECONDS)
+
+
+//Flags used by the flags parameter of electrocute act.
+///Makes it so that the shock doesn't take gloves into account.
+#define SHOCK_NOGLOVES (1<<0)
+///Used when the shock is from a tesla bolt.
+#define SHOCK_TESLA (1<<1)
+///Used when an illusion shocks something. Makes the shock deal stamina damage and not trigger certain secondary effects.
+#define SHOCK_ILLUSION (1<<2)
+///The shock doesn't stun.
+#define SHOCK_NOSTUN (1<<3)
+/// No default message is sent from the shock
+#define SHOCK_SUPPRESS_MESSAGE (1<<4)
+/// Ignores TRAIT_SHOCKIMMUNE / TRAIT_TESLA_SHOCKIMMUNE
+#define SHOCK_IGNORE_IMMUNITY (1<<5)
+/// Prevents the immediate stun, instead only gives the delay
+#define SHOCK_DELAY_STUN (1<<6)
+/// Makes the weaken into a knockdown
+#define SHOCK_KNOCKDOWN (1<<7)
+
+/// Vomit defines
+#define VOMIT_NUTRITION_LOSS	10
+#define VOMIT_STUN_TIME			(8 SECONDS)
+#define VOMIT_DISTANCE			1
+#define VOMIT_SAFE_NUTRITION	90
+/// Vomit modes
+#define VOMIT_BLOOD	(1<<0)
+
+/// When reached - we'll apply status effect which will force carbon to vomit
+#define TOX_VOMIT_THRESHOLD_REACHED(mob, toxloss)	(mob.getToxLoss() >= toxloss)
+#define TOX_VOMIT_REQUIRED_TOXLOSS	45
+
+/// For babylon fever disease.
+#define DISEASE_MOB_LANGUAGE_PROCESSED (1<<0)

@@ -12,7 +12,7 @@
 		else
 			to_chat(user, ("There's not enough cable to finish the task."))
 			return 0
-	else if(istype(used_atom, /obj/item/stack))
+	else if(isstack(used_atom))
 		var/obj/item/stack/S = used_atom
 		if(S.get_amount() < STANDARD_STACK_AMOUNT)
 			to_chat(user, ("There's not enough material in this stack."))
@@ -33,7 +33,7 @@
 		else
 			to_chat(user, ("There's not enough cable to finish the task."))
 			return 0
-	else if(istype(used_atom, /obj/item/stack))
+	else if(isstack(used_atom))
 		var/obj/item/stack/S = used_atom
 		if(S.get_amount() < STANDARD_STACK_AMOUNT)
 			to_chat(user, ("There's not enough material in this stack."))
@@ -58,7 +58,7 @@
 
 /datum/construction/mecha/ripley_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -71,8 +71,8 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/ripley(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "ripley0"
-	const_holder.density = 1
-	const_holder.overlays.len = 0
+	const_holder.set_density(TRUE)
+	const_holder.overlays = null
 	qdel(src)
 	return
 
@@ -105,7 +105,7 @@
 					 list("key"=/obj/item/stack/sheet/metal,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="Peripherals control module is secured."),
-					 //7
+					//7
 					 list("key"=TOOL_SCREWDRIVER,
 					 		"backkey"=TOOL_CROWBAR,
 					 		"desc"="Peripherals control module is installed."),
@@ -122,7 +122,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //11
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //12
@@ -260,7 +260,7 @@
 
 /datum/construction/mecha/gygax_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -273,7 +273,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/gygax(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "gygax0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -346,7 +346,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //17
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //18
@@ -533,7 +533,7 @@
 
 /datum/construction/mecha/firefighter_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -546,7 +546,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/firefighter(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "fireripley0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -601,7 +601,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //12
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //13
@@ -751,7 +751,7 @@
 
 /datum/construction/mecha/honker_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -759,7 +759,7 @@
 	..("Honker")
 	var/obj/item/mecha_parts/chassis/const_holder = holder
 	const_holder.construct = new /datum/construction/reversible/mecha/honker(const_holder)
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -823,7 +823,7 @@
 
 /datum/construction/mecha/reticence_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state + "+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -831,7 +831,7 @@
 	..("Reticence")
 	var/obj/item/mecha_parts/chassis/const_holder = holder
 	const_holder.construct = new /datum/construction/reversible/mecha/reticence(const_holder)
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -894,7 +894,7 @@
 
 /datum/construction/mecha/durand_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -907,7 +907,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/durand(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "durand0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -979,7 +979,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //17
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //18
@@ -1170,7 +1170,7 @@
 
 /datum/construction/mecha/phazon_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -1183,7 +1183,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/phazon(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "phazon0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -1220,7 +1220,7 @@
 					 		"desc"="The bluespace crystal is engaged."),
 					 //8
 					 list("key" = TOOL_SCREWDRIVER,
-					 		"backkey"=/obj/item/wirecutters,
+					 		"backkey"=TOOL_WIRECUTTER,
 					 		"desc"="The bluespace crystal is connected."),
 					 //9
 					 list("key" = /obj/item/stack/cable_coil,
@@ -1271,7 +1271,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //21
-					 list("key" = /obj/item/wirecutters,
+					 list("key" = TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //22
@@ -1487,7 +1487,7 @@
 
 /datum/construction/mecha/odysseus_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -1500,7 +1500,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/odysseus(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "odysseus0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -1549,7 +1549,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //11
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //12
@@ -1692,7 +1692,7 @@
 
 /datum/construction/mecha/clarke_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -1705,7 +1705,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/clarke(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "clarke0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -1754,7 +1754,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //11
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //12
@@ -1895,7 +1895,7 @@
 
 /datum/construction/mecha/rover_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -1908,7 +1908,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/rover(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "rover0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -1980,7 +1980,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //17
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //18
@@ -2169,7 +2169,7 @@
 
 /datum/construction/mecha/darkgygax_chassis/custom_action(step, atom/used_atom, mob/user)
 	user.visible_message("[user] has connected [used_atom] to the [holder].", "You connect [used_atom] to the [holder]")
-	holder.overlays += used_atom.icon_state+"+o"
+	holder.add_overlay("[used_atom.icon_state]+o")
 	qdel(used_atom)
 	return 1
 
@@ -2182,7 +2182,7 @@
 	const_holder.construct = new /datum/construction/reversible/mecha/darkgygax(const_holder)
 	const_holder.icon = 'icons/obj/mecha/mech_construction.dmi'
 	const_holder.icon_state = "darkgygax0"
-	const_holder.density = 1
+	const_holder.set_density(TRUE)
 	qdel(src)
 	return
 
@@ -2255,7 +2255,7 @@
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is adjusted."),
 					 //17
-					 list("key"=/obj/item/wirecutters,
+					 list("key"=TOOL_WIRECUTTER,
 					 		"backkey"=TOOL_SCREWDRIVER,
 					 		"desc"="The wiring is added."),
 					 //18

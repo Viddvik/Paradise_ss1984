@@ -35,38 +35,56 @@
 	sharp = 0
 	var/max_contents = 1
 
-/obj/item/kitchen/utensil/New()
-	..()
+
+/obj/item/kitchen/utensil/Initialize(mapload)
+	. = ..()
+
 	if(prob(60))
-		src.pixel_y = rand(0, 4)
+		set_base_pixel_y(rand(0, 4))
 
 	create_reagents(5)
 
-/obj/item/kitchen/utensil/attack(mob/living/carbon/C, mob/living/carbon/user)
-	if(!istype(C))
+
+/obj/item/kitchen/utensil/update_overlays()
+	. = ..()
+	var/obj/item/reagent_containers/food/snack = locate() in src
+	if(snack)
+		var/mutable_appearance/food_olay = mutable_appearance('icons/obj/kitchen.dmi', "loadedfood", color = snack.filling_color)
+		food_olay.pixel_w = pixel_x
+		food_olay.pixel_z = pixel_y
+		. += food_olay
+
+
+/obj/item/kitchen/utensil/attack(mob/living/carbon/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!iscarbon(target))
 		return ..()
 
 	if(user.a_intent != INTENT_HELP)
-		if(user.zone_selected == "head" || user.zone_selected == "eyes")
-			if((CLUMSY in user.mutations) && prob(50))
-				C = user
-			return eyestab(C, user)
-		else
-			return ..()
+		if(user.zone_selected == BODY_ZONE_HEAD || user.zone_selected == BODY_ZONE_PRECISE_EYES)
+			if(HAS_TRAIT(user, TRAIT_CLUMSY) && prob(50))
+				target = user
+			return eyestab(target, user)
+		return ..()
 
-	if(length(contents))
-		var/obj/item/reagent_containers/food/snacks/toEat = contents[1]
-		if(istype(toEat))
-			if(!get_location_accessible(C, "mouth"))
-				if(C == user)
-					to_chat(user, "<span class='warning'>Your face is obscured, so you cant eat.</span>")
-				else
-					to_chat(user, "<span class='warning'>[C]'s face is obscured, so[C.p_they()] cant eat.</span>")
-				return
-			if(C.eat(toEat, user))
-				toEat.On_Consume(C, user)
-				overlays.Cut()
-				return
+	. = ATTACK_CHAIN_PROCEED
+	if(!length(contents))
+		return .
+
+	var/obj/item/reagent_containers/food/snacks/toEat = contents[1]
+	if(!istype(toEat))
+		return .
+
+	if(!get_location_accessible(target, BODY_ZONE_PRECISE_MOUTH))
+		if(target == user)
+			balloon_alert(user, span_warning("лицо скрыто"))
+		else
+			balloon_alert(user, span_warning("мешает скрытое лицо"))
+		return .
+
+	if(target.eat(toEat, user))
+		toEat.On_Consume(target, user)
+		update_icon(UPDATE_OVERLAYS)
+		return .|ATTACK_CHAIN_SUCCESS
 
 
 /obj/item/kitchen/utensil/fork
@@ -125,13 +143,71 @@
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50)
 	embed_chance = 45
 	embedded_ignore_throwspeed_threshold = TRUE
-	var/bayonet = FALSE	//Can this be attached to a gun?
+	/// Can this item be attached as a bayonet to the gun?
+	var/bayonet_suitable = FALSE
+	/// Used in combination with throwing martial art, to avoid sharpening checks overhead
+	var/default_force
+	/// Same as above
+	var/default_throwforce
+
+
+/obj/item/kitchen/knife/Initialize(mapload)
+	. = ..()
+	default_force = force
+	default_throwforce = throwforce
+
+
+/obj/item/kitchen/knife/sharpen_act(obj/item/whetstone/whetstone, mob/user)
+	. = ..()
+	default_force = force
+	default_throwforce = throwforce
+
 
 /obj/item/kitchen/knife/suicide_act(mob/user)
 	user.visible_message(pick("<span class='suicide'>[user] is slitting [user.p_their()] wrists with the [src.name]! It looks like [user.p_theyre()] trying to commit suicide.</span>", \
 						"<span class='suicide'>[user] is slitting [user.p_their()] throat with the [src.name]! It looks like [user.p_theyre()] trying to commit suicide.</span>", \
 						"<span class='suicide'>[user] is slitting [user.p_their()] stomach open with the [name]! It looks like [user.p_theyre()] trying to commit seppuku.</span>"))
 	return BRUTELOSS
+
+/obj/item/kitchen/knife/throw_at(atom/target, range, speed, mob/thrower, spin = TRUE, diagonals_first = FALSE, datum/callback/callback, force = INFINITY, dodgeable = TRUE)
+	. = ..()
+	playsound(src, 'sound/weapons/knife_holster/knife_throw.ogg', 30, 1)
+
+
+/obj/item/kitchen/knife/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum)
+	var/datum/martial_art/throwing/MA = throwingdatum?.thrower?.mind?.martial_art
+	if(istype(MA) && is_type_in_list(src, MA.knife_types, FALSE))
+		embed_chance = MA.knife_embed_chance
+		throwforce = default_throwforce + MA.knife_bonus_damage
+		shields_penetration = initial(shields_penetration) + MA.shields_penetration_bonus
+	return ..()
+
+
+/obj/item/kitchen/knife/after_throw(datum/callback/callback)
+	embed_chance = initial(embed_chance)
+	throwforce = default_throwforce
+	shields_penetration = initial(shields_penetration)
+	return ..()
+
+
+/obj/item/kitchen/knife/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	var/datum/martial_art/throwing/MA = user?.mind?.martial_art
+	if(istype(MA) && is_type_in_list(src, MA.knife_types, FALSE))
+		force = default_force + MA.knife_bonus_damage
+		if(user.zone_selected == BODY_ZONE_HEAD && user.a_intent == INTENT_HARM)
+			if(MA.neck_cut(target, user))
+				return ATTACK_CHAIN_PROCEED_SUCCESS
+	. = ..()
+	force = default_force
+
+
+/obj/item/kitchen/knife/attack_obj(obj/object, mob/living/user, params)
+	var/datum/martial_art/throwing/MA = user?.mind?.martial_art
+	if(istype(MA) && is_type_in_list(src, MA.knife_types, FALSE))
+		force = default_force + MA.knife_bonus_damage
+	. = ..()
+	force = default_force
+
 
 /obj/item/kitchen/knife/plastic
 	name = "plastic knife"
@@ -176,36 +252,8 @@
 	throwforce = 20
 	origin_tech = "materials=3;combat=4"
 	attack_verb = list("slashed", "stabbed", "sliced", "torn", "ripped", "cut")
-	bayonet = TRUE
+	bayonet_suitable = TRUE
 	embed_chance = 90
-
-/obj/item/kitchen/knife/combat/throw_at(atom/target, range, speed, mob/thrower, spin = TRUE, diagonals_first = FALSE, datum/callback/callback, force = INFINITY, dodgeable = TRUE)
-	. = ..()
-	playsound(src, 'sound/weapons/knife_holster/knife_throw.ogg', 30, 1)
-
-/obj/item/kitchen/knife/combat/throw_impact(atom/hit_atom, datum/thrownthing/throwingdatum)
-	var/datum/martial_art/throwing/MA = throwingdatum?.thrower?.mind?.martial_art
-	if(istype(MA))
-		embed_chance = MA.knife_embed_chance
-		throwforce = initial(throwforce) + MA.knife_bonus_damage
-	. = ..()
-
-/obj/item/kitchen/knife/combat/after_throw(datum/callback/callback)
-	embed_chance = initial(embed_chance)
-	throwforce = initial(throwforce)
-	. = ..()
-
-/obj/item/kitchen/knife/combat/attack(mob/living/target, mob/living/user, def_zone)
-	var/datum/martial_art/throwing/MA = user?.mind?.martial_art
-	if(istype(MA))
-		force = initial(force) + MA.knife_bonus_damage
-		if(user.zone_selected == BODY_ZONE_HEAD && user.a_intent == INTENT_HARM)
-			MA.neck_cut(target, user)
-	. = ..()
-
-/obj/item/kitchen/knife/combat/afterattack(atom/target, mob/user, proximity, params)
-	force = initial(force)
-	. = ..()
 
 /obj/item/kitchen/knife/combat/survival
 	name = "survival knife"
@@ -216,7 +264,7 @@
 	throwforce = 15
 
 /obj/item/kitchen/knife/combat/throwing
-	name = "Throwing knife"
+	name = "throwing knife"
 	desc = "A well-sharpened black knife. Designed to be thrown. It is made from a single piece of metal. The markings are scratched.\nAn excellent solution for live problems and cake cutting."
 	icon_state = "throwingknife"
 	item_state = "throwingknife"
@@ -244,7 +292,6 @@
 /obj/item/kitchen/knife/combat/cyborg/mecha
 	force = 25
 	armour_penetration = 20
-	flags = NODROP
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	slot_flags = null
 	w_class = WEIGHT_CLASS_HUGE
@@ -278,23 +325,26 @@
 	drop_sound = 'sound/items/handling/bone_drop.ogg'
 	var/size
 
+
 /obj/item/kitchen/knife/glassshiv/Initialize(mapload, obj/item/shard/sh)
 	. = ..()
 	if(sh)
 		size = sh.icon_state
-	if(istype(sh, /obj/item/shard/plasma))
-		name = "plasma glass shiv"
-		desc = "A plasma glass shard with some cloth wrapped around it"
-		force = 9
-		throwforce = 11
-		materials = list(MAT_PLASMA = MINERAL_MATERIAL_AMOUNT * 0.5, MAT_GLASS = MINERAL_MATERIAL_AMOUNT)
-	update_icon()
-
-/obj/item/kitchen/knife/glassshiv/update_icon()
 	if(!size)
 		size = pick("large", "medium", "small")
+	update_icon(UPDATE_ICON_STATE)
+
+
+/obj/item/kitchen/knife/glassshiv/update_icon_state()
 	icon_state = "[size]_[initial(icon_state)]"
 
+
+/obj/item/kitchen/knife/glassshiv/plasma
+	name = "plasma glass shiv"
+	desc = "A plasma glass shard with some cloth wrapped around it"
+	force = 9
+	throwforce = 11
+	materials = list(MAT_PLASMA = MINERAL_MATERIAL_AMOUNT * 0.5, MAT_GLASS = MINERAL_MATERIAL_AMOUNT)
 
 /*
  * Rolling Pins

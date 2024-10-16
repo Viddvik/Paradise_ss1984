@@ -159,7 +159,7 @@ GLOBAL_DATUM_INIT(_preloader, /datum/dmm_suite/preloader, new())
 		CRASH("Bad Map bounds in [fname], Min x: [bounds[MAP_MINX]], Min y: [bounds[MAP_MINY]], Min z: [bounds[MAP_MINZ]], Max x: [bounds[MAP_MAXX]], Max y: [bounds[MAP_MAXY]], Max z: [bounds[MAP_MAXZ]]")
 	else
 		if(!measureOnly)
-			for(var/t in block(locate(bounds[MAP_MINX], bounds[MAP_MINY], bounds[MAP_MINZ]), locate(bounds[MAP_MAXX], bounds[MAP_MAXY], bounds[MAP_MAXZ])))
+			for(var/t in block(bounds[MAP_MINX], bounds[MAP_MINY], bounds[MAP_MINZ], bounds[MAP_MAXX], bounds[MAP_MAXY], bounds[MAP_MAXZ]))
 				var/turf/T = t
 				// we do this after we load everything in. if we don't; we'll have weird atmos bugs regarding atmos adjacent turfs
 				T.AfterChange(TRUE, keep_cabling = TRUE)
@@ -281,7 +281,11 @@ GLOBAL_DATUM_INIT(_preloader, /datum/dmm_suite/preloader, new())
 	// instanciate the first /turf
 	var/turf/T
 	if(members[first_turf_index] != /turf/template_noop)
-		T = instance_atom(members[first_turf_index], members_attributes[first_turf_index], xcrd, ycrd, zcrd)
+		if(members[first_turf_index] == /turf/simulated/floor/lava/lava_land_surface)
+			T = instance_atom(SSmapping.lavaland_theme?.primary_turf_type, members_attributes[first_turf_index], xcrd, ycrd, zcrd)
+		else
+			T = instance_atom(members[first_turf_index], members_attributes[first_turf_index], xcrd, ycrd, zcrd)
+
 
 	if(T)
 		// if others /turf are presents, simulates the underlays piling effect
@@ -499,3 +503,5 @@ GLOBAL_DATUM_INIT(_preloader, /datum/dmm_suite/preloader, new())
 /turf/template_noop
 	name = "Turf Passthrough"
 	icon_state = "noop" // now turf passthrought won't mess with other structures like lattice or plates in space on ruin maps in map editor. it was too much annoyng before the change. noop icon added in areas.dmi as well
+	blocks_air = FALSE
+	init_air = FALSE

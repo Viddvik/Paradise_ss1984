@@ -7,7 +7,6 @@
 	icon = 'icons/obj/module.dmi'
 	icon_state = "cyborg_upgrade"
 	origin_tech = "programming=2"
-	var/locked = FALSE
 	var/installed = FALSE
 	var/require_module = FALSE
 	var/module_type = null
@@ -17,14 +16,17 @@
 
 /obj/item/borg/upgrade/proc/action(mob/living/silicon/robot/robot, mob/user)
 	if(robot.stat == DEAD)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("[src] will not function on a deceased cyborg!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("[src] will not function on a deceased cyborg!")]")
 		return FALSE
 	if((locate(src) in robot.upgrades) && !multiple_use)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there is already [src] inside!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there is already [src] inside!")]")
 		return FALSE
 	if(module_type && !istype(robot.module, module_type))
-		to_chat(robot, SPAN_WARNING("Upgrade mounting error! No suitable hardpoint detected!"))
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there's no mounting point for the module!")]")
+		to_chat(robot, span_warning("Upgrade mounting error! No suitable hardpoint detected!"))
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there's no mounting point for the module!")]")
 		return FALSE
 	return TRUE
 
@@ -48,7 +50,8 @@
 		return FALSE
 
 	if(isclocker(robot))
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("this unit somehow refuses to reset!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("this unit somehow refuses to reset!")]")
 		return FALSE
 
 	robot.reset_module()
@@ -64,22 +67,20 @@
 
 
 /obj/item/borg/upgrade/rename/attack_self(mob/user)
-	var/new_heldname = stripped_input(user, "Enter new robot name", "Cyborg Reclassification", heldname, MAX_NAME_LEN)
+	var/new_heldname = tgui_input_text(user, "Enter new robot name", "Cyborg Reclassification", heldname, MAX_NAME_LEN)
 	new_heldname = reject_bad_name(new_heldname, TRUE, MAX_NAME_LEN)
 	if(!new_heldname)
-		to_chat(user, SPAN_WARNING("Prohibited sequence detected. Entered configuration has been cancelled."))
-	else
-		heldname = new_heldname
-	return
-
+		return
+	heldname = new_heldname
 
 /obj/item/borg/upgrade/rename/action(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
 		return FALSE
 
 	if(!robot.allow_rename)
-		to_chat(robot, SPAN_WARNING("Internal diagnostic error: incompatible upgrade module detected."))
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("incompatible upgrade module detected!")]")
+		to_chat(robot, span_warning("Internal diagnostic error: incompatible upgrade module detected."))
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("incompatible upgrade module detected!")]")
 		return FALSE
 
 	if(!robot.shouldRename(heldname))
@@ -95,8 +96,10 @@
 
 /mob/living/silicon/robot/proc/shouldRename(newname)
 	if(src.stat == CONSCIOUS)
-		var/choice = alert(src, "Активирован протокол переименования. Предложенное имя: [newname]. Продолжить операцию?","Внимание!","Да","Нет")
+		var/choice = tgui_alert(src, "Активирован протокол переименования. Предложенное имя: [newname]. Продолжить операцию?", "Внимание!", list("Да", "Нет"))
 		if(src.stat == CONSCIOUS) //no abuse by using window in unconscious state
+			if(isnull("choice"))
+				return FALSE
 			switch(choice)
 				if("Да")
 					return TRUE
@@ -114,7 +117,8 @@
 
 /obj/item/borg/upgrade/restart/action(mob/living/silicon/robot/robot, mob/user)
 	if(robot.health < 0)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("you have to repair the cyborg before using this module!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("you have to repair the cyborg before using this module!")]")
 		return FALSE
 
 	if(!robot.key)
@@ -122,7 +126,7 @@
 			if(ghost.mind && ghost.mind.current == robot)
 				robot.key = ghost.key
 
-	robot.stat = CONSCIOUS
+	robot.set_stat(CONSCIOUS)
 	GLOB.dead_mob_list -= robot //please never forget this ever kthx
 	GLOB.alive_mob_list += robot
 	robot.notify_ai(ROBOT_NOTIFY_AI_CONNECTED)
@@ -141,7 +145,7 @@
 	if(!..())
 		return FALSE
 
-	robot.speed -= 1 // Gotta go fast.
+	robot.add_movespeed_modifier(/datum/movespeed_modifier/robot_vtec_upgrade)	// Gotta go fast.
 	return TRUE
 
 
@@ -149,7 +153,7 @@
 	if(!..())
 		return FALSE
 
-	robot.speed += 1
+	robot.remove_movespeed_modifier(/datum/movespeed_modifier/robot_vtec_upgrade)
 	return TRUE
 
 
@@ -163,17 +167,17 @@
 	if(!..())
 		return FALSE
 
-	if(robot.magpulse)
+	if(HAS_TRAIT_FROM(robot, TRAIT_NEGATES_GRAVITY, ROBOT_TRAIT))
 		return FALSE
 
-	robot.magpulse = TRUE
+	ADD_TRAIT(robot, TRAIT_NEGATES_GRAVITY, ROBOT_TRAIT)
 	return TRUE
 
 /obj/item/borg/upgrade/magboots/deactivate(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
 		return FALSE
 
-	robot.magpulse = initial(robot.magpulse)
+	REMOVE_TRAIT(robot, TRAIT_NEGATES_GRAVITY, ROBOT_TRAIT)
 	return TRUE
 
 /obj/item/borg/upgrade/disablercooler
@@ -191,7 +195,8 @@
 
 	var/obj/item/gun/energy/disabler/cyborg/disabler = locate() in robot.module.modules
 	if(!disabler)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there's no disabler in this unit!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there's no disabler in this unit!")]")
 		return FALSE
 
 	disabler.charge_delay = max(2 , disabler.charge_delay - 4)
@@ -228,6 +233,9 @@
 /obj/item/borg/upgrade/thrusters/deactivate(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
 		return FALSE
+
+	if(robot.ionpulse_on)
+		robot.toggle_ionpulse(silent = TRUE)
 
 	robot.ionpulse = FALSE
 	return TRUE
@@ -311,24 +319,14 @@
 /obj/item/borg/upgrade/gps/action(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
 		return FALSE
-
-	for(var/obj/item/gps/cyborg/gps in robot.module.modules)
-		qdel(gps)
-
-	robot.module.modules += new /obj/item/gps/cyborg/upgraded(robot.module)
-	robot.module.rebuild()
+	robot.gps.upgraded = TRUE
 	return TRUE
 
 
 /obj/item/borg/upgrade/gps/deactivate(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
 		return FALSE
-
-	for(var/obj/item/gps/cyborg/upgraded/gps in robot.module)
-		qdel(gps)
-
-	robot.module.modules += new /obj/item/gps/cyborg(robot.module)
-	robot.module.rebuild()
+	robot.gps.upgraded = FALSE
 	return TRUE
 
 
@@ -482,7 +480,7 @@
 	if(!..())
 		return FALSE
 
-	to_chat(robot, SPAN_WARNING("Warning: Safety Overide Protocols have been disabled."))
+	to_chat(robot, span_warning("Warning: Safety Overide Protocols have been disabled."))
 	robot.weapons_unlock = TRUE
 	return TRUE
 
@@ -491,7 +489,7 @@
 	if(!..())
 		return FALSE
 
-	to_chat(robot, SPAN_NOTICE("Notice: Safety Overide Protocols have been restored."))
+	to_chat(robot, span_notice("Notice: Safety Overide Protocols have been restored."))
 	robot.weapons_unlock = FALSE
 	return TRUE
 
@@ -509,7 +507,7 @@
 	if(!..())
 		return FALSE
 
-	robot.weather_immunities |= "lava"
+	ADD_TRAIT(robot, TRAIT_LAVA_IMMUNE, ROBOT_TRAIT)
 	return TRUE
 
 
@@ -517,7 +515,7 @@
 	if(!..())
 		return FALSE
 
-	robot.weather_immunities -= "lava"
+	REMOVE_TRAIT(robot, TRAIT_LAVA_IMMUNE, ROBOT_TRAIT)
 	return TRUE
 
 
@@ -564,23 +562,22 @@
 	return ..()
 
 
-/obj/item/borg/upgrade/selfrepair/ui_action_click()
+/obj/item/borg/upgrade/selfrepair/ui_action_click(mob/user, datum/action/action, leftclick)
 	on = !on
 	if(on)
-		to_chat(cyborg, SPAN_NOTICE("You activate the self-repair module."))
+		to_chat(cyborg, span_notice("You activate the self-repair module."))
 		activate_sr()
 	else
-		to_chat(cyborg, SPAN_NOTICE("You deactivate the self-repair module."))
+		to_chat(cyborg, span_notice("You deactivate the self-repair module."))
 		deactivate_sr()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 
-/obj/item/borg/upgrade/selfrepair/update_icon()
+/obj/item/borg/upgrade/selfrepair/update_icon_state()
 	if(cyborg)
 		icon_state = "selfrepair_[on ? "on" : "off"]"
-		for(var/X in actions)
-			var/datum/action/A = X
-			A.UpdateButtonIcon()
+		for(var/datum/action/action as anything in actions)
+			action.UpdateButtonIcon()
 	else
 		icon_state = "cyborg_upgrade5"
 
@@ -588,13 +585,13 @@
 /obj/item/borg/upgrade/selfrepair/proc/activate_sr()
 	START_PROCESSING(SSobj, src)
 	on = TRUE
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 
 /obj/item/borg/upgrade/selfrepair/proc/deactivate_sr()
 	STOP_PROCESSING(SSobj, src)
 	on = FALSE
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 
 /obj/item/borg/upgrade/selfrepair/process()
@@ -604,12 +601,12 @@
 
 	if(cyborg && (cyborg.stat != DEAD) && on)
 		if(!cyborg.cell)
-			to_chat(cyborg, SPAN_WARNING("Self-repair module deactivated. Please, insert the power cell."))
+			to_chat(cyborg, span_warning("Self-repair module deactivated. Please, insert the power cell."))
 			deactivate_sr()
 			return
 
 		if(cyborg.cell.charge < powercost * 2)
-			to_chat(cyborg, SPAN_NOTICE("Self-repair module deactivated. Please recharge."))
+			to_chat(cyborg, span_notice("Self-repair module deactivated. Please recharge."))
 			deactivate_sr()
 			return
 
@@ -632,7 +629,7 @@
 				msgmode = "critical"
 			else if(cyborg.health < cyborg.maxHealth)
 				msgmode = "normal"
-			to_chat(cyborg, SPAN_NOTICE("Self-repair is active in [SPAN_NOTICE_BOLD("[msgmode]")] mode."))
+			to_chat(cyborg, span_notice("Self-repair is active in [span_boldnotice("[msgmode]")] mode."))
 			msg_cooldown = world.time
 	else
 		deactivate_sr()
@@ -680,25 +677,23 @@
 	if(!..())
 		return FALSE
 
-	var/obj/item/reagent_containers/borghypo/basic/borghypo_basic = locate() in robot.module.modules
-	if(borghypo_basic)
-		var/obj/item/reagent_containers/borghypo/basic/upgraded/hypo = new /obj/item/reagent_containers/borghypo/basic/upgraded(robot.module)
-		robot.module.modules += hypo
-		hypo.bypass_protection = borghypo_basic.bypass_protection
-		qdel(borghypo_basic)
+	var/list/hypos_to_add = list()
+	for(var/obj/item/reagent_containers/borghypo/hypospray in robot.module.modules)
+		if(hypospray.upgrade_path)
+			var/obj/item/reagent_containers/borghypo/borghypo = new hypospray.upgrade_path(robot.module)
+			borghypo.bypass_protection = hypospray.bypass_protection
+			qdel(hypospray)
+			hypos_to_add += borghypo
+
+	for(var/hypo in hypos_to_add)
+		var/obj/item/reagent_containers/borghypo/hypospray = hypo
+		robot.module.modules += hypospray
+
+	if(length(hypos_to_add))
 		robot.module.rebuild()
 		return TRUE
 
-	var/obj/item/reagent_containers/borghypo/borghypo = locate() in robot.module.modules
-	if(borghypo)
-		var/obj/item/reagent_containers/borghypo/upgraded/hypo = new /obj/item/reagent_containers/borghypo/upgraded(robot.module)
-		robot.module.modules += hypo
-		hypo.bypass_protection = borghypo.bypass_protection
-		qdel(borghypo)
-		robot.module.rebuild()
-		return TRUE
-
-	to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there's no hypospray in this unit!")]")
+	to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there's no hypospray in this unit!")]")
 	return FALSE
 
 
@@ -738,16 +733,17 @@
 	if(!..())
 		return FALSE
 
-	var/obj/item/reagent_containers/borghypo/hypospray = locate() in robot.module.modules
-	if(!hypospray)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there's no hypospray in this unit!")]")
+	var/was_upgraded = FALSE
+	for(var/obj/item/reagent_containers/borghypo/hypo in robot.module.modules)
+		if(hypo.bypass_protection)
+			continue
+		hypo.bypass_protection = TRUE
+		was_upgraded = TRUE
+
+	if(!was_upgraded)
+		to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there's no upgradable hypospray in this unit!")]")
 		return FALSE
 
-	if(hypospray.bypass_protection)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("unit's hypospray is already upgraded!")]")
-		return FALSE
-
-	hypospray.bypass_protection = TRUE
 	return TRUE
 
 
@@ -755,10 +751,14 @@
 	if(!..())
 		return FALSE
 
-	var/obj/item/reagent_containers/borghypo/hypospray = locate() in robot.module.modules
-	if(!hypospray)
+	var/was_deactivated = FALSE
+	for(var/obj/item/reagent_containers/borghypo/hypo in robot.module.modules)
+		hypo.bypass_protection = initial(hypo.bypass_protection)
+		was_deactivated = TRUE
+
+	if(!was_deactivated)
 		return FALSE
-	hypospray.bypass_protection = FALSE
+
 	return TRUE
 
 
@@ -775,7 +775,8 @@
 
 	var/obj/item/rcd/borg/borg_rcd = locate() in robot.module.modules
 	if(!borg_rcd)
-		to_chat(user, "[SPAN_DANGER("UPGRADE ERROR: ")]" + "[SPAN_NOTICE("there's no RCD in this unit!")]")
+		if(user)
+			to_chat(user, "[span_danger("UPGRADE ERROR: ")]" + "[span_notice("there's no RCD in this unit!")]")
 		return FALSE
 
 	for(borg_rcd in robot.module.modules)
@@ -784,7 +785,6 @@
 	robot.module.modules += new /obj/item/rcd/syndicate/borg(robot.module)
 	robot.module.rebuild()
 	return TRUE
-
 
 /obj/item/borg/upgrade/syndie_rcd/deactivate(mob/living/silicon/robot/robot, mob/user)
 	if(!..())
@@ -798,5 +798,35 @@
 		qdel(borg_rcd)
 
 	robot.module.modules += new /obj/item/rcd/borg(robot.module)
+	robot.module.rebuild()
+	return TRUE
+
+/obj/item/borg/upgrade/bs_beaker
+	name = "blue space beaker"
+	desc = "A blue space beaker for butler unit"
+	icon_state = "cyborg_upgrade3"
+	origin_tech = "bluespace=4;materials=5"
+	require_module = TRUE
+	module_type = /obj/item/robot_module/butler
+
+/obj/item/borg/upgrade/bs_beaker/action(mob/living/silicon/robot/robot, mob/user)
+	if(!..())
+		return FALSE
+
+	for(var/obj/item/reagent_containers/glass/bucket/container in robot.module.modules)
+		qdel(container)
+
+	robot.module.modules += new /obj/item/reagent_containers/glass/beaker/bluespace(robot.module)
+	robot.module.rebuild()
+	return TRUE
+
+/obj/item/borg/upgrade/bs_beaker/deactivate(mob/living/silicon/robot/robot, mob/user)
+	if(!..())
+		return FALSE
+
+	for(var/obj/item/reagent_containers/glass/beaker/bluespace/container2 in robot.module)
+		qdel(container2)
+
+	robot.module.modules += new /obj/item/reagent_containers/glass/bucket(robot.module)
 	robot.module.rebuild()
 	return TRUE

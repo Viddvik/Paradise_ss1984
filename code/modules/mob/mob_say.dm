@@ -56,12 +56,13 @@
 
 
 /mob/proc/say_dead(message)
+	message = handleDiscordEmojis(say_emphasis(message))
 	if(client)
 		if(!check_rights(R_ADMIN, FALSE) && !CONFIG_GET(flag/dsay_allowed))
 			to_chat(src, span_danger("Deadchat is globally muted."))
 			return
 
-		if(client.prefs.muted & MUTE_DEADCHAT)
+		if(check_mute(client.ckey, MUTE_DEADCHAT))
 			to_chat(src, span_warning("You cannot talk in deadchat (muted)."))
 			return
 
@@ -93,6 +94,10 @@
 	if(universal_speak || universal_understand)
 		return TRUE
 
+	var/mob/living/simple_animal/hostile/gorilla/gorilla = other
+	if(istype(gorilla) && gorilla.check_enlighten())	// BANANA POWER
+		return TRUE
+
 	//Languages are handled after.
 	if(!speaking)
 		if(!other)
@@ -109,9 +114,8 @@
 		return TRUE
 
 	//Language check.
-	for(var/datum/language/L in languages)
-		if(speaking.name == L.name)
-			return TRUE
+	if(speaking in languages)
+		return TRUE
 
 	return FALSE
 
@@ -121,7 +125,7 @@
 	var/ending = copytext(message, length(message))
 
 	if(speaking)
-		verb = speaking.get_spoken_verb(ending)
+		verb = genderize_decode(src, speaking.get_spoken_verb(ending))
 	else
 		if(ending == "!")
 			verb = pick("exclaims", "shouts", "yells")
@@ -129,6 +133,19 @@
 			verb = "asks"
 	return verb
 
+/// Transforms the speech emphasis mods from [/atom/movable/proc/say_emphasis] into the appropriate HTML tags
+#define ENCODE_HTML_EMPHASIS(input, char, html, varname) \
+	var/static/regex/##varname = regex("[char](.+?)[char]", "g");\
+	input = varname.Replace_char(input, "<[html]>$1</[html]>&#8203;") //zero-width space to force maptext to respect closing tags.
+
+/// Scans the input sentence for speech emphasis modifiers, notably |italics|, +bold+, and _underline_ -mothblocks
+/mob/proc/say_emphasis(input)
+	ENCODE_HTML_EMPHASIS(input, "\\|", "i", italics)
+	ENCODE_HTML_EMPHASIS(input, "\\%", "b", bold)
+	ENCODE_HTML_EMPHASIS(input, "_", "u", underline)
+	return input
+
+#undef ENCODE_HTML_EMPHASIS
 
 /mob/proc/get_ear()
 	// returns an atom representing a location on the map from which this
@@ -207,7 +224,7 @@
 
 	// Noise language is a snowflake
 	if(copytext(message, 1, 2) == "!" && length(message) > 1)
-		return list(new /datum/multilingual_say_piece(GLOB.all_languages["Noise"], trim(strip_prefixes(copytext(message, 2)))))
+		return list(new /datum/multilingual_say_piece(GLOB.all_languages[LANGUAGE_NOISE], trim(strip_prefixes(copytext(message, 2)))))
 
 	// Scan the message for prefixes
 	var/list/prefix_locations = find_valid_prefixes(message)
@@ -220,15 +237,14 @@
 		// There are a few things that will make us want to ignore all other languages in - namely, HIVEMIND languages.
 		var/datum/language/L = current[1]
 		if(L && L.flags & HIVEMIND)
-			. = new /datum/multilingual_say_piece(L, trim(strip_prefixes(message)))
-			break
+			return list(new /datum/multilingual_say_piece(L, trim(strip_prefixes(message))))
 
 		if(i + 1 > length(prefix_locations)) // We are out of lookaheads, that means the rest of the message is in cur lang
-			var/spoke_message = handle_autohiss(trim(copytext_char(message, current[3])), L)
+			var/spoke_message = trim(copytext_char(message, current[3]))
 			. += new /datum/multilingual_say_piece(current[1], spoke_message)
 		else
 			var/next = prefix_locations[i + 1] // We look ahead at the next message to see where we need to stop.
-			var/spoke_message = handle_autohiss(trim(copytext_char(message, current[3], next[2])), L)
+			var/spoke_message = trim(copytext_char(message, current[3], next[2]))
 			. += new /datum/multilingual_say_piece(current[1], spoke_message)
 
 

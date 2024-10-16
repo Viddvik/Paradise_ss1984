@@ -10,7 +10,7 @@
 	level = 1		// underfloor
 	layer = WIRE_LAYER
 	plane = FLOOR_PLANE
-	anchored = 1
+	anchored = TRUE
 	max_integrity = 500
 	armor = list(melee = 70, bullet = 70, laser = 70, energy = 70, bomb = 0, bio = 0, rad = 0, fire = 80, acid = 80)
 	var/open = 0		// true if cover is open
@@ -76,44 +76,52 @@
 // hide the object if turf is intact
 /obj/machinery/navbeacon/hide(intact)
 	invisibility = intact ? INVISIBILITY_MAXIMUM : 0
-	updateicon()
+	update_icon(UPDATE_ICON_STATE)
+
 
 // update the icon_state
-/obj/machinery/navbeacon/proc/updateicon()
-	var/state="navbeacon[open]"
+/obj/machinery/navbeacon/update_icon_state()
+	// if invisible, set icon to faded version
+	// in case revealed by T-scanner
+	icon_state = "navbeacon[open][invisibility ? "-f" : ""]"
 
-	if(invisibility)
-		icon_state = "[state]-f"	// if invisible, set icon to faded version
-									// in case revealed by T-scanner
-	else
-		icon_state = "[state]"
 
 /obj/machinery/navbeacon/attackby(obj/item/I, mob/user, params)
-	var/turf/T = loc
-	if(T.intact)
-		return		// prevent intraction when T-scanner revealed
+	var/turf/our_turf = loc
+	if(!isturf(our_turf) || our_turf.intact || our_turf.transparent_floor == TURF_TRANSPARENT)	// prevent intraction when T-scanner revealed
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(istype(I, /obj/item/screwdriver))
-		add_fingerprint(user)
-		open = !open
-
-		user.visible_message("[user] [open ? "opens" : "closes"] the beacon's cover.", span_notice("You [open ? "open" : "close"] the beacon's cover."))
-
-		updateicon()
-
-	else if(I.GetID())
-		if(open)
-			if(allowed(user))
-				add_fingerprint(user)
-				locked = !locked
-				to_chat(user, span_notice("Controls are now [locked ? "locked" : "unlocked"]."))
-			else
-				to_chat(user, span_danger("Access denied."))
-			updateDialog()
-		else
-			to_chat(user, span_warning("You must open the cover first!"))
-	else
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(I.GetID() || is_pda(I))
+		add_fingerprint(user)
+		if(!open)
+			to_chat(user, span_warning("You must open the cover first!"))
+			return ATTACK_CHAIN_PROCEED
+		if(!allowed(user))
+			to_chat(user, span_danger("Access denied."))
+			return ATTACK_CHAIN_PROCEED
+		locked = !locked
+		to_chat(user, span_notice("Controls are now [locked ? "locked" : "unlocked"]."))
+		updateDialog()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
+
+/obj/machinery/navbeacon/screwdriver_act(mob/living/user, obj/item/I)
+	var/turf/T = get_turf(src)
+	if(T.intact)
+		return FALSE
+	open = !open
+	user.visible_message(
+		"[user] [open ? "opens" : "closes"] the beacon's cover.",
+		span_notice("You [open ? "open" : "close"] the beacon's cover."),
+	)
+	update_icon(UPDATE_ICON_STATE)
+	return TRUE
+
 
 /obj/machinery/navbeacon/attack_ai(mob/user)
 	interact(user, 1)
@@ -123,7 +131,7 @@
 	interact(user, 0)
 
 /obj/machinery/navbeacon/interact(mob/user, ai = 0)
-	var/turf/T = loc
+	var/turf/T = get_turf(src)
 	if(T.intact)
 		return		// prevent intraction when T-scanner revealed
 
@@ -172,20 +180,21 @@ Transponder Codes:<UL>"}
 		usr.set_machine(src)
 
 		if(href_list["locedit"])
-			var/newloc = copytext(sanitize(input("Enter New Location", "Navigation Beacon", location) as text|null),1,MAX_MESSAGE_LEN)
-			if(newloc)
-				location = newloc
-				updateDialog()
+			var/newloc = tgui_input_text(usr, "Enter New Location", "Navigation Beacon", location)
+			if(!newloc)
+				return
+			location = newloc
+			updateDialog()
 
 		else if(href_list["edit"])
 			var/codekey = href_list["code"]
 
-			var/newkey = stripped_input(usr, "Enter Transponder Code Key", "Navigation Beacon", codekey)
+			var/newkey = tgui_input_text(usr, "Enter Transponder Code Key", "Navigation Beacon", codekey)
 			if(!newkey)
 				return
 
 			var/codeval = codes[codekey]
-			var/newval = stripped_input(usr, "Enter Transponder Code Value", "Navigation Beacon", codeval)
+			var/newval = tgui_input_text(usr, "Enter Transponder Code Value", "Navigation Beacon", codeval)
 			if(!newval)
 				newval = codekey
 				return
@@ -202,11 +211,11 @@ Transponder Codes:<UL>"}
 
 		else if(href_list["add"])
 
-			var/newkey = stripped_input(usr, "Enter New Transponder Code Key", "Navigation Beacon")
+			var/newkey = tgui_input_text(usr, "Enter New Transponder Code Key", "Navigation Beacon")
 			if(!newkey)
 				return
 
-			var/newval = stripped_input(usr, "Enter New Transponder Code Value", "Navigation Beacon")
+			var/newval = tgui_input_text(usr, "Enter New Transponder Code Value", "Navigation Beacon")
 			if(!newval)
 				newval = "1"
 				return
@@ -220,8 +229,8 @@ Transponder Codes:<UL>"}
 
 
 /obj/machinery/navbeacon/invisible
-	invisibility = INVISIBILITY_MAXIMUM
+	invisibility = INVISIBILITY_ABSTRACT
 
 /obj/machinery/navbeacon/invisible/hide(intact)
-	invisibility = INVISIBILITY_MAXIMUM
-	updateicon()
+	invisibility = INVISIBILITY_ABSTRACT
+	update_icon(UPDATE_ICON_STATE)

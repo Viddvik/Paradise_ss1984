@@ -14,6 +14,7 @@
 		/obj/item/firelock_electronics,
 		/obj/item/intercom_electronics,
 		/obj/item/apc_electronics,
+		/obj/item/access_control,
 		/obj/item/tracker_electronics,
 		/obj/item/stock_parts,
 		/obj/item/vending_refill,
@@ -25,6 +26,8 @@
 		/obj/item/mounted/frame/intercom,
 		/obj/item/mounted/frame/extinguisher,
 		/obj/item/mounted/frame/light_switch,
+		/obj/item/mounted/frame/door_control,
+		/obj/item/assembly/control,
 		/obj/item/rack_parts,
 		/obj/item/camera_assembly,
 		/obj/item/tank,
@@ -52,24 +55,27 @@
 /obj/item/gripper/medical/attack_self(mob/user)
 	return
 
-/obj/item/gripper/medical/afterattack(atom/target, mob/living/user, proximity, params)
-	var/mob/living/carbon/human/H
-	if(!gripped_item && proximity && target && ishuman(target))
-		H = target
-		if(H.lying)
+/obj/item/gripper/proc/try_shake_up(mob/living/user, atom/target)
+	if(!gripped_item && Adjacent(user, target) && target && ishuman(target))
+		var/mob/living/carbon/human/H = target
+		if(H.body_position == LYING_DOWN)
 			H.AdjustSleeping(-10 SECONDS)
-			if(!H.IsSleeping())
-				H.StopResting()
 			H.AdjustParalysis(-6 SECONDS)
 			H.AdjustStunned(-6 SECONDS)
 			H.AdjustWeakened(-6 SECONDS)
+			if(!H.IsSleeping())
+				H.set_resting(FALSE, instant = TRUE)
 			playsound(user.loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
 			user.visible_message( \
-				"<span class='notice'>[user] shakes [H] trying to wake [H.p_them()] up!</span>",\
-				"<span class='notice'>You shake [H] trying to wake [H.p_them()] up!</span>",\
+				span_notice("[user] shakes [H] trying to wake [H.p_them()] up!"),\
+				span_notice("You shake [H] trying to wake [H.p_them()] up!"),\
 				)
+			user.changeNext_move(CLICK_CD_MELEE)
 		return
-	..()
+
+/obj/item/gripper/medical/melee_attack_chain(mob/living/user, atom/target, params)
+	try_shake_up(user, target)
+	. = ..()
 
 /obj/item/gripper/service
 	name = "Card gripper"
@@ -78,25 +84,14 @@
 					/obj/item/camera_film,
 					/obj/item/paper,
 					/obj/item/photo,
-					/obj/item/toy/plushie)
+					/obj/item/toy/plushie,
+					/obj/item/reagent_containers/food,
+					/obj/item/seeds,
+					/obj/item/disk/plantgene)
 
-/obj/item/gripper/service/afterattack(atom/target, mob/living/user, proximity, params)
-	if(!gripped_item && proximity && target && ishuman(target))
-		var/mob/living/carbon/human/H = target
-		if(H.lying)
-			H.AdjustSleeping(-10 SECONDS)
-			if(!H.IsSleeping())
-				H.StopResting()
-			H.AdjustParalysis(-6 SECONDS)
-			H.AdjustStunned(-6 SECONDS)
-			H.AdjustWeakened(-6 SECONDS)
-			playsound(user.loc, 'sound/weapons/thudswoosh.ogg', 50, 1, -1)
-			user.visible_message( \
-				"<span class='notice'>[user] shakes [H] trying to wake [H.p_them()] up!</span>",\
-				"<span class='notice'>You shake [H] trying to wake [H.p_them()] up!</span>",\
-				)
-		return
-	..()
+/obj/item/gripper/service/melee_attack_chain(mob/living/user, atom/target, params)
+	try_shake_up(user, target)
+	. = ..()
 
 /obj/item/gripper/cogscarab
 	name = "ancient gripper"
@@ -128,7 +123,8 @@
 	set name = "Drop Gripped Item"
 	set desc = "Release an item from your magnetic gripper."
 	set category = "Drone"
-
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
+		return
 	drop_gripped_item()
 
 /obj/item/gripper/attack_self(mob/user)
@@ -139,17 +135,31 @@
 
 /obj/item/gripper/tool_act(mob/living/user, obj/item/tool, tool_type)
 	if(!gripped_item)
-		return
-	gripped_item.tool_act(user, tool, tool_type)
-	if (QDELETED(gripped_item)) // if item was dissasembled we need to clear the pointer
+		return FALSE
+	. = gripped_item.tool_act(user, tool, tool_type)
+	if(QDELETED(gripped_item)) // if item was dissasembled we need to clear the pointer
 		drop_gripped_item(TRUE) // silent = TRUE to prevent "You drop X" message from appearing without actually dropping anything
+
+/obj/item/gripper/Click(location,control,params)
+	if(!usr.get_active_hand())
+		usr.ClickOn(src, params)
+		return
+	gripped_item ? usr.ClickOn(gripped_item, params) : usr.ClickOn(src, params)
+
+/obj/item/gripper/DblClick(location,control,params)
+	if(!usr.get_active_hand())
+		usr.DblClickOn(src, params)
+		return
+	gripped_item ? usr.DblClickOn(gripped_item, params) : usr.ClickOn(src, params)
+
 
 /obj/item/gripper/attackby(obj/item/weapon, mob/user, params)
 	if(!gripped_item)
-		return
-	gripped_item.attackby(weapon, user, params)
-	if (QDELETED(gripped_item)) // if item was dissasembled we need to clear the pointer
+		return ATTACK_CHAIN_PROCEED
+	. = gripped_item.attackby(weapon, user, params)
+	if(QDELETED(gripped_item)) // if item was dissasembled we need to clear the pointer
 		drop_gripped_item(TRUE) // silent = TRUE to prevent "You drop X" message from appearing without actually dropping anything
+
 
 /obj/item/gripper/proc/drop_gripped_item(silent = FALSE)
 	if(!gripped_item)
@@ -159,8 +169,10 @@
 	gripped_item.forceMove(get_turf(src))
 	gripped_item = null
 
-/obj/item/gripper/attack(mob/living/carbon/M, mob/living/carbon/user)
-	return
+
+/obj/item/gripper/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
 
 /// Grippers are snowflakey so this is needed to to prevent forceMoving grippers after `if(!user.drop_from_active_hand())` checks done in certain attackby's.
 /obj/item/gripper/forceMove(atom/destination)
@@ -169,53 +181,63 @@
 /obj/item/gripper/proc/isEmpty()
 	return isnull(gripped_item)
 
-/obj/item/gripper/afterattack(atom/target, mob/living/user, proximity, params)
 
-	if(!target || !proximity) //Target is invalid or we are not adjacent.
-		return FALSE
+/obj/item/gripper/melee_attack_chain(mob/user, atom/target, params)	// this shit requires massive refactoring
+	. = ATTACK_CHAIN_PROCEED
 
 	if(gripped_item) //Already have an item.
-
 		//Pass the attack on to the target. This might delete/relocate gripped_item.
-		if(!target.attackby(gripped_item, user, params))
+		. |= target.attackby(gripped_item, user, params)
+		if((. & ATTACK_CHAIN_NO_AFTERATTACK) || QDELETED(src) || QDELETED(gripped_item) || QDELETED(target) || QDELETED(user))
 			// If the attackby didn't resolve or delete the target or gripped_item, afterattack
 			// (Certain things, such as mountable frames, rely on afterattack)
-			gripped_item?.afterattack(target, user, 1, params)
+			gripped_item.afterattack(target, user, TRUE, params)
 
 		//If gripped_item either didn't get deleted, or it failed to be transfered to its target
 		if(!gripped_item && contents.len)
 			gripped_item = contents[1]
-			return FALSE
 		else if(gripped_item && !contents.len)
 			gripped_item = null
 
-	else if(istype(target, /obj/item)) //Check that we're not pocketing a mob.
+	else if(isitem(target)) //Check that we're not pocketing a mob.
 		var/obj/item/I = target
 		if(is_type_in_typecache(I, can_hold)) // Make sure the item is something the gripper can hold
-			to_chat(user, "<span class='notice'>You collect [I].</span>")
+			. |= ATTACK_CHAIN_SUCCESS
+			to_chat(user, span_notice("You collect [I]."))
 			I.forceMove(src)
 			gripped_item = I
+			I.update_icon(UPDATE_OVERLAYS) //Some items change their appearance upon being pulled (IV drip as an example)
+			update_icon(UPDATE_OVERLAYS)
+			RegisterSignal(I, list(COMSIG_MOVABLE_MOVED, COMSIG_QDELETING), PROC_REF(handle_item_moving))
+			RegisterSignal(I, list(COMSIG_ATOM_UPDATED_ICON), PROC_REF(handle_item_icon_update))
 		else
-			to_chat(user, "<span class='warning'>Your gripper cannot hold [target].</span>")
-			return FALSE
+			to_chat(user, span_warning("Your gripper cannot hold [target]."))
 
-	else if(istype(target,/obj/machinery/power/apc))
-		var/obj/machinery/power/apc/A = target
-		if(A.opened)
-			if(A.cell && is_type_in_typecache(A.cell, can_hold))
+	else //We are empty and trying to attack something else
+		target.attack_hand(user)
+		. |= ATTACK_CHAIN_SUCCESS
 
-				gripped_item = A.cell
 
-				A.cell.add_fingerprint(user)
-				A.cell.update_icon()
-				A.cell.forceMove(src)
-				A.cell = null
+/obj/item/gripper/proc/handle_item_moving()
+	SIGNAL_HANDLER
+	UnregisterSignal(gripped_item, list(COMSIG_MOVABLE_MOVED, COMSIG_QDELETING, COMSIG_ATOM_UPDATED_ICON))
+	gripped_item.update_icon(UPDATE_OVERLAYS)
+	gripped_item = null
+	update_icon(UPDATE_OVERLAYS)
 
-				A.charging = 0
-				A.update_icon()
+/obj/item/gripper/proc/handle_item_icon_update()
+	SIGNAL_HANDLER
+	update_icon(UPDATE_OVERLAYS)
 
-				user.visible_message("<span class='warning'>[user] removes the power cell from [A]!</span>", "You remove the power cell.")
-	return TRUE
+/obj/item/gripper/update_overlays()
+	. = ..()
+	if(gripped_item)
+		alpha = 128
+		var/mutable_appearance/item_preview = mutable_appearance(gripped_item.icon, gripped_item.icon_state, appearance_flags = RESET_ALPHA|RESET_COLOR|RESET_TRANSFORM)
+		item_preview.copy_overlays(gripped_item)
+		. += item_preview
+	else
+		alpha = initial(alpha)
 
 //TODO: Matter decompiler.
 /obj/item/matter_decompiler
@@ -232,8 +254,10 @@
 		"wood" = 0
 		)
 
-/obj/item/matter_decompiler/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-	return
+
+/obj/item/matter_decompiler/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
 
 /obj/item/matter_decompiler/afterattack(atom/target, mob/living/user, proximity, params)
 	if(!proximity) return //Not adjacent.
@@ -267,7 +291,7 @@
 		module = new /obj/item/robot_module/drone(src)
 
 	var/dat = {"<meta charset="UTF-8"><HEAD><TITLE>Drone modules</TITLE><META HTTP-EQUIV='Refresh' CONTENT='10'></HEAD><BODY>\n"}
-	dat += {"<A HREF='?src=[UID()];mach_close=robotmod'>Close</A>
+	dat += {"<a href='byond://?src=[UID()];mach_close=robotmod'>Close</A>
 	<BR>
 	<BR>
 	<B>Activated Modules</B>
@@ -293,7 +317,7 @@
 		else
 			module_string += text("[O]: <A HREF=?src=[UID()];act=\ref[O]>Activate</A><BR>")
 
-		if((istype(O,/obj/item) || istype(O,/obj/item)) && !(istype(O,/obj/item/stack/cable_coil)))
+		if(isitem(O) && !(istype(O,/obj/item/stack/cable_coil)))
 			tools += module_string
 		else
 			resources += module_string

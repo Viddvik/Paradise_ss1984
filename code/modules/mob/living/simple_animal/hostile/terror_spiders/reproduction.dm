@@ -7,7 +7,7 @@
 	name = "spiderling"
 	desc = "A fast-moving tiny spider, prone to making aggressive hissing sounds. Hope it doesn't grow up."
 	icon_state = "spiderling"
-	anchored = 0
+	anchored = FALSE
 	layer = 2.75
 	max_integrity = 3
 	var/stillborn = FALSE
@@ -31,11 +31,6 @@
 /obj/structure/spider/spiderling/terror_spiderling/Destroy()
 	GLOB.ts_spiderling_list -= src
 	return ..()
-
-/obj/structure/spider/spiderling/terror_spiderling/Bump(obj/O)
-	if(istype(O, /obj/structure/table))
-		forceMove(O.loc)
-	. = ..()
 
 
 /obj/structure/spider/spiderling/terror_spiderling/Destroy()
@@ -151,8 +146,7 @@
 							new_area.Entered(src)
 		else
 			frustration++
-			glide_for(3)
-			walk_to(src, entry_vent, 1)
+			SSmove_manager.move_to(src, entry_vent, 1, rand(2, 4))
 			if(frustration > 2)
 				entry_vent = null
 	else if(prob(33))
@@ -167,8 +161,7 @@
 		for(var/obj/machinery/atmospherics/unary/vent_pump/v in view(7,src))
 			if(!v.welded)
 				entry_vent = v
-				glide_for(3)
-				walk_to(src, entry_vent, 1)
+				SSmove_manager.move_to(src, entry_vent, 1, rand(2, 4))
 				break
 
 

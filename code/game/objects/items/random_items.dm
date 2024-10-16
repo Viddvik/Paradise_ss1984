@@ -31,7 +31,16 @@
 
 /obj/item/stack/sheet/animalhide/random/New()
 	..()
-	var/htype = pick(/obj/item/stack/sheet/animalhide/cat,/obj/item/stack/sheet/animalhide/corgi,/obj/item/stack/sheet/animalhide/human,/obj/item/stack/sheet/animalhide/lizard,/obj/item/stack/sheet/animalhide/monkey)
+	var/htype = pick(/obj/item/stack/sheet/animalhide/cat, \
+					/obj/item/stack/sheet/animalhide/corgi, \
+					/obj/item/stack/sheet/animalhide/human, \
+					/obj/item/stack/sheet/animalhide/lizard, \
+					/obj/item/stack/sheet/animalhide/monkey, \
+					/obj/item/stack/sheet/animalhide/wolpin, \
+					/obj/item/stack/sheet/animalhide/stok, \
+					/obj/item/stack/sheet/animalhide/neara, \
+					/obj/item/stack/sheet/animalhide/farwa \
+					)
 	new htype(loc, amount)
 	qdel(src)
 
@@ -200,7 +209,7 @@
 /obj/structure/closet/crate/bin/flowers
 	name = "flower barrel"
 	desc = "A bin full of fresh flowers for the bereaved."
-	anchored = 0
+	anchored = FALSE
 	New()
 		while(contents.len < 10)
 			var/flowertype = pick(/obj/item/grown/sunflower,/obj/item/grown/novaflower,/obj/item/reagent_containers/food/snacks/grown/poppy,
@@ -212,7 +221,7 @@
 /obj/structure/closet/crate/bin/plants
 	name = "plant barrel"
 	desc = "Caution: Contents may contain vitamins and minerals.  It is recommended that you deep fry them before eating."
-	anchored = 0
+	anchored = FALSE
 	New()
 		while(contents.len < 10)
 			var/ptype = pick(/obj/item/reagent_containers/food/snacks/grown/apple,/obj/item/reagent_containers/food/snacks/grown/banana,
@@ -233,15 +242,11 @@
 			O.pixel_y = rand(-5,5)
 */
 
-/obj/structure/closet/secure_closet/random_drinks
+/obj/structure/closet/secure_closet/cabinet/bar/random_drinks
 	name = "unlabelled booze closet"
-	req_access = list(ACCESS_BAR)
-	icon_state = "cabinetdetective"
-	overlay_locked = "c_locked"
-	overlay_locker = "c_locker"
-	overlay_unlocked = "c_unlocked"
 
-/obj/structure/closet/secure_closet/random_drinks/populate_contents()
+
+/obj/structure/closet/secure_closet/cabinet/bar/random_drinks/populate_contents()
 	for(var/i in 1 to 5)
 		new/obj/item/reagent_containers/food/drinks/bottle/random_drink(src)
 	while(prob(25))
@@ -258,51 +263,47 @@
 	name = "\improper Mysterious Crate"
 	desc = "What could it be?"
 
-/obj/structure/largecrate/evil/attackby(obj/item/W as obj, mob/user as mob, params)
-	if(istype(W, /obj/item/crowbar))
-		var/list/menace = pick(	/mob/living/simple_animal/hostile/carp,/mob/living/simple_animal/hostile/faithless,/mob/living/simple_animal/hostile/pirate,
-								/mob/living/simple_animal/hostile/creature,/mob/living/simple_animal/hostile/pirate/ranged,
-								/mob/living/simple_animal/hostile/hivebot,/mob/living/simple_animal/hostile/viscerator,/mob/living/simple_animal/hostile/pirate)
 
-		add_fingerprint(user)
-		visible_message("<span class='warning'>Something falls out of the [src]!</span>")
-		var/obj/item/grenade/clusterbuster/C = new(src.loc)
-		C.prime()
-		sleep(10)
-		new menace(src.loc)
-		while(prob(15))
-			new menace(get_step_rand(src.loc))
-		..()
-		return TRUE
-	else
-		return ..()
+/obj/structure/largecrate/evil/crowbar_act(mob/living/user, obj/item/I)
+	var/cached_name = name
+	var/atom/cached_loc = loc
+	. = ..()
+	var/static/list/menace = pick(
+		/mob/living/simple_animal/hostile/carp,
+		/mob/living/simple_animal/hostile/faithless,
+		/mob/living/simple_animal/hostile/pirate,
+		/mob/living/simple_animal/hostile/creature,
+		/mob/living/simple_animal/hostile/pirate/ranged,
+		/mob/living/simple_animal/hostile/hivebot,
+		/mob/living/simple_animal/hostile/viscerator,
+		/mob/living/simple_animal/hostile/pirate,
+	)
+	visible_message(span_warning("Something falls out of the [cached_name]!"))
+	var/obj/item/grenade/clusterbuster/grenade = new(cached_loc)
+	grenade.prime()
+	sleep(1 SECONDS)
+	new menace(cached_loc)
+	while(prob(15))
+		new menace(get_step_rand(cached_loc))
 
-
-//
-//
-//
-//                   ???
-//
-//
-//
 
 /obj/structure/largecrate/schrodinger
 	name = "Schrodinger's Crate"
 	desc = "What happens if you open it?"
 
-/obj/structure/largecrate/schrodinger/attackby(obj/item/W as obj, mob/user as mob, params)
-	if(istype(W, /obj/item/crowbar))
-		add_fingerprint(user)
-		sleep(2)
-		var/mob/living/simple_animal/pet/cat/Cat = new(loc)
-		Cat.name = "Schrodinger's Cat"
 
-		if(prob(50))
-			Cat.apply_damage(250,TOX)
-			Cat.desc = "It seems it's been dead for a while."
-		else
-			Cat.desc = "It was alive the whole time!"
-	return ..()
+/obj/structure/largecrate/schrodinger/crowbar_act(mob/living/user, obj/item/I)
+	var/atom/cached_loc = loc
+	. = ..()
+	sleep(0.2 SECONDS)
+	var/mob/living/simple_animal/pet/cat/kitty = new(cached_loc)
+	kitty.name = "Schrodinger's Cat"
+	if(prob(50))
+		kitty.apply_damage(250, TOX)
+		kitty.desc = "It seems it's been dead for a while."
+	else
+		kitty.desc = "It was alive the whole time!"
+
 
 // --------------------------------------
 //   Collen's box of wonder and mystery

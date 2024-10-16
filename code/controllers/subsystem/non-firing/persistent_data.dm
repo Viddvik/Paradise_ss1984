@@ -11,6 +11,7 @@ SUBSYSTEM_DEF(persistent_data)
 	name = "Persistent Data"
 	init_order = INIT_ORDER_PERSISTENCE // -95 | Loads after EVERYTHING else
 	flags = SS_NO_FIRE
+	ss_id = "persistent_data"
 	/// List of atoms registered into the subsystem for persistent data storage. Can be anything at all
 	var/list/registered_atoms = list()
 
@@ -22,7 +23,7 @@ SUBSYSTEM_DEF(persistent_data)
 	// Load all the data of registered atoms
 	for(var/atom/A in registered_atoms)
 		A.persistent_load()
-
+	return SS_INIT_SUCCESS
 
 /datum/controller/subsystem/persistent_data/Shutdown()
 	save()

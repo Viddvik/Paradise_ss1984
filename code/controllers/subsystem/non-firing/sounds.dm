@@ -5,6 +5,7 @@ SUBSYSTEM_DEF(sounds)
 	init_order = INIT_ORDER_SOUNDS
 	flags = SS_NO_FIRE
 	offline_implications = "Sounds may not play correctly. Shuttle call recommended."
+	ss_id = "sounds"
 
 	var/using_channels_max = CHANNEL_HIGHEST_AVAILABLE // BYOND max channels
 	/// Amount of channels to reserve for random usage rather than reservations being allowed to reserve all channels. Also a nice safeguard for when someone screws up.
@@ -27,7 +28,7 @@ SUBSYSTEM_DEF(sounds)
 
 /datum/controller/subsystem/sounds/Initialize()
 	setup_available_channels()
-
+	return SS_INIT_SUCCESS
 
 /**
   * Sets up all available sound channels

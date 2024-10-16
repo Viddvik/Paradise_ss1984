@@ -9,8 +9,9 @@
 	icon_state = "detscanner"
 	w_class = WEIGHT_CLASS_NORMAL
 	item_state = "electronic"
-	flags = CONDUCT | NOBLUDGEON
-	slot_flags = SLOT_BELT
+	flags = CONDUCT
+	item_flags = NOBLUDGEON
+	slot_flags = ITEM_SLOT_BELT
 	origin_tech = "engineering=4;biotech=2;programming=5"
 	var/scanning = FALSE
 	var/list/log = list()
@@ -59,8 +60,8 @@
 	else
 		to_chat(user, "<span class='warning'>В записях станции не найдено совпадений.</span>")
 
-/obj/item/detective_scanner/ui_action_click(mob/user, actiontype)
-	if(actiontype == /datum/action/item_action/print_forensic_report)
+/obj/item/detective_scanner/ui_action_click(mob/user, datum/action/action, leftclick)
+	if(istype(action, /datum/action/item_action/print_forensic_report))
 		print_scanner_report()
 	else
 		clear_scanner()
@@ -101,10 +102,11 @@
 		to_chat(usr, "<span class='warning'>The scanner has no logs or is in use.</span>")
 
 
-/obj/item/detective_scanner/attack()
-	return
+/obj/item/detective_scanner/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
 
-/obj/item/detective_scanner/afterattack(atom/A, mob/user)
+
+/obj/item/detective_scanner/afterattack(atom/A, mob/user, proximity, params)
 	scan(A, user)
 
 /obj/item/detective_scanner/proc/scan(atom/scan_atom, mob/user)
@@ -166,7 +168,7 @@
 							var/blood_type = R.data["blood_type"]
 							blood[blood_DNA] = blood_type
 
-			if(istype(scan_atom, /obj/item/clothing))
+			if(isclothing(scan_atom))
 				var/obj/item/clothing/scanned_clothing = scan_atom
 				if(scanned_clothing.spy_spider_attached)
 					found_spy_device = TRUE

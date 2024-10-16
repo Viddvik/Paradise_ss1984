@@ -7,44 +7,46 @@
 	force = 10
 	flags = CONDUCT
 	can_holster = FALSE
-	slot_flags = SLOT_BACK
+	slot_flags = ITEM_SLOT_BACK
 	origin_tech = "combat=4;materials=2"
 	mag_type = /obj/item/ammo_box/magazine/internal/shot
 	fire_sound = 'sound/weapons/gunshots/1shotgun_old.ogg'
-	var/recentpump = 0 // to prevent spammage
 	weapon_weight = WEAPON_HEAVY
+	pb_knockback = 2
+	COOLDOWN_DECLARE(last_pump)	// to prevent spammage
 
-/obj/item/gun/projectile/shotgun/attackby(obj/item/A, mob/user, params)
-	. = ..()
-	if(.)
-		return
-	if(istype(A, /obj/item/ammo_box/speedloader/shotgun) || istype(A, /obj/item/ammo_casing))
-		var/num_loaded = magazine.attackby(A, user, params, 1)
+
+/obj/item/gun/projectile/shotgun/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/ammo_box/speedloader) || istype(I, /obj/item/ammo_casing))
+		add_fingerprint(user)
+		var/num_loaded = magazine.reload(I, user)
 		if(num_loaded)
-			to_chat(user, "<span class='notice'>You load [num_loaded] shell\s into \the [src]!</span>")
-			A.update_icon()
-			update_icon()
+			update_appearance()
+			return ATTACK_CHAIN_BLOCKED_ALL
+		return ATTACK_CHAIN_PROCEED
+
+	return ..()
 
 
-/obj/item/gun/projectile/shotgun/process_chamber()
-	return ..(0, 0)
+/obj/item/gun/projectile/shotgun/process_chamber(eject_casing = TRUE, empty_chamber = TRUE)
+	return ..(FALSE, FALSE)
+
 
 /obj/item/gun/projectile/shotgun/chamber_round()
 	return
 
-/obj/item/gun/projectile/shotgun/can_shoot()
+
+/obj/item/gun/projectile/shotgun/can_shoot(mob/user)
 	if(!chambered)
-		return 0
-	return (chambered.BB ? 1 : 0)
+		return FALSE
+	return (chambered.BB ? TRUE : FALSE)
+
 
 /obj/item/gun/projectile/shotgun/attack_self(mob/living/user)
-	if(recentpump)
+	if(!COOLDOWN_FINISHED(src, last_pump))
 		return
+	COOLDOWN_START(src, last_pump, 1 SECONDS)
 	pump(user)
-	recentpump = 1
-	spawn(10)
-		recentpump = 0
-	return
 
 
 /obj/item/gun/projectile/shotgun/proc/pump(mob/M)
@@ -86,24 +88,36 @@
 	sawn_state = SAWN_INTACT
 	fire_sound = 'sound/weapons/gunshots/1shotgun.ogg'
 
-/obj/item/gun/projectile/shotgun/riot/attackby(obj/item/A, mob/user, params)
-	if(istype(A, /obj/item/circular_saw) || istype(A, /obj/item/gun/energy/plasmacutter))
-		sawoff(user)
-	if(istype(A, /obj/item/melee/energy))
-		var/obj/item/melee/energy/W = A
-		if(W.active)
-			sawoff(user)
-	if(istype(A, /obj/item/pipe))
-		unsaw(A, user)
-	else
-		return ..()
+
+/obj/item/gun/projectile/shotgun/riot/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/circular_saw) || istype(I, /obj/item/gun/energy/plasmacutter))
+		add_fingerprint(user)
+		if(sawoff(user))
+			return ATTACK_CHAIN_PROCEED_SUCCESS
+		return ATTACK_CHAIN_PROCEED
+
+	if(istype(I, /obj/item/melee/energy))
+		add_fingerprint(user)
+		var/obj/item/melee/energy/sword = I
+		if(sword.active && sawoff(user))
+			return ATTACK_CHAIN_PROCEED_SUCCESS
+		return ATTACK_CHAIN_PROCEED
+
+	if(istype(I, /obj/item/pipe))
+		add_fingerprint(user)
+		if(unsaw(I, user))
+			return ATTACK_CHAIN_PROCEED_SUCCESS
+		return ATTACK_CHAIN_PROCEED
+
+	return ..()
+
 
 /obj/item/gun/projectile/shotgun/riot/sawoff(mob/user)
 	if(sawn_state == SAWN_OFF)
-		to_chat(user, "<span class='warning'>[src] has already been shortened!</span>")
+		balloon_alert(user, "уже укорочено!")
 		return
-	if(istype(loc, /obj/item/storage))	//To prevent inventory exploits
-		to_chat(user, "<span class='info'>How do you plan to modify [src] while it's in a bag.</span>")
+	if(isstorage(loc))	//To prevent inventory exploits
+		balloon_alert(user, "не подходящее место!")
 		return
 	if(chambered)	//if the gun is chambering live ammo, shoot self, if chambering empty ammo, 'click'
 		if(chambered.BB)
@@ -115,14 +129,14 @@
 			user.visible_message("The [src] goes click!", "<span class='notice'>The [src] you are holding goes click.</span>")
 	if(magazine.ammo_count())	//Spill the mag onto the floor
 		user.visible_message("<span class='danger'>[user.name] opens [src] up and the shells go goes flying around!</span>", "<span class='userdanger'>You open [src] up and the shells go goes flying everywhere!!</span>")
-		while(get_ammo(0) > 0)
+		while(get_ammo(FALSE) > 0)
 			var/obj/item/ammo_casing/CB
 			CB = magazine.get_round(0)
 			if(CB)
 				CB.loc = get_turf(loc)
 				CB.update_icon()
 
-	if(do_after(user, 30, target = src))
+	if(do_after(user, 3 SECONDS, src))
 		user.visible_message("[user] shortens \the [src]!", "<span class='notice'>You shorten \the [src].</span>")
 		post_sawoff()
 		return 1
@@ -134,8 +148,8 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	current_skin = "riotshotgun-short"
 	item_state = "gun"			//phil235 is it different with different skin?
-	slot_flags &= ~SLOT_BACK    //you can't sling it on your back
-	slot_flags |= SLOT_BELT     //but you can wear it on your belt (poorly concealed under a trenchcoat, ideally)
+	slot_flags &= ~ITEM_SLOT_BACK    //you can't sling it on your back
+	slot_flags |= ITEM_SLOT_BELT     //but you can wear it on your belt (poorly concealed under a trenchcoat, ideally)
 	sawn_state = SAWN_OFF
 	magazine.max_ammo = 3
 	update_icon()
@@ -143,10 +157,10 @@
 
 /obj/item/gun/projectile/shotgun/riot/proc/unsaw(obj/item/A, mob/user)
 	if(sawn_state == SAWN_INTACT)
-		to_chat(user, "<span class='warning'>[src] has not been shortened!</span>")
+		balloon_alert(user, "операция провалилась!")
 		return
-	if(istype(loc, /obj/item/storage))	//To prevent inventory exploits
-		to_chat(user, "<span class='info'>How do you plan to modify [src] while it's in a bag.</span>")
+	if(isstorage(loc))	//To prevent inventory exploits
+		balloon_alert(user, "не подходящее место!")
 		return
 	if(chambered)	//if the gun is chambering live ammo, shoot self, if chambering empty ammo, 'click'
 		if(chambered.BB)
@@ -165,7 +179,7 @@
 				CB.loc = get_turf(loc)
 				CB.update_icon()
 
-	if(do_after(user, 30, target = src))
+	if(do_after(user, 3 SECONDS, src))
 		qdel(A)
 		user.visible_message("<span class='notice'>[user] lengthens [src]!</span>", "<span class='notice'>You lengthen [src].</span>")
 		post_unsaw(user)
@@ -177,14 +191,13 @@
 	w_class = initial(w_class)
 	current_skin = "riotshotgun"
 	item_state = initial(item_state)
-	slot_flags &= ~SLOT_BELT
-	slot_flags |= SLOT_BACK
+	slot_flags &= ~ITEM_SLOT_BELT
+	slot_flags |= ITEM_SLOT_BACK
 	sawn_state = SAWN_INTACT
 	magazine.max_ammo = 6
 	update_icon()
 
-/obj/item/gun/projectile/shotgun/riot/update_icon() //Can't use the old proc as it makes it go to riotshotgun-short_sawn
-	..()
+/obj/item/gun/projectile/shotgun/riot/update_icon_state() //Can't use the old proc as it makes it go to riotshotgun-short_sawn
 	if(current_skin)
 		icon_state = "[current_skin]"
 	else
@@ -193,8 +206,8 @@
 /obj/item/gun/projectile/shotgun/riot/short
 	mag_type = /obj/item/ammo_box/magazine/internal/shot/riot/short
 
-/obj/item/gun/projectile/shotgun/riot/short/New()
-	..()
+/obj/item/gun/projectile/shotgun/riot/short/Initialize(mapload)
+	. = ..()
 	post_sawoff()
 
 /obj/item/gun/projectile/shotgun/riot/buckshot	//comes pre-loaded with buckshot rather than rubber
@@ -210,13 +223,14 @@
 	desc = "This piece of junk looks like something that could have been used 700 years ago. Has a bayonet lug for attaching a knife."
 	icon_state = "moistnugget"
 	item_state = "moistnugget"
-	slot_flags = 0 //no SLOT_BACK sprite, alas
+	slot_flags = NONE //no ITEM_SLOT_BACK sprite, alas
 	mag_type = /obj/item/ammo_box/magazine/internal/boltaction
 	fire_sound = 'sound/weapons/gunshots/1rifle.ogg'
 	bolt_open = FALSE
 	can_bayonet = TRUE
-	knife_x_offset = 27
-	knife_y_offset = 13
+	bayonet_x_offset = 27
+	bayonet_y_offset = 13
+	pb_knockback = 0
 
 /obj/item/gun/projectile/shotgun/boltaction/pump(mob/M)
 	playsound(M, 'sound/weapons/gun_interactions/rifle_load.ogg', 60, 1)
@@ -225,9 +239,13 @@
 	else
 		pump_unload(M)
 	bolt_open = !bolt_open
-	icon_state = "moistnugget_open"
-	update_icon()	//I.E. fix the desc
+	update_icon(UPDATE_ICON_STATE)
 	return 1
+
+
+/obj/item/gun/projectile/shotgun/boltaction/update_icon_state()
+	icon_state = "[initial(icon_state)][bolt_open ? "-open" : ""]"
+
 
 /obj/item/gun/projectile/shotgun/blow_up(mob/user)
 	. = 0
@@ -235,11 +253,14 @@
 		process_fire(user, user,0)
 		. = 1
 
-/obj/item/gun/projectile/shotgun/boltaction/attackby(obj/item/A, mob/user, params)
+
+/obj/item/gun/projectile/shotgun/boltaction/attackby(obj/item/I, mob/user, params)
 	if(!bolt_open)
-		to_chat(user, "<span class='notice'>The bolt is closed!</span>")
-		return
-	. = ..()
+		add_fingerprint(user)
+		balloon_alert(user, "затвор закрыт!")
+		return ATTACK_CHAIN_PROCEED
+	return ..()
+
 
 /obj/item/gun/projectile/shotgun/boltaction/examine(mob/user)
 	. = ..()
@@ -252,13 +273,13 @@
 	mag_type = /obj/item/ammo_box/magazine/internal/boltaction/enchanted
 	can_bayonet = FALSE
 
-/obj/item/gun/projectile/shotgun/boltaction/enchanted/New()
-	..()
+/obj/item/gun/projectile/shotgun/boltaction/enchanted/Initialize(mapload)
+	. = ..()
 	bolt_open = 1
 	pump()
 
-/obj/item/gun/projectile/shotgun/boltaction/enchanted/dropped(mob/user, silent = FALSE)
-	..()
+/obj/item/gun/projectile/shotgun/boltaction/enchanted/dropped(mob/user, slot, silent = FALSE)
+	. = ..()
 	guns_left = 0
 
 /obj/item/gun/projectile/shotgun/boltaction/enchanted/attack_self()
@@ -287,7 +308,7 @@
 	icon_state = "arcane_barrage"
 	item_state = "arcane_barrage"
 	slot_flags = null
-	flags = NOBLUDGEON | DROPDEL | ABSTRACT
+	item_flags = NOBLUDGEON|DROPDEL|ABSTRACT
 	mag_type = /obj/item/ammo_box/magazine/internal/boltaction/enchanted/arcane_barrage
 
 /obj/item/gun/projectile/shotgun/boltaction/enchanted/arcane_barrage/examine(mob/user)
@@ -328,8 +349,8 @@
 	var/obj/item/ammo_box/magazine/internal/shot/alternate_magazine
 	fire_sound = 'sound/weapons/gunshots/1shotgun_auto.ogg'
 
-/obj/item/gun/projectile/shotgun/automatic/dual_tube/New()
-	..()
+/obj/item/gun/projectile/shotgun/automatic/dual_tube/Initialize(mapload)
+	. = ..()
 	if(!alternate_magazine)
 		alternate_magazine = new mag_type(src)
 
@@ -346,14 +367,14 @@
 	alternate_magazine = current_mag
 	toggled = !toggled
 	if(toggled)
-		to_chat(user, "You switch to tube B.")
+		balloon_alert(user, "переключено на первый ствол")
 	else
-		to_chat(user, "You switch to tube A.")
+		balloon_alert(user, "переключено на второй ствол")
 	playsound(user, 'sound/weapons/gun_interactions/selector.ogg', 100, 1)
 
 /obj/item/gun/projectile/shotgun/automatic/dual_tube/AltClick(mob/living/user)
 	. = ..()
-	if(user.incapacitated() || !Adjacent(user) || !istype(user))
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user) || !istype(user))
 		return
 	pump()
 

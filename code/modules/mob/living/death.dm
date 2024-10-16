@@ -4,8 +4,7 @@
 	if(!death(TRUE) && stat != DEAD)
 		return FALSE
 	// hide and freeze for the GC
-	notransform = 1
-	canmove = 0
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, PERMANENT_TRANSFORMATION_TRAIT)
 	icon = null
 	invisibility = INVISIBILITY_ABSTRACT
 
@@ -18,14 +17,15 @@
 //Originally created for wizard disintegrate. I've removed the virus code since it's irrelevant here.
 //Dusting robots does not eject the MMI, so it's a bit more powerful than gib() /N
 /mob/living/dust()
+	dusted = TRUE
 	if(!death(TRUE) && stat != DEAD)
+		dusted = FALSE
 		return FALSE
-	new /obj/effect/decal/cleanable/ash(loc)
 	// hide and freeze them while they get GC'd
-	notransform = 1
-	canmove = 0
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, PERMANENT_TRANSFORMATION_TRAIT)
 	icon = null
 	invisibility = INVISIBILITY_ABSTRACT
+	dust_animation()
 	QDEL_IN(src, 0)
 	return TRUE
 
@@ -33,38 +33,31 @@
 	if(!death(TRUE) && stat != DEAD)
 		return FALSE
 	// hide and freeze them while they get GC'd
-	notransform = 1
-	canmove = 0
+	ADD_TRAIT(src, TRAIT_NO_TRANSFORM, PERMANENT_TRANSFORMATION_TRAIT)
 	icon = null
 	invisibility = INVISIBILITY_ABSTRACT
 	QDEL_IN(src, 0)
 	return TRUE
 
 /mob/living/proc/can_die()
-	return !(stat == DEAD || (status_flags & GODMODE))
+	return !(stat == DEAD || HAS_TRAIT(src, TRAIT_GODMODE))
 
 // Returns true if mob transitioned from live to dead
 // Do a check with `can_die` beforehand if you need to do any
 // handling before `stat` is set
 /mob/living/death(gibbed)
-	if(!can_die())
+	if(stat == DEAD || !can_die())
 		// Whew! Good thing I'm indestructible! (or already dead)
 		return FALSE
 
-	stat = DEAD
+	set_stat(DEAD)
 	..()
-
+	INVOKE_ASYNC(src, PROC_REF(burst_blob_on_die))
 	timeofdeath = world.time
 	add_attack_logs(src, src, "died[gibbed ? " (Gibbed)": ""]")
 
-	SetDizzy(0)
-	SetJitter(0)
-	SetLoseBreath(0)
-	SetDisgust(0)
-	SetEyeBlurry(0)
-
 	if(!gibbed && deathgasp_on_death)
-		emote("deathgasp")
+		INVOKE_ASYNC(src, PROC_REF(emote), "deathgasp")
 
 	if(HAS_TRAIT(src, TRAIT_SECDEATH))
 		playsound(loc, pick('sound/misc/die1.ogg', 'sound/misc/die2.ogg', 'sound/misc/die3.ogg', 'sound/misc/die4.ogg'), 80)
@@ -91,25 +84,22 @@
 		var/datum/soullink/S = s
 		S.sharerDies(gibbed, src)
 
-	if(!gibbed)
-		update_canmove()
-
-	GLOB.alive_mob_list -= src
-	GLOB.dead_mob_list += src
 	if(mind)
 		mind.store_memory("Time of death: [station_time_timestamp("hh:mm:ss", timeofdeath)]", 0)
 		GLOB.respawnable_list += src
-
 		if(mind.name && !isbrain(src)) // !isbrain() is to stop it from being called twice
 			var/turf/T = get_turf(src)
 			var/area_name = get_area_name(T)
 			for(var/P in GLOB.dead_mob_list)
 				var/mob/M = P
 				if((M.client?.prefs.toggles2 & PREFTOGGLE_2_DEATHMESSAGE) && (isobserver(M) || M.stat == DEAD))
-					to_chat(M, "<span class='deadsay'><b>[mind.name]</b> has died at <b>[area_name]</b>. (<a href='?src=[M.UID()];jump=[gibbed ? "\ref[T]" : "\ref[src]"]'>JMP</a>)</span>")
+					to_chat(M, "<span class='deadsay'><b>[mind.name]</b> has died at <b>[area_name]</b>. (<a href='byond://?src=[M.UID()];jump=[gibbed ? "\ref[T]" : "\ref[src]"]'>JMP</a>)</span>")
 
 	if(SSticker && SSticker.mode)
 		SSticker.mode.check_win()
+
+	clear_alert("succumb")
+
 	if(mind && mind.devilinfo) // Expand this into a general-purpose death-response system when appropriate
 		mind.devilinfo.beginResurrectionCheck(src)
 

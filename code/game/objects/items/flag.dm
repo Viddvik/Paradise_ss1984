@@ -5,50 +5,57 @@
 	icon_state = "ntflag"
 	lefthand_file = 'icons/mob/inhands/flags_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/flags_righthand.dmi'
-	flags = NO_PIXEL_RANDOM_DROP
+	item_flags = NO_PIXEL_RANDOM_DROP
 	w_class = WEIGHT_CLASS_BULKY
 	max_integrity = 40
 	resistance_flags = FLAMMABLE
+	custom_fire_overlay = "fire"
 	var/rolled = FALSE
 
-/obj/item/flag/attackby(obj/item/W, mob/user, params)
+
+/obj/item/flag/attackby(obj/item/I, mob/user, params)
 	. = ..()
-	if(is_hot(W) && !(resistance_flags & ON_FIRE))
-		user.visible_message("<span class='notice'>[user] lights [src] with [W].</span>", "<span class='notice'>You light [src] with [W].</span>", "<span class='warning'>You hear a low whoosh.</span>")
-		fire_act()
+	if(ATTACK_CHAIN_CANCEL_CHECK(.) || !is_hot(I) || (resistance_flags & ON_FIRE))
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	user.visible_message(
+		span_warning("[user] lights [src] with [I]."),
+		span_notice("You light [src] with [I]."),
+		span_italics("You hear a low whoosh."),
+	)
+	fire_act()
+
 
 /obj/item/flag/attack_self(mob/user)
 	rolled = !rolled
 	user.visible_message("<span class='notice'>[user] [rolled ? "rolls up" : "unfurls"] [src].</span>", "<span class='notice'>You [rolled ? "roll up" : "unfurl"] [src].</span>", "<span class='warning'>You hear fabric rustling.</span>")
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/item/flag/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = FALSE)
 	..()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/item/flag/extinguish()
 	..()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/item/flag/update_icon()
-	overlays.Cut()
+
+/obj/item/flag/update_icon_state()
 	updateFlagIcon()
 	item_state = icon_state
 	if(rolled)
 		icon_state = "[icon_state]_rolled"
+		custom_fire_overlay = "fire_rolled"
+	else
+		custom_fire_overlay = initial(custom_fire_overlay)
 	if(resistance_flags & ON_FIRE)
 		item_state = "[item_state]_fire"
-	if((resistance_flags & ON_FIRE) && rolled)
-		overlays += image('icons/obj/flag.dmi', src , "fire_rolled")
-	else if((resistance_flags & ON_FIRE) && !rolled)
-		overlays += image('icons/obj/flag.dmi', src , "fire")
-	if(ismob(loc))
-		var/mob/M = loc
-		M.update_inv_r_hand()
-		M.update_inv_l_hand()
+	update_equipped_item(update_speedmods = FALSE)
+
 
 /obj/item/flag/proc/updateFlagIcon()
 	icon_state = initial(icon_state)
+
 
 /obj/item/flag/nt
 	name = "Nanotrasen flag"
@@ -143,6 +150,11 @@
 	desc = "A flag proudly proclaiming the superior heritage of Nian."
 	icon_state = "nianflag"
 
+/obj/item/flag/species/wryn
+	name = "Wryn flag"
+	desc = "A flag proudly proclaiming the superior heritage of Wryn."
+	icon_state = "wrynflag"
+
 //Department Flags
 
 /obj/item/flag/cargo
@@ -219,9 +231,16 @@
 	var/obj/item/grenade/boobytrap = null
 	var/mob/trapper = null
 
-/obj/item/flag/chameleon/New()
+
+/obj/item/flag/chameleon/Initialize(mapload)
 	updated_icon_state = icon_state
-	..()
+	. = ..()
+
+
+/obj/item/flag/chameleon/Destroy()
+	QDEL_NULL(boobytrap)
+	return ..()
+
 
 /obj/item/flag/chameleon/attack_self(mob/user)
 	if(used)
@@ -249,24 +268,33 @@
 			desc = chosen_flag.desc
 			used = TRUE
 
+
 /obj/item/flag/chameleon/attackby(obj/item/I, mob/user, params)
-	if(istype(I, /obj/item/grenade) && !boobytrap)
-		if(user.drop_transfer_item_to_loc(I, src))
-			boobytrap = I
-			trapper = user
-			to_chat(user, "<span class='notice'>You hide [I] in the [src]. It will detonate some time after the flag is lit on fire.</span>")
-			var/turf/bombturf = get_turf(src)
-			add_game_logs("has hidden [I] in the [src] ready for detonation at [AREACOORD(bombturf)].", user)
-			investigate_log("[key_name_log(user)] has hidden [I] in the [src] ready for detonation.", INVESTIGATE_BOMB)
-			add_attack_logs(user, src, "has hidden [I] ready for detonation in", ATKLOG_MOST)
-	else if(is_hot(I) && !(resistance_flags & ON_FIRE) && boobytrap && trapper)
+	if(istype(I, /obj/item/grenade))
+		if(boobytrap)
+			to_chat(user, span_warning("There is already [boobytrap] installed."))
+			return ATTACK_CHAIN_PROCEED|ATTACK_CHAIN_NO_AFTERATTACK
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		boobytrap = I
+		trapper = user
+		to_chat(user, span_notice("You hide [I] in the [src]. It will detonate some time after the flag is lit on fire."))
+		var/turf/bombturf = get_turf(src)
+		add_game_logs("has hidden [I] in the [src] ready for detonation at [AREACOORD(bombturf)].", user)
+		investigate_log("[key_name_log(user)] has hidden [I] in the [src] ready for detonation.", INVESTIGATE_BOMB)
+		add_attack_logs(user, src, "has hidden [I] ready for detonation in", ATKLOG_MOST)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(is_hot(I) && !(resistance_flags & ON_FIRE) && boobytrap && trapper)
 		var/turf/bombturf = get_turf(src)
 		add_game_logs("has lit the [src] trapped with [boobytrap] by [key_name_log(trapper)] at [AREACOORD(bombturf)].", user)
 		investigate_log("[key_name_log(user)] has lit the [src] trapped with [boobytrap] by [key_name_log(trapper)].", INVESTIGATE_BOMB)
 		add_attack_logs(user, src, "has lit (booby trapped with [boobytrap]", ATKLOG_FEW)
 		burn()
-	else
-		return ..()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/item/flag/chameleon/screwdriver_act(mob/user, obj/item/I)
 	if(!boobytrap || user != trapper)

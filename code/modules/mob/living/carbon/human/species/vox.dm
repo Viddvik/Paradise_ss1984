@@ -1,10 +1,10 @@
 /datum/species/vox
-	name = "Vox"
+	name = SPECIES_VOX
 	name_plural = "Vox"
 	icobase = 'icons/mob/human_races/vox/r_vox.dmi'
 	deform = 'icons/mob/human_races/vox/r_def_vox.dmi'
 	dangerous_existence = TRUE
-	language = "Vox-pidgin"
+	language = LANGUAGE_VOX
 	tail = "voxtail"
 	speech_sounds = list('sound/voice/shriek1.ogg')
 	speech_chance = 20
@@ -23,7 +23,12 @@
 
 	eyes = "vox_eyes_s"
 
-	species_traits = list(NO_SCAN, NO_GERMS, NO_DECAY, IS_WHITELISTED, NOTRANSSTING)
+	inherent_traits = list(
+		TRAIT_NO_SCAN,
+		TRAIT_NO_GERMS,
+		TRAIT_NO_DECAY,
+		TRAIT_HAS_REGENERATION,
+	)
 	clothing_flags = HAS_UNDERWEAR | HAS_UNDERSHIRT | HAS_SOCKS //Species-fitted 'em all.
 	bodyflags = HAS_ICON_SKIN_TONE | HAS_TAIL | TAIL_WAGGING | TAIL_OVERLAPPED | HAS_BODY_MARKINGS | HAS_TAIL_MARKINGS | HAS_SKIN_COLOR
 
@@ -57,28 +62,32 @@
 		)
 
 	has_organ = list(
-		"heart" =    /obj/item/organ/internal/heart/vox,
-		"lungs" =    /obj/item/organ/internal/lungs/vox,
-		"liver" =    /obj/item/organ/internal/liver/vox,
-		"kidneys" =  /obj/item/organ/internal/kidneys/vox,
-		"brain" =    /obj/item/organ/internal/brain/vox,
-		"appendix" = /obj/item/organ/internal/appendix,
-		"eyes" =     /obj/item/organ/internal/eyes/vox, //Default darksight of 2.
-		)												//for determining the success of the heist game-mode's 'leave nobody behind' objective, while this is just an organ.
+		INTERNAL_ORGAN_HEART = /obj/item/organ/internal/heart/vox,
+		INTERNAL_ORGAN_LUNGS = /obj/item/organ/internal/lungs/vox,
+		INTERNAL_ORGAN_LIVER = /obj/item/organ/internal/liver/vox,
+		INTERNAL_ORGAN_KIDNEYS = /obj/item/organ/internal/kidneys/vox,
+		INTERNAL_ORGAN_BRAIN = /obj/item/organ/internal/brain/vox,
+		INTERNAL_ORGAN_APPENDIX = /obj/item/organ/internal/appendix,
+		INTERNAL_ORGAN_EYES = /obj/item/organ/internal/eyes/vox,	// Default darksight of 2.
+		INTERNAL_ORGAN_EARS = /obj/item/organ/internal/ears,
+	)
+
+	meat_type = /obj/item/reagent_containers/food/snacks/meat/humanoid/vox
 
 	has_limbs = list(
-		"chest" =  list("path" = /obj/item/organ/external/chest),
-		"groin" =  list("path" = /obj/item/organ/external/groin),
-		"head" =   list("path" = /obj/item/organ/external/head),
-		"l_arm" =  list("path" = /obj/item/organ/external/arm),
-		"r_arm" =  list("path" = /obj/item/organ/external/arm/right),
-		"l_leg" =  list("path" = /obj/item/organ/external/leg),
-		"r_leg" =  list("path" = /obj/item/organ/external/leg/right),
-		"l_hand" = list("path" = /obj/item/organ/external/hand),
-		"r_hand" = list("path" = /obj/item/organ/external/hand/right),
-		"l_foot" = list("path" = /obj/item/organ/external/foot),
-		"r_foot" = list("path" = /obj/item/organ/external/foot/right),
-		"tail" =   list("path" = /obj/item/organ/external/tail/vox))
+		BODY_ZONE_CHEST = list("path" = /obj/item/organ/external/chest),
+		BODY_ZONE_PRECISE_GROIN = list("path" = /obj/item/organ/external/groin),
+		BODY_ZONE_HEAD = list("path" = /obj/item/organ/external/head),
+		BODY_ZONE_L_ARM = list("path" = /obj/item/organ/external/arm),
+		BODY_ZONE_R_ARM = list("path" = /obj/item/organ/external/arm/right),
+		BODY_ZONE_L_LEG = list("path" = /obj/item/organ/external/leg),
+		BODY_ZONE_R_LEG = list("path" = /obj/item/organ/external/leg/right),
+		BODY_ZONE_PRECISE_L_HAND = list("path" = /obj/item/organ/external/hand),
+		BODY_ZONE_PRECISE_R_HAND = list("path" = /obj/item/organ/external/hand/right),
+		BODY_ZONE_PRECISE_L_FOOT = list("path" = /obj/item/organ/external/foot),
+		BODY_ZONE_PRECISE_R_FOOT = list("path" = /obj/item/organ/external/foot/right),
+		BODY_ZONE_TAIL = list("path" = /obj/item/organ/external/tail/vox),
+	)
 
 	suicide_messages = list(
 		"пытается откусить себе язык!",
@@ -92,27 +101,28 @@
 	toxic_food = NONE
 	disliked_food = NONE //According to lore voxes does not care about food. Food is food.
 	liked_food = NONE
+	special_diet = MATERIAL_CLASS_TECH
 
 /datum/species/vox/handle_death(gibbed, mob/living/carbon/human/H)
 	H.stop_tail_wagging()
 
 /datum/species/vox/on_species_gain(mob/living/carbon/human/H)
-	..()
-	H.verbs |= /mob/living/carbon/human/proc/emote_wag
-	H.verbs |= /mob/living/carbon/human/proc/emote_swag
-	H.verbs |= /mob/living/carbon/human/proc/emote_quill
+	. = ..()
+	add_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	add_verb(H, /mob/living/carbon/human/proc/emote_quill)
 
 /datum/species/vox/on_species_loss(mob/living/carbon/human/H)
-	..()
-	H.verbs -= /mob/living/carbon/human/proc/emote_wag
-	H.verbs -= /mob/living/carbon/human/proc/emote_swag
-	H.verbs -= /mob/living/carbon/human/proc/emote_quill
+	. = ..()
+	remove_verb(H, /mob/living/carbon/human/proc/emote_wag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_swag)
+	remove_verb(H, /mob/living/carbon/human/proc/emote_quill)
 
 /datum/species/vox/after_equip_job(datum/job/J, mob/living/carbon/human/H)
-	if(!H.mind || !H.mind.assigned_role || H.mind.assigned_role != "Clown" && H.mind.assigned_role != "Mime")
+	if(!H.mind || !H.mind.assigned_role || H.mind.assigned_role != JOB_TITLE_CLOWN && H.mind.assigned_role != JOB_TITLE_MIME)
 		H.drop_item_ground(H.wear_mask)
 
-	H.equip_or_collect(new /obj/item/clothing/mask/breath/vox(H), slot_wear_mask)
+	H.equip_or_collect(new /obj/item/clothing/mask/breath/vox(H), ITEM_SLOT_MASK)
 	var/tank_pref = H.client && H.client.prefs ? H.client.prefs.speciesprefs : null
 	var/obj/item/tank/internals/internal_tank
 	if(tank_pref)//Diseasel, here you go
@@ -122,16 +132,16 @@
 	if(!H.equip_to_appropriate_slot(internal_tank, silent = TRUE))
 		if(!H.put_in_any_hand_if_possible(internal_tank))
 			H.drop_item_ground(H.l_hand)
-			H.equip_or_collect(internal_tank, slot_l_hand)
-			to_chat(H, "<span class='boldannounce'>Could not find an empty slot for internals! Please report this as a bug</span>")
+			H.equip_or_collect(internal_tank, ITEM_SLOT_HAND_LEFT)
+			to_chat(H, span_boldannounceooc("Could not find an empty slot for internals! Please report this as a bug!"))
 	H.internal = internal_tank
 	to_chat(H, "<span class='notice'>Теперь вы живете на азоте из [internal_tank]. Кислород токсичен для вашего вида, поэтому вы должны дышать только азотом.</span>")
 	H.update_action_buttons_icon()
 
 /datum/species/vox/on_species_gain(mob/living/carbon/human/H)
-	..()
+	. = ..()
 	updatespeciescolor(H)
-	H.update_icons()
+	H.regenerate_icons()
 
 /datum/species/vox/updatespeciescolor(mob/living/carbon/human/H, owner_sensitive = 1) //Handling species-specific skin-tones for the Vox race.
 	if(H.dna.species.bodyflags & HAS_ICON_SKIN_TONE) //Making sure we don't break Armalis.
@@ -173,7 +183,7 @@
 	return ..()
 
 /datum/species/vox/armalis
-	name = "Vox Armalis"
+	name = SPECIES_VOX_ARMALIS
 	name_plural = "Vox Armalis"
 	icobase = 'icons/mob/human_races/r_armalis.dmi'
 	deform = 'icons/mob/human_races/r_armalis.dmi'
@@ -196,7 +206,13 @@
 
 	eyes = "blank_eyes"
 
-	species_traits = list(NO_SCAN, NO_GERMS, NO_DECAY, NO_BLOOD, NO_PAIN)
+	inherent_traits = list(
+		TRAIT_NO_BLOOD,
+		TRAIT_NO_SCAN,
+		TRAIT_NO_PAIN,
+		TRAIT_NO_GERMS,
+		TRAIT_NO_DECAY,
+	)
 	clothing_flags = 0 //IDK if you've ever seen underwear on an Armalis, but it ain't pretty.
 	bodyflags = HAS_TAIL
 	dies_at_threshold = TRUE
@@ -210,13 +226,14 @@
 	icon_template = 'icons/mob/human_races/r_armalis.dmi'
 
 	has_organ = list(
-		"heart" =    /obj/item/organ/internal/heart,
-		"lungs" =    /obj/item/organ/internal/lungs/vox,
-		"liver" =    /obj/item/organ/internal/liver,
-		"kidneys" =  /obj/item/organ/internal/kidneys,
-		"cortical stack" =    /obj/item/organ/internal/brain/vox,
-		"eyes" =     /obj/item/organ/internal/eyes, //Default darksight of 2.
-		)												//for determining the success of the heist game-mode's 'leave nobody behind' objective, while this is just an organ.
+		INTERNAL_ORGAN_HEART = /obj/item/organ/internal/heart,
+		INTERNAL_ORGAN_LUNGS = /obj/item/organ/internal/lungs/vox,
+		INTERNAL_ORGAN_LIVER = /obj/item/organ/internal/liver,
+		INTERNAL_ORGAN_KIDNEYS = /obj/item/organ/internal/kidneys,
+		INTERNAL_ORGAN_BRAIN = /obj/item/organ/internal/brain/vox,
+		INTERNAL_ORGAN_EYES = /obj/item/organ/internal/eyes,
+		INTERNAL_ORGAN_EARS = /obj/item/organ/internal/ears,
+	)
 
 	suicide_messages = list(
 		"пытается откусить себе язык!",
@@ -229,13 +246,13 @@
 	return TRUE
 
 /datum/species/vox/armalis/on_species_gain(mob/living/carbon/human/H)
-	..()
+	. = ..()
 	if(/mob/living/carbon/human/proc/emote_wag in H.verbs)
-		H.verbs -= /mob/living/carbon/human/proc/emote_wag
+		remove_verb(H, /mob/living/carbon/human/proc/emote_wag)
 	if(/mob/living/carbon/human/proc/emote_swag in H.verbs)
-		H.verbs -= /mob/living/carbon/human/proc/emote_swag
+		remove_verb(H, /mob/living/carbon/human/proc/emote_swag)
 
 /datum/species/vox/armalis/on_species_loss(mob/living/carbon/human/H)
-	..()
+	. = ..()
 	if(/mob/living/carbon/human/proc/emote_quill in H.verbs)
-		H.verbs -= /mob/living/carbon/human/proc/emote_quill
+		remove_verb(H, /mob/living/carbon/human/proc/emote_quill)

@@ -65,7 +65,7 @@
 	return TRUE
 
 
-/datum/antagonist/ninja/Destroy(force, ...)
+/datum/antagonist/ninja/Destroy(force)
 	owner.offstation_role = FALSE
 	human_ninja = null
 	creeping_widow = null
@@ -113,7 +113,10 @@
 /datum/antagonist/ninja/apply_innate_effects(mob/living/mob_override)
 	var/mob/living/user = ..()
 	user.faction = list(ROLE_NINJA)
-	human_ninja = ishuman(user) ? user : null
+
+
+/datum/antagonist/ninja/proc/change_species(mob/living/mob_to_change = null) // This should be used to fully to remove robo-limbs & change species for lack of sprites
+	human_ninja = ishuman(mob_to_change) ? mob_to_change : null
 	if(human_ninja)
 		human_ninja.set_species(/datum/species/human)	// only human ninjas for now
 		human_ninja.revive()
@@ -143,7 +146,6 @@
 	give_objectives()
 	announce_objectives()
 	SEND_SOUND(owner.current, 'sound/ambience/alarm4.ogg')
-	basic_ninja_needs_check()
 
 
 /datum/antagonist/ninja/proc/name_ninja()
@@ -168,53 +170,30 @@
 	for(var/obj/item/item in (human_ninja.contents - (human_ninja.bodyparts|human_ninja.internal_organs)))
 		human_ninja.drop_item_ground(item, force = TRUE, silent = TRUE)
 
-	human_ninja.equip_to_slot(new /obj/item/clothing/under/ninja, slot_w_uniform, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/clothing/glasses/ninja, slot_glasses, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/clothing/mask/gas/space_ninja, slot_wear_mask, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/clothing/shoes/space_ninja, slot_shoes, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/clothing/gloves/space_ninja, slot_gloves, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/clothing/head/helmet/space/space_ninja, slot_head, initial = TRUE)
-	human_ninja.equip_to_slot(new /obj/item/tank/internals/emergency_oxygen/ninja, slot_r_store, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/under/ninja, ITEM_SLOT_CLOTH_INNER, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/glasses/ninja, ITEM_SLOT_EYES, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/mask/gas/space_ninja, ITEM_SLOT_MASK, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/shoes/space_ninja, ITEM_SLOT_FEET, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/gloves/space_ninja, ITEM_SLOT_GLOVES, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/clothing/head/helmet/space/space_ninja, ITEM_SLOT_HEAD, initial = TRUE)
+	human_ninja.equip_to_slot(new /obj/item/tank/internals/emergency_oxygen/ninja, ITEM_SLOT_POCKET_RIGHT, initial = TRUE)
 
 	var/obj/item/storage/backpack/ninja/my_backpack = new
-	human_ninja.equip_to_slot(my_backpack, slot_back, initial = TRUE)
+	human_ninja.equip_to_slot(my_backpack, ITEM_SLOT_BACK, initial = TRUE)
 
 	var/obj/item/radio/headset/ninja/my_headset = new
-	human_ninja.equip_to_slot(my_headset, slot_r_ear, initial = TRUE)
+	human_ninja.equip_to_slot(my_headset, ITEM_SLOT_EAR_RIGHT, initial = TRUE)
 
 	my_katana = new
-	human_ninja.equip_to_slot(my_katana, slot_belt, initial = TRUE)
+	human_ninja.equip_to_slot(my_katana, ITEM_SLOT_BELT, initial = TRUE)
 
 	my_suit = new
-	human_ninja.equip_to_slot(my_suit, slot_wear_suit, initial = TRUE)
+	human_ninja.equip_to_slot(my_suit, ITEM_SLOT_CLOTH_OUTER, initial = TRUE)
 	my_suit.preferred_clothes_gender = human_ninja.gender
 	my_suit.n_headset = my_headset
 	my_suit.n_backpack = my_backpack
 	my_suit.energyKatana = my_katana
 	cell = my_suit.cell
-
-
-/**
- * Proc that checks ninjas needs.
- * Used only for plant explosive objective for now.
- */
-/datum/antagonist/ninja/proc/basic_ninja_needs_check()
-	var/list/all_objectives = owner.get_all_objectives()
-	var/list/ninja_contents = human_ninja.get_contents()
-	for(var/datum/objective/plant_explosive/bomb_objective in all_objectives)
-		if(bomb_objective.completed)
-			continue
-
-		var/bomb_found = FALSE
-		for(var/obj/item/grenade/plastic/c4/ninja/bomb_item in ninja_contents)
-			if(bomb_item.detonation_objective == bomb_objective)
-				bomb_found = TRUE
-				break
-
-		if(!bomb_found)
-			var/obj/item/grenade/plastic/c4/ninja/new_bomb = new(human_ninja)
-			human_ninja.equip_or_collect(new_bomb, slot_l_store)
-			new_bomb.detonation_objective = bomb_objective
 
 
 /**
@@ -230,7 +209,7 @@
 		return
 
 	if(!hud.ninja_energy_display)	// creating new interface if none
-		hud.ninja_energy_display = new /obj/screen()
+		hud.ninja_energy_display = new /atom/movable/screen()
 		hud.ninja_energy_display.name = "Заряд батареи"
 		hud.ninja_energy_display.icon = 'icons/mob/screen_64x64.dmi'
 		hud.ninja_energy_display.maptext_x = 0
@@ -246,12 +225,12 @@
 		var/warning = cell.charge >= check_percentage ? "" : "_warning"
 		hud.ninja_energy_display.icon_state = "ninja_energy_display_[my_suit.color_choice][warning]"
 		hud.ninja_energy_display.maptext = "<div align='center' valign='middle' style='position:relative;'><font color='#FFFFFF' size='1'>[round(cell.charge)]</font></div>"
-		hud.ninja_energy_display.invisibility = my_suit.show_charge_UI ? 0 : 100
+		hud.ninja_energy_display.invisibility = my_suit.show_charge_UI ? 0 : INVISIBILITY_ABSTRACT
 
 	// concentration level
 	if(!hud.ninja_focus_display && owner.martial_art && istype(owner.martial_art, /datum/martial_art/ninja_martial_art))
 		creeping_widow = owner.martial_art
-		hud.ninja_focus_display = new /obj/screen()
+		hud.ninja_focus_display = new /atom/movable/screen()
 		hud.ninja_focus_display.name = "Концентрация"
 		hud.ninja_focus_display.screen_loc = "EAST:-6,CENTER-2:15"
 		hud.infodisplay += hud.ninja_focus_display
@@ -261,7 +240,7 @@
 	// martial art update
 	if(creeping_widow && my_suit)
 		hud.ninja_focus_display.icon_state = creeping_widow.has_focus ? "focus_active_[my_suit.color_choice]" : "focus"
-		hud.ninja_focus_display.invisibility = my_suit.show_concentration_UI ? 0 : 100
+		hud.ninja_focus_display.invisibility = my_suit.show_concentration_UI ? 0 : INVISIBILITY_ABSTRACT
 
 
 /**
@@ -380,8 +359,7 @@
 	for(var/datum/mind/traitor in pre_antags)
 		var/datum/antagonist/traitor/traitor_datum = new
 		traitor_datum.give_objectives = FALSE
-		if(prob(10))
-			traitor_datum.is_contractor = TRUE
+		traitor_datum.is_contractor = TRUE
 		traitor.add_antag_datum(traitor_datum)
 
 		var/objective_amount = protect_objective ? CONFIG_GET(number/traitor_objectives_amount) - 1 : CONFIG_GET(number/traitor_objectives_amount)
@@ -392,7 +370,7 @@
 			protect_objective.killers_objectives |= killer_objective
 
 		for(var/i in 1 to objective_amount)
-			traitor_datum.forge_single_human_objective()
+			traitor_datum.forge_single_objective()
 
 		var/list/all_objectives = traitor.get_all_objectives()
 		var/martyr_compatibility = TRUE
@@ -414,7 +392,7 @@
 
 /datum/antagonist/ninja/proc/generate_vampires()
 	for(var/datum/mind/vampire in pre_antags)
-		vampire.add_antag_datum(/datum/antagonist/vampire)
+		vampire.add_antag_datum(/datum/antagonist/vampire/new_vampire)
 
 
 /datum/antagonist/ninja/proc/generate_changelings()
@@ -464,41 +442,32 @@
 			// RnD Hack: Flag set to complete in the DrainAct in ninjaDrainAct.dm
 			add_objective(/datum/objective/research_corrupt)
 
-	var/pick_chance = rand(0, 100)
-	if(pick_chance <= 25)
+	if(prob(50))
 		var/datum/objective/plant_explosive/bomb_objective = add_objective(/datum/objective/plant_explosive)
-		for(var/obj/item/grenade/plastic/c4/ninja/ninja_bomb in human_ninja.get_contents())	// in case we got bombs in the inventory
-			ninja_bomb.detonation_objective = bomb_objective
+		bomb_objective.give_bomb(delayed = 0)
 
-	else if(pick_chance <= 50)
+	else
 		var/datum/objective/set_up/set_up_objective = add_objective(/datum/objective/set_up)
 		if(!set_up_objective.target)
 			qdel(set_up_objective)
 
+	if(prob(50))
+		add_objective(/datum/objective/get_money)
+
 	else
-		var/datum/objective/pain_hunter/pain_hunter_objective = add_objective(/datum/objective/pain_hunter)
-		if(!pain_hunter_objective.target)
-			qdel(pain_hunter_objective)
+		add_objective(/datum/objective/find_and_scan)
 
-	switch(pick(1,2))
-		if(1)
-			add_objective(/datum/objective/get_money)
+	if(prob(50))
+		for(var/i in 1 to 2)
+			var/datum/objective/assassinate/assassinate_objective = add_objective(/datum/objective/assassinate)
+			if(!assassinate_objective.target)
+				qdel(assassinate_objective)
 
-		if(2)
-			add_objective(/datum/objective/find_and_scan)
-
-	switch(pick(1,2))
-		if(1)
-			for(var/i in 1 to 2)
-				var/datum/objective/assassinate/assassinate_objective = add_objective(/datum/objective/assassinate)
-				if(!assassinate_objective.target)
-					qdel(assassinate_objective)
-
-		if(2)
-			for(var/i in 1 to 2)
-				var/datum/objective/steal/steal_objective = add_objective(/datum/objective/steal)
-				if(!steal_objective.steal_target)
-					qdel(steal_objective)
+	else
+		for(var/i in 1 to 2)
+			var/datum/objective/steal/steal_objective = add_objective(/datum/objective/steal)
+			if(!steal_objective.steal_target)
+				qdel(steal_objective)
 
 	var/list/all_objectives = owner.get_all_objectives()
 	if(!(locate(/datum/objective/escape) in all_objectives) && !(locate(/datum/objective/survive) in all_objectives))
@@ -578,7 +547,8 @@
 		maroon_objective.target = protect_objective.target	// swapping target
 		maroon_objective.update_explanation()
 		maroon_objective.alarm_changes()
-		maroon_objective.owner.announce_objectives()
+		var/list/messages = maroon_objective.owner.prepare_announce_objectives()
+		to_chat(maroon_objective.owner.current, chat_box_red(messages.Join("<br>")))
 
 
 /datum/antagonist/ninja/proc/forge_hacker_ninja_objectives()
@@ -639,8 +609,7 @@
 		add_objective(/datum/objective/cyborg_hijack)
 
 	var/datum/objective/plant_explosive/bomb_objective = add_objective(/datum/objective/plant_explosive)
-	for(var/obj/item/grenade/plastic/c4/ninja/ninja_bomb in human_ninja.get_contents())	// in case we got bombs in the inventory
-		ninja_bomb.detonation_objective = bomb_objective
+	bomb_objective.give_bomb(delayed = 0)
 
 	add_objective(/datum/objective/find_and_scan)
 
@@ -674,12 +643,9 @@
 	if(!source)
 		return FALSE
 
-	if(!has_variable(source, "mind"))
-		if(has_variable(source, "antag_datums"))
-			var/datum/mind/our_mind = source
-			return our_mind.has_antag_datum(/datum/antagonist/ninja)
-
-		return FALSE
+	if(istype(source, /datum/mind))
+		var/datum/mind/our_mind = source
+		return our_mind.has_antag_datum(/datum/antagonist/ninja)
 
 	if(!ismob(source))
 		return FALSE

@@ -49,7 +49,7 @@
 	belt_icon = "light_replacer"
 	w_class = WEIGHT_CLASS_SMALL
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	origin_tech = "magnets=3;engineering=4"
 	force = 8
 
@@ -74,96 +74,113 @@
 	. = ..()
 	. += "<span class='notice'>[status_string()]</span>"
 
+
 /obj/item/lightreplacer/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/stack/sheet/glass))
-		var/obj/item/stack/sheet/glass/G = I
+		add_fingerprint(user)
+		var/obj/item/stack/sheet/glass/glass = I
 		if(uses >= max_uses)
-			to_chat(user, "<span class='warning'>[src] is full.</span>")
-			return
-		else if(G.use(decrement))
-			AddUses(increment)
-			to_chat(user, "<span class='notice'>You insert a piece of glass into [src]. You have [uses] light\s remaining.</span>")
-			return
-		else
-			to_chat(user, "<span class='warning'>You need one sheet of glass to replace lights!</span>")
-		return
+			to_chat(user, span_warning("[src] is full."))
+			return ATTACK_CHAIN_PROCEED
+		if(!glass.use(decrement))
+			to_chat(user, span_warning("You need [decrement] sheet\s of glass to replace lights!"))
+			return ATTACK_CHAIN_PROCEED
+		AddUses(increment)
+		to_chat(user, span_notice("You insert a piece of glass into [src]. You have [uses] light\s remaining."))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
 	if(istype(I, /obj/item/shard))
+		add_fingerprint(user)
 		if(uses >= max_uses)
-			to_chat(user, "<span class='warning'>[src] is full.</span>")
-			return
+			to_chat(user, span_warning("[src] is full."))
+			return ATTACK_CHAIN_PROCEED
 		if(!user.drop_transfer_item_to_loc(I, src))
-			return
+			return ..()
 		AddUses(round(increment * 0.75))
-		to_chat(user, "<span class='notice'>You insert a shard of glass into [src]. You have [uses] light\s remaining.</span>")
+		to_chat(user, span_notice("You insert a shard of glass into [src]. You have [uses] light\s remaining."))
 		qdel(I)
-		return
+		return ATTACK_CHAIN_BLOCKED_ALL
 
 	if(istype(I, /obj/item/light))
-		var/obj/item/light/L = I
-		if(L.status == 0) // LIGHT OKAY
-			if(uses < max_uses)
-				if(!user.drop_transfer_item_to_loc(L, src))
-					return
-				AddUses(1)
-				qdel(L)
+		add_fingerprint(user)
+		var/obj/item/light/light = I
+		if(uses >= max_uses)
+			to_chat(user, span_warning("[src] is full."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(light, src))
+			return ..()
+		to_chat(user, span_notice("You insert [light] into [src]."))
+		if(light.status == LIGHT_OK)
+			AddUses(1)
 		else
-			if(!user.drop_transfer_item_to_loc(L, src))
-				return
-			to_chat(user, "<span class='notice'>You insert [L] into [src].</span>")
 			AddShards(1, user)
-			qdel(L)
-		return
+		qdel(light)
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(istype(I, /obj/item/storage))
-		var/obj/item/storage/S = I
+	if(isstorage(I))
+		add_fingerprint(user)
+		var/obj/item/storage/storage = I
 		var/found_lightbulbs = FALSE
 		var/replaced_something = TRUE
+		var/atom/user_drop_loc = user.drop_location()
 
-		for(var/obj/item/IT in S.contents)
-			if(istype(IT, /obj/item/light))
-				var/obj/item/light/L = IT
-				found_lightbulbs = TRUE
-				if(uses >= max_uses)
-					break
-				if(L.status == LIGHT_OK)
-					L.remove_item_from_storage(user.drop_location())
-					L.do_pickup_animation(src)
-					replaced_something = TRUE
-					AddUses(1)
-					qdel(L)
-
-				else if(L.status == LIGHT_BROKEN || L.status == LIGHT_BURNED)
-					L.remove_item_from_storage(user.drop_location())
-					L.do_pickup_animation(src)
-					replaced_something = TRUE
-					AddShards(1, user)
-					qdel(L)
+		for(var/obj/item/light/light in storage.contents)
+			found_lightbulbs = TRUE
+			if(uses >= max_uses)
+				break
+			if(light.status == LIGHT_OK)
+				light.remove_item_from_storage(user_drop_loc)
+				light.do_pickup_animation(src)
+				replaced_something = TRUE
+				AddUses(1)
+				qdel(light)
+				continue
+			if(light.status == LIGHT_BROKEN || light.status == LIGHT_BURNED)
+				light.remove_item_from_storage(user_drop_loc)
+				light.do_pickup_animation(src)
+				replaced_something = TRUE
+				AddShards(1, user)
+				qdel(light)
 
 		if(!found_lightbulbs)
-			to_chat(user, "<span class='warning'>[S] contains no bulbs.</span>")
-			return
+			to_chat(user, span_warning("The [storage.name] contains no bulbs."))
+			return ATTACK_CHAIN_PROCEED
 
 		if(!replaced_something && uses == max_uses)
-			to_chat(user, "<span class='warning'>[src] is full!</span>")
-			return
+			to_chat(user, span_warning("The [name] is full!"))
+			return ATTACK_CHAIN_PROCEED
 
-		to_chat(user, "<span class='notice'>You fill [src] with lights from [S]. " + status_string() + "</span>")
-		return
+		to_chat(user, span_notice("You fill [src] with lights from [storage]. [status_string()]"))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	return ..()
 
-/obj/item/lightreplacer/emag_act(user as mob)
+
+/obj/item/lightreplacer/emag_act(mob/user)
 	if(!emagged)
+		emagged = TRUE
 		add_attack_logs(user, src, "emagged")
-		Emag()
+		playsound(loc, "sparks", 100, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
+		update_appearance(UPDATE_NAME|UPDATE_ICON_STATE)
+
+
+/obj/item/lightreplacer/update_name(updates = ALL)
+	. = ..()
+	if(emagged)
+		name = "shortcircuited [initial(name)]"
+	else
+		name = initial(name)
+
+
+/obj/item/lightreplacer/update_icon_state()
+	icon_state = "lightreplacer[emagged]"
+
 
 /obj/item/lightreplacer/attack_self(mob/user)
 	for(var/obj/machinery/light/target in user.loc)
 		ReplaceLight(target, user)
 	to_chat(user, status_string())
 
-/obj/item/lightreplacer/update_icon()
-	icon_state = "lightreplacer[emagged]"
 
 /obj/item/lightreplacer/proc/status_string()
 	return "It has [uses] light\s remaining (plus [bulb_shards] fragment\s)."
@@ -229,14 +246,6 @@
 		to_chat(U, "<span class='warning'>There is a working [target.fitting] already inserted!</span>")
 		return
 
-/obj/item/lightreplacer/proc/Emag()
-	emagged = !emagged
-	playsound(loc, "sparks", 100, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
-	if(emagged)
-		name = "shortcircuited [initial(name)]"
-	else
-		name = initial(name)
-	update_icon()
 
 /obj/item/lightreplacer/proc/CanUse(mob/living/user)
 	add_fingerprint(user)
@@ -245,7 +254,7 @@
 	else
 		return 0
 
-/obj/item/lightreplacer/afterattack(atom/T, mob/U, proximity)
+/obj/item/lightreplacer/afterattack(atom/T, mob/U, proximity, params)
 	. = ..()
 	if(!proximity && !bluespace_toggle)
 		return
@@ -268,13 +277,9 @@
 	if(!used)
 		to_chat(U, "[src]'s refill light blinks red.")
 
-/obj/item/lightreplacer/proc/janicart_insert(mob/user, obj/structure/janitorialcart/J)
-	J.put_in_cart(src, user)
-	J.myreplacer = src
-	J.update_icon()
 
-/obj/item/lightreplacer/cyborg/janicart_insert(mob/user, obj/structure/janitorialcart/J)
-	return
+/obj/item/lightreplacer/cyborg
+
 
 /obj/item/lightreplacer/bluespace
 	name = "bluespace light replacer"

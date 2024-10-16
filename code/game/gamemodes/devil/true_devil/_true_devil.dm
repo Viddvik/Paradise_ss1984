@@ -1,7 +1,3 @@
-#define DEVIL_R_HAND_LAYER 1
-#define DEVIL_L_HAND_LAYER 2
-#define DEVIL_TOTAL_LAYERS 2
-
 // This is used primarily for having hands.
 /mob/living/carbon/true_devil
 	name = "True Devil"
@@ -11,25 +7,22 @@
 	gender = NEUTER
 	health = 350
 	maxHealth = 350
-	ventcrawler = FALSE
-	density = TRUE
-	pass_flags =  0
-	var/ascended = FALSE
-	sight = (SEE_TURFS | SEE_OBJS)
+	mobility_flags = MOBILITY_FLAGS_DEFAULT
+	sight = SEE_TURFS|SEE_OBJS
 	status_flags = CANPUSH
 	universal_understand = TRUE
 	universal_speak = TRUE //The devil speaks all languages meme
+	var/ascended = FALSE
 	var/mob/living/oldform
-	var/list/devil_overlays[DEVIL_TOTAL_LAYERS]
 
 /mob/living/carbon/true_devil/New(loc, mob/living/carbon/dna_source)
 	if(dna_source)
 		dna = dna_source.dna.Clone()
+	else
+		dna = new
 
-	var/obj/item/organ/internal/brain/B = new(src)
-	var/obj/item/organ/internal/ears/E = new(src)
-	B.insert()
-	E.insert()
+	new /obj/item/organ/internal/brain(src)
+	new /obj/item/organ/internal/ears(src)
 	..()
 
 // Determines if mob has and can use his hands like a human
@@ -49,9 +42,11 @@
 
 /mob/living/carbon/true_devil/Login()
 	..()
+	var/list/messages = list()
 	if(mind.devilinfo)
-		mind.devilinfo.announce_laws(src)
-	mind.announce_objectives()
+		messages.Add(mind.devilinfo.announce_laws(src))
+	messages.Add(mind.prepare_announce_objectives())
+	to_chat(mind.current, chat_box_red(messages.Join("<br>")))
 
 
 /mob/living/carbon/true_devil/death(gibbed)
@@ -64,14 +59,14 @@
 	var/msg = "This is [bicon(src)] <b>[src]</b>!\n"
 
 	//Left hand items
-	if(l_hand && !(l_hand.flags & ABSTRACT))
+	if(l_hand && !(l_hand.item_flags & ABSTRACT))
 		if(l_hand.blood_DNA)
 			msg += "<span class='warning'>It is holding [bicon(l_hand)] [l_hand.gender == PLURAL? "some" : "a"] blood-stained [l_hand.name] in its left hand!</span>\n"
 		else
 			msg += "It is holding [bicon(l_hand)] \a [l_hand] in its left hand.\n"
 
 	//Right hand items
-	if(r_hand && !(r_hand.flags & ABSTRACT))
+	if(r_hand && !(r_hand.item_flags & ABSTRACT))
 		if(r_hand.blood_DNA)
 			msg += "<span class='warning'>It is holding [bicon(r_hand)] [r_hand.gender == PLURAL? "some" : "a"] blood-stained [r_hand.name] in its right hand!</span>\n"
 		else
@@ -98,32 +93,27 @@
 /mob/living/carbon/true_devil/assess_threat()
 	return 666
 
-/mob/living/carbon/true_devil/flash_eyes(intensity = 1, override_blindness_check = 0, affect_silicon = 0, visual = 0)
+/mob/living/carbon/true_devil/flash_eyes(intensity = 1, override_blindness_check, affect_silicon, visual, type = /atom/movable/screen/fullscreen/flash)
 	if(mind && has_bane(BANE_LIGHT))
 		mind.disrupt_spells(-500)
 		return ..() //flashes don't stop devils UNLESS it's their bane.
 
 
-/mob/living/carbon/true_devil/attacked_by(obj/item/I, mob/living/user, def_zone)
-	var/weakness = check_weakness(I, user)
-	apply_damage(I.force * weakness, I.damtype, def_zone)
-	var/message_verb = ""
-	if(I.attack_verb && I.attack_verb.len)
-		message_verb = "[pick(I.attack_verb)]"
-	else if(I.force)
-		message_verb = "attacked"
+/mob/living/carbon/true_devil/proceed_attack_results(obj/item/I, mob/living/user, params, def_zone)
+	. = ATTACK_CHAIN_PROCEED_SUCCESS
 
-	var/attack_message = "[src] has been [message_verb] with [I]."
-	if(user)
-		user.do_attack_animation(src)
-		if(user in viewers(src, null))
-			attack_message = "[user] has [message_verb] [src] with [I]!"
-	if(message_verb)
-		visible_message("<span class='danger'>[attack_message]</span>",
-		"<span class='userdanger'>[attack_message]</span>")
-	return TRUE
+	send_item_attack_message(I, user, def_zone)
+	if(!I.force)
+		return .
+
+	apply_damage(I.force * check_weakness(I, user), I.damtype, def_zone, sharp = is_sharp(I), used_weapon = I)
+	if(QDELETED(src))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 
 /mob/living/carbon/true_devil/UnarmedAttack(atom/A, proximity)
+	if(!can_unarmed_attack())
+		return
 	if(!ishuman(A))
 		// `attack_hand` on mobs assumes the attacker is a human
 		// I am the worst
@@ -131,8 +121,9 @@
 		// If the devil wants to actually attack, they have the pitchfork.
 
 
-/mob/living/carbon/true_devil/Process_Spacemove(movement_dir = 0)
+/mob/living/carbon/true_devil/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
 	return TRUE
+
 
 /mob/living/carbon/true_devil/singularity_act()
 	if(ascended)
@@ -167,9 +158,8 @@
 						"<span class='userdanger'>[M] has punched [src]!</span>")
 				adjustBruteLoss(damage)
 				add_attack_logs(M, src, "attacked")
-				updatehealth()
 			if(INTENT_DISARM)
-				if(!lying && !ascended) //No stealing the arch devil's pitchfork.
+				if(body_position == STANDING_UP && !ascended) //No stealing the arch devil's pitchfork.
 					if(prob(5))
 						// Weaken knocks people over
 						// Paralyse knocks people out
@@ -211,4 +201,3 @@
 		adjustBruteLoss(b_loss)
 	return ..()
 
-#undef DEVIL_TOTAL_LAYERS

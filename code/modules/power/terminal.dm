@@ -8,7 +8,7 @@
 	icon_state = "term"
 	desc = "It's an underfloor wiring terminal for power equipment."
 	level = 1
-	plane = FLOOR_PLANE
+	plane = GAME_PLANE
 	layer = WIRE_TERMINAL_LAYER //a bit above wires
 	var/obj/machinery/power/master = null
 
@@ -28,57 +28,68 @@
 		master = null
 	return ..()
 
-/obj/machinery/power/terminal/update_icon()
-	. = ..()
+/obj/machinery/power/terminal/update_icon_state()
 	var/turf/T = get_turf(src)
 	layer = T.transparent_floor ? ABOVE_TRANSPARENT_TURF_LAYER : WIRE_TERMINAL_LAYER
 
 /obj/machinery/power/terminal/hide(i)
 	if(i)
-		invisibility = INVISIBILITY_ABSTRACT
+		invisibility = INVISIBILITY_MAXIMUM
 		icon_state = "term-f"
 	else
 		invisibility = 0
 		icon_state = "term"
 
-/obj/machinery/power/proc/can_terminal_dismantle()
-	. = 0
 
-/obj/machinery/power/apc/can_terminal_dismantle()
-	. = 0
-	if(opened)
-		. = 1
-
-/obj/machinery/power/smes/can_terminal_dismantle()
-	. = 0
-	if(panel_open)
-		. = 1
+/obj/machinery/power/proc/can_terminal_dismantle(mob/living/user)
+	return FALSE
 
 
-/obj/machinery/power/terminal/proc/dismantle(mob/living/user, obj/item/W)
-	if(isturf(loc))
-		var/turf/T = loc
-		if(T.intact)
-			to_chat(user, "<span class='warning'>You must first expose the power terminal!</span>")
-			return
-
-		if(!master || master.can_terminal_dismantle())
-			user.visible_message("[user.name] dismantles the power terminal from [master].", \
-								"<span class='notice'>You begin to cut the cables...</span>")
-
-			playsound(src.loc, 'sound/items/deconstruct.ogg', 50, 1)
-			if(do_after(user, 50*W.toolspeed * gettoolspeedmod(user), target = src))
-				if(!master || master.can_terminal_dismantle())
-					if(prob(50) && electrocute_mob(user, powernet, src, 1, TRUE))
-						do_sparks(5, TRUE, master)
-						return
-					new /obj/item/stack/cable_coil(loc, 10)
-					to_chat(user, "<span class='notice'>You cut the cables and dismantle the power terminal.</span>")
-					qdel(src)
+/obj/machinery/power/apc/can_terminal_dismantle(mob/living/user)
+	if(opened == 0)	// APC_CLOSED
+		to_chat(user, span_warning("You should open the APC's cover to attach the cables."))
+		return FALSE
+	return TRUE
 
 
-/obj/machinery/power/terminal/attackby(obj/item/W, mob/living/user, params)
-	if(istype(W, /obj/item/wirecutters))
-		dismantle(user, W)
-	else
-		return ..()
+/obj/machinery/power/smes/can_terminal_dismantle(mob/living/user)
+	if(!panel_open)
+		to_chat(user, span_warning("You should open the maintenance panel to attach the cables."))
+		return FALSE
+	return TRUE
+
+
+/obj/machinery/power/terminal/proc/dismantle(mob/living/user, obj/item/I)
+	if(!isturf(loc))
+		return FALSE
+	var/turf/our_turf = loc
+	if(our_turf.intact)
+		to_chat(user, span_warning("You must first expose the power terminal!"))
+		return FALSE
+	if(master && !master.can_terminal_dismantle(user))
+		return FALSE
+	user.visible_message(
+		span_notice("[user] starts to dismantle the power terminal[master ? " from [master]" : ""]."),
+		span_notice("You start to dismantle the power terminal[master ? " from [master]" : ""]..."),
+	)
+	playsound(loc, 'sound/items/deconstruct.ogg', 50, TRUE)
+	if(!do_after(user, 5 SECONDS * I.toolspeed, src, category = DA_CAT_TOOL) || our_turf.intact || (master && !master.can_terminal_dismantle(user)))
+		return FALSE
+	if(prob(50) && electrocute_mob(user, powernet, src, 1, TRUE))
+		do_sparks(5, TRUE, master)
+		return FALSE
+	. = TRUE
+	var/obj/item/stack/cable_coil/coil = new(loc, 10)
+	transfer_fingerprints_to(coil)
+	coil.add_fingerprint(user)
+	user.visible_message(
+		span_notice("[user] has dismantled the power terminal[master ? " from [master]" : ""]."),
+		span_notice("You start to dismantle the power terminal[master ? " from [master]" : ""]."),
+	)
+	qdel(src)
+
+
+/obj/machinery/power/terminal/wirecutter_act(mob/living/user, obj/item/I)
+	. = TRUE
+	dismantle(user, I)
+

@@ -7,17 +7,22 @@
 	toolspeed = 1
 	usesound = 'sound/items/deconstruct.ogg'
 
-/obj/item/mounted/frame/attackby(obj/item/W, mob/user)
-	..()
-	if(istype(W, /obj/item/wrench) && sheets_refunded)
-		new /obj/item/stack/sheet/metal(get_turf(src), sheets_refunded)
-		qdel(src)
+
+/obj/item/mounted/frame/wrench_act(mob/living/user, obj/item/I)
+	if(!sheets_refunded)
+		return FALSE
+	. = TRUE
+	if(!I.use_tool(src, user, volume = I.tool_volume))
+		return .
+	new /obj/item/stack/sheet/metal(drop_location(), sheets_refunded)
+	qdel(src)
+
 
 /obj/item/mounted/frame/try_build(turf/on_wall, mob/user)
 	if(..()) //if we pass the parent tests
 		var/turf/turf_loc = get_turf(user)
 
-		if(src.mount_reqs.Find("simfloor") && !istype(turf_loc, /turf/simulated/floor))
+		if(src.mount_reqs.Find("simfloor") && !isfloorturf(turf_loc))
 			to_chat(user, "<span class='warning'>[src] cannot be placed on this spot.</span>")
 			return
 		if(src.mount_reqs.Find("nospace"))

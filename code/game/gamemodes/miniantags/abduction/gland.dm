@@ -19,7 +19,7 @@
 	var/mind_control_duration = 1800
 	var/active_mind_control = FALSE
 
-/obj/item/organ/internal/heart/gland/update_icon()
+/obj/item/organ/internal/heart/gland/update_icon_state()
 	return
 
 /obj/item/organ/internal/heart/gland/proc/ownerCheck()
@@ -67,8 +67,8 @@
 	active_mind_control = FALSE
 	update_gland_hud()
 
-/obj/item/organ/internal/heart/gland/remove(var/mob/living/carbon/M, special = 0)
-	active = 0
+/obj/item/organ/internal/heart/gland/remove(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
+	active = FALSE
 	if(initial(uses) == 1)
 		uses = initial(uses)
 	var/datum/atom_hud/abductor/hud = GLOB.huds[DATA_HUD_ABDUCTOR]
@@ -76,9 +76,9 @@
 	clear_mind_control()
 	. = ..()
 
-/obj/item/organ/internal/heart/gland/insert(var/mob/living/carbon/M, special = 0)
+/obj/item/organ/internal/heart/gland/insert(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	..()
-	if(special != 2 && uses) // Special 2 means abductor surgery
+	if(special != ORGAN_MANIPULATION_ABDUCTOR && uses)
 		Start()
 	var/datum/atom_hud/abductor/hud = GLOB.huds[DATA_HUD_ABDUCTOR]
 	hud.add_to_hud(owner)
@@ -113,10 +113,11 @@
 
 /obj/item/organ/internal/heart/gland/heals/activate()
 	to_chat(owner, "<span class='notice'>You feel curiously revitalized.</span>")
-	owner.adjustToxLoss(-20)
-	owner.adjustBruteLoss(-20)
-	owner.adjustOxyLoss(-20)
-	owner.adjustFireLoss(-20)
+	var/update = NONE
+	update |= owner.heal_overall_damage(20, 20, updating_health = FALSE)
+	update |= owner.heal_damages(tox = 20, oxy = 20, updating_health = FALSE)
+	if(update)
+		owner.updatehealth()
 
 /obj/item/organ/internal/heart/gland/slime
 	cooldown_low = 600
@@ -126,10 +127,10 @@
 	mind_control_uses = 1
 	mind_control_duration = 2400
 
-/obj/item/organ/internal/heart/gland/slime/insert(mob/living/carbon/M, special = 0)
+/obj/item/organ/internal/heart/gland/slime/insert(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	..()
 	owner.faction |= "slime"
-	owner.add_language("Bubblish")
+	owner.add_language(LANGUAGE_SLIME)
 
 /obj/item/organ/internal/heart/gland/slime/activate()
 	to_chat(owner, "<span class='warning'>You feel nauseous!</span>")
@@ -162,7 +163,7 @@
 			if(2)
 				to_chat(H, "<span class='warning'>You hear an annoying buzz in your head.</span>")
 				H.AdjustConfused(30 SECONDS)
-				H.adjustBrainLoss(rand(5, 15))
+				H.apply_damage(rand(5, 15), BRAIN)
 			if(3)
 				H.AdjustHallucinate(60 SECONDS)
 
@@ -204,9 +205,10 @@
 	mind_control_uses = 4
 	mind_control_duration = 1800
 
+
 /obj/item/organ/internal/heart/gland/ventcrawling/activate()
 	to_chat(owner, "<span class='notice'>You feel very stretchy.</span>")
-	owner.ventcrawler = 2
+	ADD_TRAIT(owner, TRAIT_VENTCRAWLER_ALWAYS, type)
 
 
 /obj/item/organ/internal/heart/gland/viral
@@ -274,18 +276,16 @@
 	mind_control_uses = 2
 	mind_control_duration = 900
 
-/obj/item/organ/internal/heart/gland/electric/insert(mob/living/carbon/M, special = 0)
-	..()
+/obj/item/organ/internal/heart/gland/electric/insert(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
+	. = ..()
 	if(ishuman(owner))
 		owner.gene_stability += GENE_INSTABILITY_MODERATE // give them this gene for free
-		owner.dna.SetSEState(GLOB.shockimmunityblock, TRUE)
-		genemutcheck(owner, GLOB.shockimmunityblock,  null, MUTCHK_FORCED)
+		owner.force_gene_block(GLOB.shockimmunityblock, TRUE)
 
-/obj/item/organ/internal/heart/gland/electric/remove(mob/living/carbon/M, special = 0)
+/obj/item/organ/internal/heart/gland/electric/remove(mob/living/carbon/M, special = ORGAN_MANIPULATION_DEFAULT)
 	if(ishuman(owner))
 		owner.gene_stability -= GENE_INSTABILITY_MODERATE // but return it to normal once it's removed
-		owner.dna.SetSEState(GLOB.shockimmunityblock, FALSE)
-		genemutcheck(owner, GLOB.shockimmunityblock,  null, MUTCHK_FORCED)
+		owner.force_gene_block(GLOB.shockimmunityblock, FALSE)
 	return ..()
 
 /obj/item/organ/internal/heart/gland/electric/activate()

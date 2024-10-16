@@ -18,6 +18,7 @@
 	var/self_recharge = 0 //does it self recharge, over time, or not?
 	var/ratingdesc = TRUE
 	var/grown_battery = FALSE // If it's a grown that acts as a battery, add a wire overlay to it.
+	var/overlay_charged = "cell-o2" // for custom overlays
 
 /obj/item/stock_parts/cell/laser
 	maxcharge = 1500
@@ -32,40 +33,65 @@
 
 	if(ratingdesc)
 		desc += " This one has a power rating of [DisplayPower(maxcharge)], and you should not swallow it."
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/Destroy()
 	STOP_PROCESSING(SSobj, src)
 	return ..()
 
+
+/obj/item/stock_parts/cell/magic_charge_act(mob/user)
+	. = NONE
+
+	if(charge >= maxcharge)
+		return
+
+	if(prob(80) && adjust_maxcharge(-200))
+		. |= RECHARGE_BURNOUT
+
+	charge = maxcharge
+	. |= RECHARGE_SUCCESSFUL
+
+	update_appearance(UPDATE_ICON)
+
+
+/obj/item/stock_parts/cell/proc/adjust_maxcharge(amount)
+	if(self_recharge)
+		return FALSE	// SelfCharging uses static charge values ​​per tick, so we don't want it to mess up the recharge balance.
+
+	var/old_maxcharge = maxcharge
+	maxcharge = max(maxcharge + amount, 1)
+
+	return maxcharge != old_maxcharge
+
+
 /obj/item/stock_parts/cell/vv_edit_var(var_name, var_value)
-	switch(var_name)
-		if("self_recharge")
-			if(var_value)
-				START_PROCESSING(SSobj, src)
-			else
-				STOP_PROCESSING(SSobj, src)
 	. = ..()
+	if(var_name == NAMEOF(src, self_recharge))
+		if(var_value)
+			START_PROCESSING(SSobj, src)
+		else
+			STOP_PROCESSING(SSobj, src)
+
 
 /obj/item/stock_parts/cell/process()
 	if(self_recharge)
-		if(locate(/obj/item/clockwork/integration_cog) in loc)
-			return
-		else
-			give(chargerate * 0.25)
+		give(chargerate * 0.25)
 	else
 		return PROCESS_KILL
 
-/obj/item/stock_parts/cell/update_icon()
-	overlays.Cut()
+
+/obj/item/stock_parts/cell/update_overlays()
+	. = ..()
 	if(grown_battery)
-		overlays += image('icons/obj/engines_and_power/power.dmi', "grown_wires")
+		. += image('icons/obj/engines_and_power/power.dmi', "grown_wires")
 	if(charge < 0.01)
 		return
 	else if(charge/maxcharge >=0.995)
-		overlays += "cell-o2"
+		. += overlay_charged
 	else
-		overlays += "cell-o1"
+		. += "cell-o1"
+
 
 /obj/item/stock_parts/cell/proc/percent()		// return % charge of cell
 	return 100 * charge / maxcharge
@@ -102,22 +128,27 @@
 	to_chat(viewers(user), "<span class='suicide'>[user] is licking the electrodes of the [src]! It looks like [user.p_theyre()] trying to commit suicide.</span>")
 	return FIRELOSS
 
-/obj/item/stock_parts/cell/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/reagent_containers/syringe))
-		var/obj/item/reagent_containers/syringe/S = W
 
-		to_chat(user, "You inject the solution into the power cell.")
-
-		if(S.reagents.has_reagent("plasma", 5) || S.reagents.has_reagent("plasma_dust", 5))
-
+/obj/item/stock_parts/cell/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/reagent_containers/syringe))
+		add_fingerprint(user)
+		var/obj/item/reagent_containers/syringe/syringe = I
+		if(syringe.mode != 1)	// injecting
+			to_chat(user, span_warning("The [syringe.name] should be in inject mode."))
+			return ATTACK_CHAIN_PROCEED
+		if(!syringe.reagents.total_volume)
+			to_chat(user, span_warning("The [syringe.name] is empty."))
+			return ATTACK_CHAIN_PROCEED
+		to_chat(user, span_notice("You have injected the solution into the power cell."))
+		if(syringe.reagents.has_reagent("plasma", 5) || syringe.reagents.has_reagent("plasma_dust", 5))
 			rigged = TRUE
-
 			log_admin("LOG: [key_name(user)] injected a power cell with plasma, rigging it to explode.")
 			message_admins("LOG: [key_name_admin(user)] injected a power cell with plasma, rigging it to explode.")
+		syringe.reagents.clear_reagents()
+		syringe.update_icon()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
-		S.reagents.clear_reagents()
-	else
-		return ..()
+	return ..()
 
 
 /obj/item/stock_parts/cell/proc/explode()
@@ -186,7 +217,7 @@
 /obj/item/stock_parts/cell/crap/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/upgraded
 	name = "upgraded power cell"
@@ -211,7 +242,7 @@
 /obj/item/stock_parts/cell/secborg/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/pulse //265 pulse shots
 	name = "pulse rifle power cell"
@@ -245,14 +276,14 @@
 /obj/item/stock_parts/cell/high/plus
 	name = "high-capacity power cell+"
 	desc = "Where did these come from?"
-	icon_state = "h+cell"
+	icon_state = "hcell"
 	maxcharge = 15000
 	chargerate = 2250
 
 /obj/item/stock_parts/cell/high/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/super
 	name = "super-capacity power cell"
@@ -266,7 +297,7 @@
 /obj/item/stock_parts/cell/super/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/hyper
 	name = "hyper-capacity power cell"
@@ -280,7 +311,7 @@
 /obj/item/stock_parts/cell/hyper/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/bluespace
 	name = "bluespace power cell"
@@ -291,11 +322,12 @@
 	materials = list(MAT_GLASS = 600)
 	rating = 6
 	chargerate = 4000
+	overlay_charged = "cell-o2-bs"
 
 /obj/item/stock_parts/cell/bluespace/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/infinite
 	name = "infinite-capacity power cell!"
@@ -307,7 +339,7 @@
 	chargerate = 30000
 
 /obj/item/stock_parts/cell/infinite/use()
-	return 1
+	return TRUE
 
 /obj/item/stock_parts/cell/infinite/abductor
 	name = "void core"
@@ -318,9 +350,9 @@
 	rating = 12
 	ratingdesc = FALSE
 
-/obj/item/stock_parts/cell/infinite/abductor/update_icon()
-	return
 
+/obj/item/stock_parts/cell/infinite/abductor/update_overlays()
+	return list()
 
 /obj/item/stock_parts/cell/potato
 	name = "potato battery"
@@ -354,13 +386,16 @@
 /obj/item/stock_parts/cell/emproof/empty/New()
 	..()
 	charge = 0
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/stock_parts/cell/emproof/emp_act(severity)
 	return
 
 /obj/item/stock_parts/cell/emproof/corrupt()
 	return
+
+/obj/item/stock_parts/cell/emproof/adjust_maxcharge(amount)
+	return FALSE
 
 /obj/item/stock_parts/cell/ninja
 	name = "spider-clan power cell"

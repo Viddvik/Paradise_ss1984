@@ -78,7 +78,6 @@
 	pixel_y = 12
 	},
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -102,7 +101,6 @@
 /area/space)
 "eh" = (
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -111,6 +109,13 @@
 /turf/simulated/floor/plasteel{
 	icon_state = "cafeteria"
 	},
+/area/ruin/unpowered)
+"ek" = (
+/obj/structure/closet/cabinet,
+/obj/item/clothing/head/wizard,
+/obj/item/clothing/suit/wizrobe,
+/obj/item/clothing/shoes/sandal/magic,
+/turf/simulated/floor/wood,
 /area/ruin/unpowered)
 "ez" = (
 /turf/simulated/floor/carpet/arcade,
@@ -158,22 +163,17 @@
 /obj/item/reagent_containers/food/drinks/drinkingglass/shotglass{
 	pixel_y = 10
 	},
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet12-0"
-	},
+/turf/simulated/floor/carpet,
 /area/ruin/unpowered)
 "hb" = (
 /obj/effect/decal/cleanable/blood/writing,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
 "hq" = (
 /obj/machinery/kitchen_machine/oven,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -188,7 +188,6 @@
 /obj/structure/reagent_dispensers/beerkeg,
 /obj/machinery/light_construct,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -276,14 +275,12 @@
 	dir = 8
 	},
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
 "kW" = (
 /obj/structure/closet/secure_closet/freezer/kitchen,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -326,30 +323,28 @@
 /obj/effect/decal/ants,
 /obj/effect/decal/cleanable/blood,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
 "ol" = (
 /obj/machinery/kitchen_machine/candy_maker,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
 "oq" = (
 /obj/effect/decal/cleanable/tomato_smudge,
 /obj/structure/closet/crate,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 /turf/simulated/floor/carpet/red,
 /area/ruin/unpowered)
 "pj" = (
@@ -369,10 +364,7 @@
 "qc" = (
 /obj/structure/table_frame/wood,
 /obj/item/stack/sheet/wood,
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet12-0"
-	},
+/turf/simulated/floor/carpet,
 /area/ruin/unpowered)
 "qg" = (
 /obj/structure/table/wood/fancy/red,
@@ -403,7 +395,6 @@
 	},
 /obj/machinery/light_construct,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -427,7 +418,7 @@
 "sp" = (
 /obj/structure/kitchenspike,
 /obj/effect/decal/cleanable/blood/old,
-/obj/item/reagent_containers/food/snacks/meat/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 /turf/simulated/floor/plasteel{
 	dir = 6;
 	icon_state = "escape"
@@ -479,10 +470,6 @@
 /obj/item/reagent_containers/food/drinks/tea,
 /turf/simulated/floor/carpet/purple,
 /area/ruin/unpowered)
-"tJ" = (
-/obj/item/chair/wood,
-/turf/simulated/floor/carpet,
-/area/ruin/unpowered)
 "ua" = (
 /turf/simulated/floor/wood{
 	icon_state = "wood-broken7"
@@ -497,10 +484,7 @@
 "vd" = (
 /obj/structure/table/wood,
 /obj/item/trash/snack_bowl,
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet12-0"
-	},
+/turf/simulated/floor/carpet,
 /area/ruin/unpowered)
 "vM" = (
 /obj/structure/cult/archives,
@@ -545,13 +529,6 @@
 /turf/simulated/floor/plasteel{
 	dir = 6;
 	icon_state = "escape"
-	},
-/area/ruin/unpowered)
-"zv" = (
-/obj/item/chair/wood,
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet8-0"
 	},
 /area/ruin/unpowered)
 "zy" = (
@@ -622,7 +599,6 @@
 "AF" = (
 /obj/machinery/icemachine,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -641,7 +617,6 @@
 /obj/structure/table,
 /obj/machinery/reagentgrinder,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -662,20 +637,8 @@
 	dir = 9
 	},
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
-/area/ruin/unpowered)
-"Dx" = (
-/obj/structure/closet{
-	icon_closed = "cabinet_closed";
-	icon_opened = "cabinet_open";
-	icon_state = "cabinet_closed"
-	},
-/obj/item/clothing/head/wizard,
-/obj/item/clothing/suit/wizrobe,
-/obj/item/clothing/shoes/sandal/magic,
-/turf/simulated/floor/wood,
 /area/ruin/unpowered)
 "DE" = (
 /obj/structure/table/wood/fancy/purple,
@@ -727,7 +690,6 @@
 	dir = 8
 	},
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -739,10 +701,7 @@
 /obj/structure/chair/wood{
 	dir = 4
 	},
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet4-0"
-	},
+/turf/simulated/floor/carpet,
 /area/ruin/unpowered)
 "Hb" = (
 /obj/effect/decal/cleanable/confetti,
@@ -771,7 +730,6 @@
 /obj/structure/table,
 /obj/machinery/processor,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -846,7 +804,6 @@
 "Kr" = (
 /obj/machinery/cooker/deepfryer,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -939,7 +896,7 @@
 /area/ruin/unpowered)
 "OD" = (
 /obj/structure/table/wood/fancy/black,
-/obj/item/reagent_containers/food/snacks/meat/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 /obj/item/clothing/glasses/meson/fluff/book_berner_1,
 /turf/simulated/floor/carpet/black,
 /area/ruin/unpowered)
@@ -950,7 +907,6 @@
 /obj/structure/table,
 /obj/item/reagent_containers/food/snacks/spellburger,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -1029,7 +985,6 @@
 	},
 /obj/effect/decal/cleanable/blood/writing,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -1066,7 +1021,6 @@
 /obj/structure/table,
 /obj/machinery/kitchen_machine/microwave,
 /turf/simulated/floor/plasteel{
-	dir = 8;
 	icon_state = "barber"
 	},
 /area/ruin/unpowered)
@@ -1145,10 +1099,7 @@
 /obj/structure/chair/wood{
 	dir = 8
 	},
-/turf/simulated/floor/carpet{
-	icon = 'icons/turf/floors.dmi';
-	icon_state = "carpet8-0"
-	},
+/turf/simulated/floor/carpet,
 /area/ruin/unpowered)
 "Zi" = (
 /mob/living/simple_animal/hostile/carp/sea{
@@ -1990,7 +1941,7 @@ dY
 dY
 dY
 jR
-Dx
+ek
 gJ
 Al
 ZN
@@ -2441,7 +2392,7 @@ tw
 gJ
 GM
 gJ
-zv
+gJ
 ez
 qc
 ZN
@@ -2580,7 +2531,7 @@ ZN
 gJ
 gJ
 AW
-tJ
+gJ
 ri
 jR
 dY

@@ -8,8 +8,7 @@ using metal and glass, it uses glass and reagents (usually sulfuric acis).
 	name = "Circuit Imprinter"
 	desc = "Manufactures circuit boards for the construction of machines."
 	icon_state = "circuit_imprinter"
-	icon_open = "circuit_imprinter_t"
-	icon_closed = "circuit_imprinter"
+	base_icon_state = "circuit_imprinter"
 	container_type = OPENCONTAINER
 
 	categories = list(
@@ -38,8 +37,7 @@ using metal and glass, it uses glass and reagents (usually sulfuric acis).
 	RefreshParts()
 	if(is_taipan(z))
 		icon_state = "syndie_circuit_imprinter"
-		icon_open = "syndie_circuit_imprinter_t"
-		icon_closed = "syndie_circuit_imprinter"
+		base_icon_state = "syndie_circuit_imprinter"
 	reagents.my_atom = src
 
 /obj/machinery/r_n_d/circuit_imprinter/upgraded/New()
@@ -53,8 +51,7 @@ using metal and glass, it uses glass and reagents (usually sulfuric acis).
 	RefreshParts()
 	if(is_taipan(z))
 		icon_state = "syndie_circuit_imprinter"
-		icon_open = "syndie_circuit_imprinter_t"
-		icon_closed = "syndie_circuit_imprinter"
+		base_icon_state = "syndie_circuit_imprinter"
 	reagents.my_atom = src
 
 /obj/machinery/r_n_d/circuit_imprinter/RefreshParts()
@@ -70,10 +67,10 @@ using metal and glass, it uses glass and reagents (usually sulfuric acis).
 	var/T = 0
 	for(var/obj/item/stock_parts/manipulator/M in component_parts)
 		T += M.rating
-	T = clamp(T, 1, 4)
+	T = clamp(T, 1, 5)
 	efficiency_coeff = 1 / (2 ** (T - 1))
 
-/obj/machinery/r_n_d/circuit_imprinter/check_mat(datum/design/being_built, var/M)
+/obj/machinery/r_n_d/circuit_imprinter/check_mat(datum/design/being_built, M)
 	var/list/all_materials = being_built.reagents_list + being_built.materials
 
 	var/A = materials.amount(M)
@@ -82,34 +79,54 @@ using metal and glass, it uses glass and reagents (usually sulfuric acis).
 
 	return round(A / max(1, (all_materials[M] * efficiency_coeff)))
 
-/obj/machinery/r_n_d/circuit_imprinter/attackby(var/obj/item/O as obj, var/mob/user as mob, params)
-	if(shocked)
-		add_fingerprint(user)
-		if(shock(user,50))
-			return TRUE
-	if(default_deconstruction_screwdriver(user, icon_open, icon_closed, O))
-		add_fingerprint(user)
-		if(linked_console)
-			linked_console.linked_imprinter = null
-			linked_console = null
-		return
 
-	if(exchange_parts(user, O))
-		return
+/obj/machinery/r_n_d/circuit_imprinter/attackby(obj/item/I, mob/user, params)
+	if(shocked && shock(user, 50))
+		add_fingerprint(user)
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(panel_open)
-		if(istype(O, /obj/item/crowbar))
-			for(var/obj/I in component_parts)
-				if(istype(I, /obj/item/reagent_containers/glass/beaker))
-					reagents.trans_to(I, reagents.total_volume)
-				I.loc = src.loc
-			materials.retrieve_all()
-			default_deconstruction_crowbar(user, O)
-			return
-		else
-			to_chat(user, "<span class='warning'>You can't load the [src.name] while it's opened.</span>")
-			return
-	if(O.is_open_container())
-		return FALSE
-	else
+	var/is_open_container = I.is_open_container()
+	if(user.a_intent == INTENT_HARM)
+		if(is_open_container)
+			return ..() | ATTACK_CHAIN_NO_AFTERATTACK
 		return ..()
+
+	if(exchange_parts(user, I))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	if(is_open_container)
+		if(panel_open)
+			to_chat(user, span_warning("Close the maintenance panel first."))
+			return ATTACK_CHAIN_PROCEED|ATTACK_CHAIN_NO_AFTERATTACK
+		return ATTACK_CHAIN_PROCEED	// afterattack will handle this
+
+	return ..()
+
+
+/obj/machinery/r_n_d/circuit_imprinter/screwdriver_act(mob/living/user, obj/item/I)
+	if(shocked && shock(user, 50))
+		add_fingerprint(user)
+		return TRUE
+	. = default_deconstruction_screwdriver(user, "[base_icon_state]_t", base_icon_state, I)
+	if(. && linked_console)
+		linked_console.linked_imprinter = null
+		linked_console = null
+
+
+/obj/machinery/r_n_d/circuit_imprinter/crowbar_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(shocked && shock(user, 50))
+		add_fingerprint(user)
+		return .
+	if(!panel_open)
+		add_fingerprint(user)
+		to_chat(user, span_warning("Open the maintenance panel first."))
+		return .
+	var/atom/drop_loc = drop_location()
+	for(var/obj/component as anything in component_parts)
+		if(istype(component, /obj/item/reagent_containers/glass/beaker))
+			reagents.trans_to(component, reagents.total_volume)
+		component.forceMove(drop_loc)
+	materials.retrieve_all()
+	default_deconstruction_crowbar(user, I)
+

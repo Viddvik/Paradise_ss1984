@@ -101,6 +101,8 @@ Class Procs:
 	pressure_resistance = 15
 	max_integrity = 200
 	layer = BELOW_OBJ_LAYER
+	pass_flags_self = PASSMACHINE|LETPASSCLICKS
+	pull_push_slowdown = 1.3
 	var/stat = 0
 	var/emagged = 0
 	var/use_power = IDLE_POWER_USE
@@ -127,8 +129,38 @@ Class Procs:
 	var/datum/radio_frequency/radio_connection
 	/// This is if the machinery is being repaired
 	var/being_repaired = FALSE
-	/// initialize this in the overridden init_multitool_menu() proc if an object should show the multitool menu
-	var/datum/multitool_menu/multitool_menu
+	/// Viable flags to go here are START_PROCESSING_ON_INIT, or START_PROCESSING_MANUALLY. See code\__DEFINES\machines.dm for more information on these flags.
+	var/processing_flags = START_PROCESSING_ON_INIT
+	/// What subsystem this machine will use, which is generally SSmachines or SSfastprocess. By default all machinery use SSmachines. This fires a machine's process() roughly every 2 seconds.
+	var/subsystem_type = /datum/controller/subsystem/machines
+
+
+/obj/machinery/Initialize(mapload)
+	if(!armor)
+		armor = list(melee = 25, bullet = 10, laser = 10, energy = 0, bomb = 0, bio = 0, rad = 0, fire = 50, acid = 70)
+	. = ..()
+	GLOB.machines += src
+
+	myArea = get_area(src)
+	if(myArea)
+		RegisterSignal(src, COMSIG_ATOM_EXITED_AREA, PROC_REF(onAreaExited))
+		LAZYADD(myArea.machinery_cache, src)
+
+	if(processing_flags & START_PROCESSING_ON_INIT)
+		begin_processing()
+
+	power_change()
+
+
+/obj/machinery/Destroy()
+	if(myArea)
+		LAZYREMOVE(myArea.machinery_cache, src)
+		myArea = null
+		UnregisterSignal(src, COMSIG_ATOM_EXITED_AREA)
+	GLOB.machines.Remove(src)
+	end_processing()
+	return ..()
+
 
 /*
  * reimp, attempts to flicker this machinery if the behavior is supported.
@@ -143,52 +175,58 @@ Class Procs:
 /obj/machinery/proc/flicker()
 	return FALSE
 
-/obj/machinery/Initialize(mapload)
-	if(!armor)
-		armor = list(melee = 25, bullet = 10, laser = 10, energy = 0, bomb = 0, bio = 0, rad = 0, fire = 50, acid = 70)
-	. = ..()
-	GLOB.machines += src
 
-	if(use_power)
-		myArea = get_area(src)
-	if(!speed_process)
-		START_PROCESSING(SSmachines, src)
-	else
-		START_PROCESSING(SSfastprocess, src)
-
+/obj/machinery/proc/onAreaExited()
+	SIGNAL_HANDLER
+	if(myArea == get_area(src))
+		return
+	LAZYREMOVE(myArea.machinery_cache, src)
+	//message_admins("[src] exited [myArea]") Uncomment for debugging
+	myArea = get_area(src)
+	if(!myArea)
+		return
+	LAZYADD(myArea.machinery_cache, src)
+	//message_admins("[src] entered [myArea]")
 	power_change()
 
-	init_multitool_menu()
 
-/obj/machinery/proc/init_multitool_menu()
-	return
+/// Helper proc for telling a machine to start processing with the subsystem type that is located in its `subsystem_type` var.
+/obj/machinery/proc/begin_processing()
+	if(speed_process)
+		START_PROCESSING(SSfastprocess, src)
+		return
+	var/datum/controller/subsystem/processing/subsystem = locate(subsystem_type) in Master.subsystems
+	START_PROCESSING(subsystem, src)
+
+
+/// Helper proc for telling a machine to stop processing with the subsystem type that is located in its `subsystem_type` var.
+/obj/machinery/proc/end_processing()
+	if(speed_process)
+		STOP_PROCESSING(SSfastprocess, src)
+		return
+	var/datum/controller/subsystem/processing/subsystem = locate(subsystem_type) in Master.subsystems
+	STOP_PROCESSING(subsystem, src)
+
 
 // gotta go fast
 /obj/machinery/makeSpeedProcess()
 	if(speed_process)
 		return
 	speed_process = TRUE
-	STOP_PROCESSING(SSmachines, src)
+	var/datum/controller/subsystem/processing/subsystem = locate(subsystem_type) in Master.subsystems
+	STOP_PROCESSING(subsystem, src)
 	START_PROCESSING(SSfastprocess, src)
+
 
 // gotta go slow
 /obj/machinery/makeNormalProcess()
 	if(!speed_process)
 		return
 	speed_process = FALSE
+	var/datum/controller/subsystem/processing/subsystem = locate(subsystem_type) in Master.subsystems
 	STOP_PROCESSING(SSfastprocess, src)
-	START_PROCESSING(SSmachines, src)
+	START_PROCESSING(subsystem, src)
 
-/obj/machinery/Destroy()
-	if(myArea)
-		myArea = null
-	GLOB.machines.Remove(src)
-	if(!speed_process)
-		STOP_PROCESSING(SSmachines, src)
-	else
-		STOP_PROCESSING(SSfastprocess, src)
-	QDEL_NULL(multitool_menu)
-	return ..()
 
 /obj/machinery/has_prints()
 	return TRUE
@@ -244,7 +282,7 @@ Class Procs:
 
 /obj/machinery/ui_status(mob/user, datum/ui_state/state)
 	if(!interact_offline && (stat & (NOPOWER|BROKEN)))
-		return STATUS_CLOSE
+		return UI_CLOSE
 
 	return ..()
 
@@ -272,11 +310,14 @@ Class Procs:
 	else
 		return attack_hand(user)
 
-/obj/machinery/attack_hand(mob/user as mob)
+/obj/machinery/attack_hand(mob/user)
+	if(istype(user, /mob/dead/observer))
+		return FALSE
+
 	if(user.incapacitated())
 		return TRUE
 
-	if(!user.IsAdvancedToolUser())
+	if(!user.can_use_machinery(src))
 		to_chat(user, span_warning("You don't have the dexterity to do this!"))
 		return TRUE
 
@@ -315,7 +356,7 @@ Class Procs:
 	gl_uid++
 
 /obj/machinery/deconstruct(disassembled = TRUE)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		on_deconstruction()
 		if(component_parts && component_parts.len)
 			spawn_frame(disassembled)
@@ -327,100 +368,123 @@ Class Procs:
 /obj/machinery/proc/spawn_frame(disassembled)
 	var/obj/machinery/constructable_frame/machine_frame/M = new /obj/machinery/constructable_frame/machine_frame(loc)
 	. = M
-	M.anchored = anchored
+	M.set_anchored(anchored)
 	if(!disassembled)
 		M.obj_integrity = M.max_integrity * 0.5 //the frame is already half broken
 	transfer_fingerprints_to(M)
-	M.state = 2
-	M.icon_state = "box_1"
+	M.state = 2	// STATE_WIRED
+	M.update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/obj_break(damage_flag)
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
 		stat |= BROKEN
 
+
 /obj/machinery/proc/default_deconstruction_crowbar(user, obj/item/I, ignore_panel = 0)
+	add_fingerprint(user)
 	if(I.tool_behaviour != TOOL_CROWBAR)
 		return FALSE
 	if(!I.use_tool(src, user, 0, volume = 0))
 		return FALSE
-	if((panel_open || ignore_panel) && !(flags & NODECONSTRUCT))
+	if((panel_open || ignore_panel) && !(obj_flags & NODECONSTRUCT))
 		deconstruct(TRUE)
 		to_chat(user, span_notice("You disassemble [src]."))
 		I.play_tool_sound(user, I.tool_volume)
-		return 1
-	return 0
+		return TRUE
+	return FALSE
+
 
 /obj/machinery/proc/default_deconstruction_screwdriver(mob/user, icon_state_open, icon_state_closed, obj/item/I)
+	add_fingerprint(user)
 	if(I.tool_behaviour != TOOL_SCREWDRIVER)
 		return FALSE
 	if(!I.use_tool(src, user, 0, volume = 0))
 		return FALSE
-	if(!(flags & NODECONSTRUCT))
+	if(!(obj_flags & NODECONSTRUCT))
+		var/prev_icon_state = icon_state
 		if(!panel_open)
-			panel_open = 1
+			panel_open = TRUE
 			icon_state = icon_state_open
 			to_chat(user, span_notice("You open the maintenance hatch of [src]."))
 		else
-			panel_open = 0
+			panel_open = FALSE
 			icon_state = icon_state_closed
 			to_chat(user, span_notice("You close the maintenance hatch of [src]."))
+		if(prev_icon_state != icon_state)
+			SEND_SIGNAL(src, COMSIG_ATOM_UPDATE_ICON_STATE)
+			SEND_SIGNAL(src, COMSIG_ATOM_UPDATED_ICON, UPDATE_ICON_STATE)
 		I.play_tool_sound(user, I.tool_volume)
-		return 1
-	return 0
+		return TRUE
+	return FALSE
+
 
 /obj/machinery/proc/default_change_direction_wrench(mob/user, obj/item/I)
+	add_fingerprint(user)
 	if(I.tool_behaviour != TOOL_WRENCH)
 		return FALSE
 	if(!I.use_tool(src, user, 0, volume = 0))
 		return FALSE
 	if(panel_open)
-		dir = turn(dir,-90)
+		setDir(turn(dir,-90))
 		to_chat(user, span_notice("You rotate [src]."))
 		I.play_tool_sound(user, I.tool_volume)
 		return TRUE
 	return FALSE
+
 
 /obj/machinery/default_unfasten_wrench(mob/user, obj/item/I, time)
 	. = ..()
 	if(.)
 		power_change()
 
-/obj/machinery/attackby(obj/item/O, mob/user, params)
-	if(has_prints() && !(istype(O, /obj/item/detective_scanner)))
+
+/obj/machinery/attackby(obj/item/I, mob/user, params)
+	if(has_prints() && !(istype(I, /obj/item/detective_scanner)))
 		add_fingerprint(user)
-	if(istype(O, /obj/item/stack/nanopaste))
-		var/obj/item/stack/nanopaste/N = O
+
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
+	if(istype(I, /obj/item/stack/nanopaste))
+		var/obj/item/stack/nanopaste/nanopaste = I
 		if(stat & BROKEN)
 			to_chat(user, span_notice("[src] is too damaged to be fixed with nanopaste!"))
-			return
+			return ATTACK_CHAIN_PROCEED
 		if(obj_integrity == max_integrity)
 			to_chat(user, span_notice("[src] is fully intact."))
-			return
+			return ATTACK_CHAIN_PROCEED
 		if(being_repaired)
-			return
-		if(N.get_amount() < 1)
+			return ATTACK_CHAIN_PROCEED
+		if(nanopaste.get_amount() < 1)
 			to_chat(user, span_warning("You don't have enough to complete this task!"))
-			return
-		to_chat(user, span_notice("You start applying [O] to [src]."))
+			return ATTACK_CHAIN_PROCEED
+		to_chat(user, span_notice("You start applying [I] to [src]."))
 		being_repaired = TRUE
-		var/result = do_after(user, 3 SECONDS, target = src)
+		var/result = do_after(user, 3 SECONDS, src, category = DA_CAT_TOOL)
 		being_repaired = FALSE
-		if(!result)
-			return
-		if(!N.use(1))
-			to_chat(user, span_warning("You don't have enough to complete this task!")) // this is here, as we don't want to use nanopaste until you finish applying
-			return
+		if(!result || QDELETED(nanopaste))
+			return ATTACK_CHAIN_PROCEED
+		if(!nanopaste.use(1))
+			to_chat(user, span_warning("You don't have enough nanopaste to complete this task!")) // this is here, as we don't want to use nanopaste until you finish applying
+			return ATTACK_CHAIN_PROCEED
 		obj_integrity = min(obj_integrity + 50, max_integrity)
-		user.visible_message(span_notice("[user] applied some [O] at [src]'s damaged areas."),\
-			span_notice("You apply some [O] at [src]'s damaged areas."))
-	else
-		return ..()
+		user.visible_message(
+			span_notice("[user] applied some [I.name] at [src]'s damaged areas."),
+			span_notice("You apply some [I.name] at [src]'s damaged areas."),
+		)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
+
 /obj/machinery/proc/exchange_parts(mob/user, obj/item/storage/part_replacer/W)
 	var/shouldplaysound = 0
-	if((flags & NODECONSTRUCT))
+	if(obj_flags & NODECONSTRUCT)
 		return FALSE
 	if(istype(W) && component_parts)
 		if(panel_open || W.works_from_distance)
+			if(!W.works_from_distance)
+				add_fingerprint(user)
 			var/obj/item/circuitboard/CB = locate(/obj/item/circuitboard) in component_parts
 			var/P
 			if(W.works_from_distance)
@@ -516,7 +580,7 @@ Class Procs:
 			threatcount += 4
 
 	if(check_records || check_arrest)
-		var/perpname = perp.get_visible_name(TRUE)
+		var/perpname = perp.get_visible_name(add_id_name = FALSE)
 
 		var/datum/data/record/R = find_security_record("name", perpname)
 		if(check_records && !R)
@@ -583,5 +647,5 @@ Class Procs:
 
 
 /obj/machinery/extinguish_light(force = FALSE)
-	if(light_range)
-		remove_light()
+	if(light_on)
+		set_light_on(FALSE)

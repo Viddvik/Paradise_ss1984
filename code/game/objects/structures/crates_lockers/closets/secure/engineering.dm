@@ -27,9 +27,10 @@
 	new /obj/item/organ/internal/cyberimp/eyes/meson(src)
 	new /obj/item/clothing/accessory/medal/engineering(src)
 	new /obj/item/holosign_creator/atmos(src)
-	new /obj/item/megaphone(src)	//added here deleted on maps
+	new /obj/item/megaphone(src)
 	new /obj/item/storage/garmentbag/engineering_chief(src)
 	new /obj/item/storage/bag/construction(src)
+	new /obj/item/storage/belt/utility/chief/full(src)
 
 /obj/structure/closet/secure_closet/engineering_electrical
 	name = "electrical supplies locker"
@@ -38,7 +39,6 @@
 	custom_door_overlay = "engelec"
 
 /obj/structure/closet/secure_closet/engineering_electrical/populate_contents()
-	new /obj/item/clothing/gloves/color/yellow(src)
 	new /obj/item/clothing/gloves/color/yellow(src)
 	new /obj/item/storage/toolbox/electrical(src)
 	new /obj/item/storage/toolbox/electrical(src)
@@ -84,6 +84,7 @@
 	new /obj/item/clothing/suit/storage/hazardvest(src)
 	new /obj/item/clothing/mask/gas(src)
 	new /obj/item/clothing/glasses/meson(src)
+	new /obj/item/clothing/gloves/color/fyellow(src)
 	new /obj/item/cartridge/engineering(src)
 	new /obj/item/clothing/head/beret/eng(src)
 	new /obj/item/clothing/head/hardhat/orange(src)

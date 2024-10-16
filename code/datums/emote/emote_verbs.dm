@@ -69,12 +69,10 @@
 	set category = "Эмоции"
 	emote("sniff", intentional = TRUE)
 
-/*
-/mob/living/carbon/human/verb/emote_snore()	// locked to unconscious stat
+/mob/living/carbon/human/verb/emote_snore()
 	set name = "▷ Храпеть "
 	set category = "Эмоции"
 	emote("snore", intentional = TRUE)
-*/
 
 /mob/living/carbon/human/verb/emote_whistle()
 	set name = "▷ Свистеть "
@@ -381,7 +379,7 @@
 	var/fingers_count = src.dna?.species?.fingers_count
 	for(var/i = 1, i <= fingers_count, i++)
 		fingers += i
-	var/cnt = input("Руки должны быть свободны", "Показать несколько пальцев", 1) as null|anything in fingers
+	var/cnt = tgui_input_list(src, "Руки должны быть свободны", "Показать несколько пальцев", fingers, default = 1)
 	if(!cnt)
 		return
 	emote("signal-[cnt]")

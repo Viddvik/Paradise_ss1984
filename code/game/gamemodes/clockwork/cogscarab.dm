@@ -10,8 +10,8 @@
 	icon_state = "drone"
 	health = 35
 	maxHealth = 35
-	density = 0
-	ventcrawler = 2
+	density = FALSE
+	ventcrawler_trait = TRAIT_VENTCRAWLER_ALWAYS
 	mob_size = MOB_SIZE_SMALL
 	pass_flags = PASSTABLE
 
@@ -51,19 +51,19 @@
 	var/wind_up_timer = CLOCK_MAX_WIND_UP_TIMER
 	var/wind_up_icon_segment = CLOCK_MAX_WIND_UP_TIMER / 5
 	var/warn_wind_up = WINDUP_STATE_NONE
+	var/obj/structure/clockwork/functional/cogscarab_fabricator/fabr
 
-/mob/living/silicon/robot/cogscarab/Initialize()
+/mob/living/silicon/robot/cogscarab/Initialize(mapload)
 	. = ..()
-	remove_language("Robot Talk")
-	add_language("Drone Talk", 1)
+	remove_language(LANGUAGE_BINARY)
+	add_language(LANGUAGE_DRONE_BINARY, 1)
 	if(radio)
 		radio.wires.cut(WIRE_RADIO_TRANSMIT)
-
 
 	//Shhhh it's a secret. No one needs to know about infinite power for clockwork drone
 	cell = new /obj/item/stock_parts/cell/high/slime(src)
 	mmi = null
-	verbs -= /mob/living/silicon/robot/verb/Namepick
+	remove_verb(src, /mob/living/silicon/robot/verb/Namepick)
 	module = new /obj/item/robot_module/cogscarab(src)
 
 	var/datum/action/innate/hide/drone/cogscarab/hide = new()
@@ -78,25 +78,26 @@
 /mob/living/silicon/robot/drone/Destroy()
 	for(var/datum/action/innate/hide/drone/cogscarab/hide in actions)
 		hide.Remove(src)
-
 	. = ..()
 
+/mob/living/silicon/robot/cogscarab/add_strippable_element()
+	return
 
 /mob/living/silicon/robot/cogscarab/init(alien = FALSE, mob/living/silicon/ai/ai_to_sync_to = null)
 	laws = new /datum/ai_laws/ratvar()
-	connected_ai = null
+	set_connected_ai(null)
 
 	aiCamera = new/obj/item/camera/siliconcam/drone_camera(src)
-	additional_law_channels["Drone"] = ":d "
+	additional_law_channels["Drone"] = get_language_prefix(LANGUAGE_DRONE_BINARY)
 
-	playsound(src.loc, 'sound/machines/twobeep.ogg', 50, 0)
+	playsound(loc, 'sound/machines/twobeep.ogg', 50, FALSE)
 
 /mob/living/silicon/robot/cogscarab/create_mob_hud()
 	..()
 	if(hud_used)
 		var/datum/hud/hud = hud_used
 		if(!hud.wind_up_timer)
-			hud.wind_up_timer = new /obj/screen/wind_up_timer()
+			hud.wind_up_timer = new /atom/movable/screen/wind_up_timer()
 			hud.infodisplay += hud.wind_up_timer
 			hud.show_hud(hud.hud_version)
 
@@ -123,10 +124,11 @@
 	//rounds to 30 and divides by 30. if timer full, 6 - 5, state 1. from 1 to 6.
 
 
-/mob/living/silicon/robot/cogscarab/Stat()
-	..()
+/mob/living/silicon/robot/cogscarab/get_status_tab_items()
+	var/list/status_tab_data = ..()
+	. = status_tab_data
 	if(mind?.current)
-		stat("Wind Up Timer:", "[wind_up_timer]")
+		status_tab_data[++status_tab_data.len] = list("Wind Up Timer:", "[wind_up_timer]")
 
 /mob/living/silicon/robot/cogscarab/rename_character(oldname, newname)
 	// force it to not actually change most things
@@ -136,17 +138,20 @@
 	return "cogscarab [pick(list("Nycun", "Oenib", "Havsbez", "Ubgry", "Fvreen"))]-[rand(10, 99)]"
 
 /mob/living/silicon/robot/cogscarab/update_icons()
-	overlays.Cut()
+	cut_overlays()
+
 	if(stat == CONSCIOUS)
-		overlays += "eyes-[icon_state]"
-	else
-		overlays -= "eyes"
+		add_overlay("eyes-[icon_state]")
 
-/mob/living/silicon/robot/cogscarab/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/borg/upgrade))
-		return
+	if(blocks_emissive)
+		add_overlay(get_emissive_block())
 
+
+/mob/living/silicon/robot/cogscarab/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/borg/upgrade))
+		return ATTACK_CHAIN_BLOCKED
 	return ..()
+
 
 /mob/living/silicon/robot/cogscarab/welder_act(mob/user, obj/item/I)
 	if(user.a_intent != INTENT_HELP)
@@ -157,6 +162,20 @@
 		get_scooped(M)
 		return TRUE
 	return ..()
+
+/mob/living/silicon/robot/cogscarab/get_scooped(mob/living/carbon/grabber)
+	var/obj/item/holder/cogscarab/H = new(loc)
+	src.forceMove(H)
+	H.name = name
+	H.icon = icon
+	H.w_class = WEIGHT_CLASS_TINY
+	H.attack_hand(grabber)
+
+	to_chat(grabber, "<span class='notice'>Вы подняли [src.name].")
+	to_chat(src, "<span class='notice'>[grabber.name] поднял[genderize_ru(grabber.gender,"","а","о","и")] вас.</span>")
+	grabber.status_flags |= PASSEMOTES
+
+	return H
 
 /mob/living/silicon/robot/cogscarab/choose_icon()
 	return
@@ -178,14 +197,16 @@
 /mob/living/silicon/robot/cogscarab/allowed(obj/item/I) //No opening cover
 	return FALSE
 
+
 /mob/living/silicon/robot/cogscarab/updatehealth(reason = "none given", should_log = FALSE)
-	if(status_flags & GODMODE)
+	if(HAS_TRAIT(src, TRAIT_GODMODE))
 		return ..()
-	health = maxHealth - (getBruteLoss() + getFireLoss() + (suiciding ? getOxyLoss() : 0))
+	set_health(maxHealth - (getBruteLoss() + getFireLoss() + (suiciding ? getOxyLoss() : 0)))
 	update_stat("updatehealth([reason])", should_log)
 
+
 /mob/living/silicon/robot/cogscarab/update_stat(reason = "none given", should_log = FALSE)
-	if(status_flags & GODMODE)
+	if(HAS_TRAIT(src, TRAIT_GODMODE))
 		return ..()
 	if(health <= 0 && stat != DEAD)
 		ghostize(TRUE)
@@ -197,35 +218,37 @@
 
 /mob/living/silicon/robot/cogscarab/death(gibbed)
 	. = ..(gibbed)
+	fabr?.close_slot(src)
 	SSticker.mode.remove_clocker(mind, FALSE)
 	adjustBruteLoss(health)
 
-/mob/living/silicon/robot/cogscarab/Bump(atom/movable/AM, yes)
-	if(is_type_in_list(AM, allowed_bumpable_objects))
+/mob/living/silicon/robot/cogscarab/Bump(atom/bumped_atom)
+	if(is_type_in_list(bumped_atom, allowed_bumpable_objects))
 		return ..()
 
-/mob/living/silicon/robot/cogscarab/start_pulling(atom/movable/AM, state, force = pull_force, show_message = FALSE)
+/mob/living/silicon/robot/cogscarab/start_pulling(atom/movable/pulled_atom, state, force = pull_force, supress_message = FALSE)
+	if(is_type_in_list(pulled_atom, pullable_items))
+		force = INFINITY	// Drone power! Makes them able to drag pipes and such
+		return ..()
 
-	if(is_type_in_list(AM, pullable_items))
-		..(AM, force = INFINITY) // Drone power! Makes them able to drag pipes and such
+	if(isitem(pulled_atom))
+		var/obj/item/pulled_item = pulled_atom
+		if(pulled_item.w_class > WEIGHT_CLASS_SMALL)
+			if(!supress_message)
+				to_chat(src, span_warning("You are too small to pull that."))
+			return FALSE
+		return ..()
 
-	else if(istype(AM,/obj/item))
-		var/obj/item/O = AM
-		if(O.w_class > WEIGHT_CLASS_SMALL)
-			if(show_message)
-				to_chat(src, "<span class='warning'>You are too small to pull that.</span>")
-			return
-		else
-			..()
-	else
-		if(show_message)
-			to_chat(src, "<span class='warning'>You are too small to pull that.</span>")
+	if(!supress_message)
+		to_chat(src, span_warning("You are too small to pull that."))
+	return FALSE
+
 
 /mob/living/silicon/robot/cogscarab/add_robot_verbs()
-	src.verbs |= silicon_subsystems
+	add_verb(src, silicon_subsystems)
 
 /mob/living/silicon/robot/cogscarab/remove_robot_verbs()
-	src.verbs -= silicon_subsystems
+	remove_verb(src, silicon_subsystems)
 
 /mob/living/silicon/robot/cogscarab/toggle_sensor_mode()
 	var/sensor_type = input("Please select sensor type.", "Sensor Integration", null) in list("Medical","Diagnostic", "Multisensor","Disable")
@@ -273,23 +296,6 @@
 	to_chat(src, "[lamp_intensity ? "Headlamp power set to Level [lamp_intensity]" : "Headlamp disabled."]")
 	update_headlamp()
 
-/mob/living/silicon/robot/cogscarab/update_headlamp(var/turn_off = 0, var/cooldown = 100)
-	set_light(0)
-
-	if(lamp_intensity && (turn_off || stat || low_power_mode))
-		to_chat(src, "<span class='danger'>Your headlamp has been deactivated.</span>")
-		lamp_intensity = 0
-		lamp_recharging = 1
-		spawn(cooldown) //10 seconds by default, if the source of the deactivation does not keep stat that long.
-			lamp_recharging = 0
-	else
-		set_light(lamp_intensity)
-
-	if(lamp_button)
-		lamp_button.icon_state = "lamp[lamp_intensity*2]"
-
-	update_icons()
-
 /obj/item/clockwork/brassmaker
 	name = "Brassmaking melter"
 	desc = "A machine, spinning and whirring just to create out of thin metal into perfect brass."
@@ -311,7 +317,7 @@
 
 	var/grabbed_something = FALSE
 	for(var/obj/item/A in T)
-		if(A.materials[MAT_METAL] && !anchored && (length(grabbed_items) < grab_limit))
+		if(LAZYIN(A.materials, MAT_METAL) && !anchored && (length(grabbed_items) < grab_limit))
 			grabbed_items += A
 			A.forceMove(src)
 			grabbed_something = TRUE
@@ -336,13 +342,13 @@
 	user.playsound_local(src, 'sound/machines/blender.ogg', 20, 1)
 	for(var/obj/item/A in grabbed_items)
 		if(A.materials[MAT_METAL])
-			if(istype(A, /obj/item/stack))
+			if(isstack(A))
 				var/obj/item/stack/S = A
 				metal_amount += S.materials[MAT_METAL] * S.amount
 			else
 				metal_amount += A.materials[MAT_METAL]
 
-	user.changeNext_move(CLICK_CD_MELEE * melt_click_delay)
+	user.changeNext_move(attack_speed * melt_click_delay)
 	QDEL_LIST(grabbed_items)
 
 	if(isrobot(user))

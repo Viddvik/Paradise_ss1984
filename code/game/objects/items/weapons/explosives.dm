@@ -1,91 +1,133 @@
+#define BOMB_OVERLAY_ID "bomb_overlay_id"
+
 /obj/item/grenade/plastic
 	name = "plastic explosive"
 	desc = "Used to put holes in specific areas without too much extra hole."
 	icon_state = "plastic-explosive0"
 	item_state = "plastic-explosive"
-	flags = NOBLUDGEON
-	det_time = 10
+	item_flags = NOBLUDGEON
+	det_time = 10 SECONDS
 	display_timer = 0
 	origin_tech = "syndicate=1"
 	toolspeed = 1
-	var/atom/target = null
-	var/image_overlay = null
-	var/obj/item/assembly_holder/nadeassembly = null
+	var/atom/target
+	var/mutable_appearance/image_overlay
+	var/obj/item/assembly_holder/nadeassembly
 	var/assemblyattacher
+	var/notify_admins = TRUE
 
-/obj/item/grenade/plastic/New()
-	image_overlay = image('icons/obj/weapons/grenade.dmi', "[item_state]2")
-	..()
+
+/obj/item/grenade/plastic/Initialize(mapload)
+	. = ..()
+	image_overlay = mutable_appearance('icons/obj/weapons/grenade.dmi', "[item_state]2")
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/item/grenade/plastic/Destroy()
 	QDEL_NULL(nadeassembly)
 	target = null
 	return ..()
 
+
 /obj/item/grenade/plastic/attackby(obj/item/I, mob/user, params)
-	if(!nadeassembly && istype(I, /obj/item/assembly_holder))
-		var/obj/item/assembly_holder/A = I
-		if(!user.drop_item_ground(I))
+	if(istype(I, /obj/item/assembly_holder))
+		add_fingerprint(user)
+		if(nadeassembly)
+			to_chat(user, span_warning("There is [nadeassembly] already installed!"))
+			return ATTACK_CHAIN_PROCEED
+		var/obj/item/assembly_holder/assembly_holder = I
+		if(!assembly_holder.secured)
+			to_chat(user, span_warning("The [assembly_holder.name] must be secured first!"))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(assembly_holder, src))
 			return ..()
-		nadeassembly = A
-		A.master = src
-		A.loc = src
+		nadeassembly = assembly_holder
+		assembly_holder.master = src
 		assemblyattacher = user.ckey
-		to_chat(user, "<span class='notice'>You add [A] to the [name].</span>")
-		playsound(src, 'sound/weapons/tap.ogg', 20, 1)
-		update_icon()
-		return
-	if(nadeassembly && istype(I, /obj/item/wirecutters))
-		playsound(src, I.usesound, 20, 1)
-		nadeassembly.loc = get_turf(src)
-		nadeassembly.master = null
-		nadeassembly = null
-		update_icon()
-		return
-	..()
+		to_chat(user, span_notice("You add [assembly_holder] to the [name]."))
+		playsound(src, 'sound/weapons/tap.ogg', 20, TRUE)
+		update_icon(UPDATE_ICON_STATE)
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
+
+
+/obj/item/grenade/plastic/wirecutter_act(mob/living/user, obj/item/I)
+	if(!nadeassembly)
+		return FALSE
+	. = TRUE
+	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
+		return .
+	nadeassembly.forceMove_turf()
+	nadeassembly.master = null
+	nadeassembly = null
+	update_icon(UPDATE_ICON_STATE)
+
 
 //assembly stuff
 /obj/item/grenade/plastic/receive_signal()
 	prime()
 
-/obj/item/grenade/plastic/Crossed(atom/movable/AM, oldloc)
+
+/obj/item/grenade/plastic/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
 	if(nadeassembly)
-		nadeassembly.Crossed(AM, oldloc)
+		nadeassembly.assembly_crossed(arrived, old_loc)
+
 
 /obj/item/grenade/plastic/on_found(mob/finder)
 	if(nadeassembly)
 		nadeassembly.on_found(finder)
 
+
 /obj/item/grenade/plastic/attack_self(mob/user)
 	if(nadeassembly)
 		nadeassembly.attack_self(user)
 		return
-	var/newtime = input(usr, "Please set the timer.", "Timer", det_time) as num
-	if(user.is_in_active_hand(src))
-		newtime = clamp(newtime, initial(det_time), 60000)
-		det_time = newtime
-		to_chat(user, "Timer set for [det_time] seconds.")
-
-/obj/item/grenade/plastic/afterattack(atom/movable/AM, mob/user, flag)
-	if (!flag)
+	var/newtime = input(usr, "Please set the timer (in seconds).", "Timer", det_time/10) as null|num
+	if(isnull(newtime) || !user.is_in_active_hand(src))
 		return
-	if (istype(AM, /mob/living/carbon))
+	newtime = newtime SECONDS
+	var/init_timer = initial(det_time)
+	if(newtime < init_timer || newtime > 10 MINUTES)
+		to_chat(user, span_warning("Timer cannot be lower than [init_timer / 10] seconds or higher than 10 minutes."))
 		return
-	to_chat(user, "<span class='notice'>You start planting the [src]. The timer is set to [det_time]...</span>")
+	det_time = newtime
+	to_chat(user, "Timer set for [newtime / 10] seconds.")
 
-	if(do_after(user, 50 * toolspeed * gettoolspeedmod(user), target = AM))
-		if(!user.drop_item_ground(src))
-			return
-		src.target = AM
-		loc = null
 
-		message_admins("[ADMIN_LOOKUPFLW(user)] planted [src.name] on [target.name] at [ADMIN_COORDJMP(target)] with [det_time] second fuse")
-		add_game_logs("planted [name] on [target.name] at [COORD(target)] with [det_time] second fuse", user)
+/obj/item/grenade/plastic/afterattack(atom/movable/AM, mob/user, flag, params)
+	if(!flag)
+		return
+	if(iscarbon(AM))
+		to_chat(user, "<span class='warning'>You can't get the [src] to stick to [AM]!</span>")
+		return
+	if(isobserver(AM))
+		to_chat(user, "<span class='warning'>Your hand just phases through [AM]!</span>")
+		return
+	to_chat(user, "<span class='notice'>You start planting [src].[isnull(nadeassembly) ? " The timer is set to [det_time/10]..." : ""]</span>")
 
-		target.overlays += image_overlay
-		if(!nadeassembly)
-			to_chat(user, "<span class='notice'>You plant the bomb. Timer counting down from [det_time].</span>")
-			addtimer(CALLBACK(src, PROC_REF(prime)), det_time*10)
+	if(!do_after(user, 5 SECONDS * toolspeed, AM, category = DA_CAT_TOOL))
+		return
+
+	if(!user.drop_item_ground(src))
+		return
+
+	target = AM
+	do_pickup_animation(AM)
+	loc = null
+	if(notify_admins)
+		message_admins("[ADMIN_LOOKUPFLW(user)] planted [src.name] on [target.name] at [ADMIN_COORDJMP(target)] with [det_time/10] second fuse")
+		add_game_logs("planted [name] on [target.name] at [COORD(target)] with [det_time/10] second fuse", user)
+
+	target.add_persistent_overlay(image_overlay, BOMB_OVERLAY_ID)
+	if(!nadeassembly)
+		to_chat(user, "<span class='notice'>You plant the bomb. Timer counting down from [det_time/10].</span>")
+		addtimer(CALLBACK(src, PROC_REF(prime)), det_time)
+
 
 /obj/item/grenade/plastic/suicide_act(mob/user)
 	message_admins("[ADMIN_LOOKUPFLW(user)] suicided with [src.name] at [ADMIN_COORDJMP(user)]")
@@ -118,11 +160,13 @@
 	user.gib()
 	return OBLITERATION
 
-/obj/item/grenade/plastic/update_icon()
+
+/obj/item/grenade/plastic/update_icon_state()
 	if(nadeassembly)
 		icon_state = "[item_state]1"
 	else
 		icon_state = "[item_state]0"
+
 
 //////////////////////////
 ///// The Explosives /////
@@ -144,7 +188,6 @@
 				location = get_turf(target)	// Set the explosion location to turf if planted directly on a wall or floor
 			else
 				location = get_atom_on_turf(target)	// Otherwise, make sure we're blowing up what's on top of the turf
-			target.overlays -= image_overlay
 	else
 		location = get_atom_on_turf(src)
 	if(location)
@@ -174,7 +217,6 @@
 				location = get_turf(target)
 			else
 				location = get_atom_on_turf(target)
-			target.overlays -= image_overlay
 	else
 		location = get_atom_on_turf(src)
 	if(location)
@@ -191,7 +233,7 @@
 		M.gib()
 	qdel(src)
 
-/obj/item/grenade/plastic/x4/afterattack(atom/movable/AM, mob/user, flag)
+/obj/item/grenade/plastic/x4/afterattack(atom/movable/AM, mob/user, flag, params)
 	aim_dir = get_dir(user,AM)
 	..()
 
@@ -208,7 +250,6 @@
 	if(target)
 		if(!QDELETED(target))
 			location = get_turf(target)
-			target.overlays -= image_overlay
 	else
 		location = get_turf(src)
 	if(location)
@@ -224,7 +265,7 @@
 		M.gib()
 	qdel(src)
 
-/obj/item/grenade/plastic/c4_shaped/afterattack(atom/movable/AM, mob/user, flag)
+/obj/item/grenade/plastic/c4_shaped/afterattack(atom/movable/AM, mob/user, flag, params)
 	aim_dir = get_dir(user,AM)
 	..()
 
@@ -249,7 +290,7 @@
 /obj/item/grenade/plastic/x4/thermite
 	name = "T4"
 	desc = "A wall breaching charge, containing fuel, metal oxide and metal powder mixed in just the right way. One hell of a combination. Effective against walls, ineffective against airlocks..."
-	det_time = 2
+	det_time = 2 SECONDS
 	icon_state = "t4breach0"
 	item_state = "t4breach"
 
@@ -258,7 +299,6 @@
 	if(target)
 		if(!QDELETED(target))
 			location = get_turf(target)
-			target.overlays -= image_overlay
 	else
 		location = get_turf(src)
 	if(location)
@@ -267,7 +307,7 @@
 		if(target && target.density)
 			var/turf/T = get_step(location, aim_dir)
 			for(var/turf/simulated/wall/W in range(1, location))
-				W.thermitemelt(speed = 30)
+				W.thermitemelt(time = 3 SECONDS)
 			addtimer(CALLBACK(GLOBAL_PROC, /proc/explosion, T, 0, 0, 2), 3)
 			addtimer(CALLBACK(smoke, TYPE_PROC_REF(/datum/effect_system/smoke_spread, start)), 3)
 		else
@@ -275,9 +315,12 @@
 			addtimer(CALLBACK(GLOBAL_PROC, /proc/explosion, T, 0, 0, 2), 3)
 			addtimer(CALLBACK(smoke, TYPE_PROC_REF(/datum/effect_system/smoke_spread, start)), 3)
 
-
 	if(isliving(target))
 		var/mob/living/M = target
 		M.adjust_fire_stacks(2)
 		M.IgniteMob()
 	qdel(src)
+
+
+#undef BOMB_OVERLAY_ID
+

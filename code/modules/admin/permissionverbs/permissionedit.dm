@@ -10,6 +10,9 @@
 	if(!check_rights(R_PERMISSIONS))
 		return
 
+	var/datum/asset/permissions_asset = get_asset_datum(/datum/asset/simple/permissions)
+	permissions_asset.send(usr)
+
 	var/output = {"<!DOCTYPE html>
 <html>
 <meta charset="UTF-8">
@@ -21,8 +24,8 @@
 <body onload='selectTextField();updateSearch();'>
 <div id='main'><table id='searchable' cellspacing='0'>
 <tr class='title'>
-<th style='width:125px;text-align:right;'>CKEY <a class='small' href='?src=[UID()];editrights=add'>\[+\]</a></th>
-<th style='width:125px;'>RANK</th><th style='width:100%;'>PERMISSIONS</th>
+<th style='width:20%;text-align:right;'>CKEY <a class='small' href='byond://?src=[UID()];editrights=add'>\[+\]</a></th>
+<th style='width:20%;'>RANK</th><th style='width:60%;'>PERMISSIONS</th>
 </tr>
 "}
 
@@ -33,15 +36,15 @@
 		var/rights = rights2text(D.rights," ")
 		if(!rights)	rights = "*none*"
 		output += {"<tr>
-<td style='text-align:right;'>[adm_ckey] <a class='small' href='?src=[UID()];editrights=remove;ckey=[adm_ckey]'>\[-\]</a></td>
-<td><a href='?src=[UID()];editrights=rank;ckey=[adm_ckey]'>[rank]</a></td>
-<td><a class='small' href='?src=[UID()];editrights=permissions;ckey=[adm_ckey]'>[rights]</a></font></td>
+<td style='text-align:right;'>[adm_ckey] <a class='small' href='byond://?src=[UID()];editrights=remove;ckey=[adm_ckey]'>\[-\]</a></td>
+<td><a href='byond://?src=[UID()];editrights=rank;ckey=[adm_ckey]'>[rank]</a></td>
+<td><a class='small' href='byond://?src=[UID()];editrights=permissions;ckey=[adm_ckey]'>[rights]</a></font></td>
 </tr>"}
 
 		/*output += "<tr>"
-		output += "<td style='text-align:right;'>[adm_ckey] <a class='small' href='?src=[UID()];editrights=remove;ckey=[adm_ckey]'>\[-\]</a></td>"
-		output += "<td><a href='?src=[UID()];editrights=rank;ckey=[adm_ckey]'>[rank]</a></td>"
-		output += "<td><a class='small' href='?src=[UID()];editrights=permissions;ckey=[adm_ckey]'>[rights]</a></font></td>"
+		output += "<td style='text-align:right;'>[adm_ckey] <a class='small' href='byond://?src=[UID()];editrights=remove;ckey=[adm_ckey]'>\[-\]</a></td>"
+		output += "<td><a href='byond://?src=[UID()];editrights=rank;ckey=[adm_ckey]'>[rank]</a></td>"
+		output += "<td><a class='small' href='byond://?src=[UID()];editrights=permissions;ckey=[adm_ckey]'>[rights]</a></font></td>"
 		output += "</tr>"*/
 
 	output += {"
@@ -52,7 +55,7 @@
 
 	usr << browse(output,"window=editrights;size=600x500")
 
-/datum/admins/proc/log_admin_rank_modification(var/adm_ckey, var/new_rank)
+/datum/admins/proc/log_admin_rank_modification(adm_ckey, new_rank, new_rigths = 0)
 	if(CONFIG_GET(flag/admin_legacy_system))	return
 
 	if(!usr.client)
@@ -91,9 +94,10 @@
 	qdel(select_query)
 	flag_account_for_forum_sync(adm_ckey)
 	if(new_admin)
-		var/datum/db_query/insert_query = SSdbcore.NewQuery("INSERT INTO [format_table_name("admin")] (`id`, `ckey`, `rank`, `level`, `flags`) VALUES (null, :adm_ckey, :new_rank, -1, 0)", list(
+		var/datum/db_query/insert_query = SSdbcore.NewQuery("INSERT INTO [format_table_name("admin")] (`id`, `ckey`, `rank`, `level`, `flags`) VALUES (null, :adm_ckey, :new_rank, -1, :new_flags)", list(
 			"adm_ckey" = adm_ckey,
-			"new_rank" = new_rank
+			"new_rank" = new_rank,
+			"new_flags" = new_rigths
 		))
 		if(!insert_query.warn_execute())
 			qdel(insert_query)
@@ -114,8 +118,9 @@
 		to_chat(usr, "<span class='notice'>New admin added.</span>")
 	else
 		if(!isnull(admin_id) && isnum(admin_id))
-			var/datum/db_query/insert_query = SSdbcore.NewQuery("UPDATE [format_table_name("admin")] SET rank=:new_rank WHERE id=:admin_id", list(
+			var/datum/db_query/insert_query = SSdbcore.NewQuery("UPDATE [format_table_name("admin")] SET rank=:new_rank, flags=:new_flags WHERE id=:admin_id", list(
 				"new_rank" = new_rank,
+				"new_flags" = new_rigths,
 				"admin_id" = admin_id,
 			))
 			if(!insert_query.warn_execute())
@@ -137,7 +142,7 @@
 
 /datum/admins/proc/log_admin_permission_modification(var/adm_ckey, var/new_permission)
 	if(IsAdminAdvancedProcCall())
-		to_chat(usr, "<span class='boldannounce'>Admin edit blocked: Advanced ProcCall detected.</span>")
+		to_chat(usr, span_boldannounceooc("Admin edit blocked: Advanced ProcCall detected."))
 		message_admins("[key_name(usr)] attempted to edit admin ranks via advanced proc-call")
 		log_admin("[key_name(usr)] attempted to edit admin ranks via advanced proc-call")
 		return

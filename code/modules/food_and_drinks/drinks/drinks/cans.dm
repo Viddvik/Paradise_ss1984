@@ -49,10 +49,10 @@
 	return crushed_can
 
 /obj/item/reagent_containers/food/drinks/cans/CtrlClick(mob/living/user)
-	if(!istype(user) || user.incapacitated())
-		to_chat(user, "<span class='warning'>You can't do that right now!</span>")
-		return
 	if(!can_shake || !ishuman(user))
+		return ..()
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
+		to_chat(user, "<span class='warning'>You can't do that right now!</span>")
 		return ..()
 	var/mob/living/carbon/human/H = user
 	if(canopened)
@@ -62,7 +62,7 @@
 		can_shake = FALSE
 		addtimer(CALLBACK(src, PROC_REF(reset_shakable)), 1 SECONDS, TIMER_UNIQUE | TIMER_OVERRIDE)
 		to_chat(H, "<span class='notice'>You start shaking up [src].</span>")
-		if(do_after(H, 1 SECONDS, target = H))
+		if(do_after(H, 1 SECONDS, H))
 			visible_message("<span class='warning'>[user] shakes up the [name]!</span>")
 			if(times_shaken == 0)
 				times_shaken++
@@ -76,25 +76,34 @@
 	else
 		to_chat(H, "<span class='warning'>You need to hold [src] in order to shake it.</span>")
 
-/obj/item/reagent_containers/food/drinks/cans/attack(mob/M, mob/user, proximity)
+
+/obj/item/reagent_containers/food/drinks/cans/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
 	if(!canopened)
-		to_chat(user, "<span class='notice'>You need to open the drink!</span>")
-		return
-	else if(M == user && !reagents.total_volume && user.a_intent == INTENT_HARM && user.zone_selected == "head")
-		user.visible_message("<span class='warning'>[user] crushes [src] on [user.p_their()] forehead!</span>", "<span class='notice'>You crush [src] on your forehead.</span>")
+		to_chat(user, span_warning("You need to open the drink!"))
+		return ATTACK_CHAIN_PROCEED
+	if(target == user && !reagents.total_volume && user.a_intent == INTENT_HARM && user.zone_selected == BODY_ZONE_HEAD)
+		user.visible_message(
+			span_warning("[user] crushes [src] on [user.p_their()] forehead!"),
+			span_warning("You crush [src] on your forehead."),
+		)
 		crush(user)
-		return
+		return ATTACK_CHAIN_BLOCKED_ALL
 	return ..()
+
 
 /obj/item/reagent_containers/food/drinks/cans/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/storage/bag/trash/cyborg))
-		user.visible_message("<span class='notice'>[user] crushes [src] in [user.p_their()] trash compactor.</span>", "<span class='notice'>You crush [src] in your trash compactor.</span>")
+		user.visible_message(
+			span_notice("[user] crushes [src] in [user.p_their()] trash compactor."),
+			span_notice("You crush [src] in your trash compactor."),
+		)
 		var/obj/can = crush(user)
 		can.attackby(I, user, params)
-		return 1
-	..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
 
-/obj/item/reagent_containers/food/drinks/cans/afterattack(obj/target, mob/user, proximity)
+
+/obj/item/reagent_containers/food/drinks/cans/afterattack(obj/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 	if(istype(target, /obj/structure/reagent_dispensers) && !canopened)
@@ -174,6 +183,34 @@
 	icon_state = "cola"
 	list_reagents = list("cola" = 30)
 
+/obj/item/reagent_containers/food/drinks/cans/energy
+	name = "heart attack"
+	desc = "The heart will say: - My stop."
+	icon_state = "heart_attack"
+	item_state = "heart_attack"
+	list_reagents = list("energetik" = 30)
+
+/obj/item/reagent_containers/food/drinks/cans/energy/trop
+	name = "tropical spasm"
+	desc = "Get a taste of hunting down USSP soldiers."
+	icon_state = "tropical_spasm"
+	item_state = "tropical_spasm"
+	list_reagents = list("trop_eng" = 30)
+
+/obj/item/reagent_containers/food/drinks/cans/energy/milk
+	name = "milk flow"
+	desc = "For pro gamers."
+	icon_state = "milk_flow"
+	item_state = "milk_flow"
+	list_reagents = list("milk_eng" = 30)
+
+/obj/item/reagent_containers/food/drinks/cans/energy/grey
+	name = "GreyPower"
+	desc = "Your hands will burn from GreyPower."
+	icon_state = "GreyPower"
+	item_state = "GreyPower"
+	list_reagents = list("grey_eng" = 30)
+
 /obj/item/reagent_containers/food/drinks/cans/beer
 	name = "space beer"
 	desc = "Contains only water, malt and hops."
@@ -185,7 +222,7 @@
 	name = "non-alcoholic beer"
 	desc = "A favorite thing of all students and those who drive."
 	icon_state = "alcoholfreebeercan"
-	list_reagents = list("alcohol_free_beer" = 30)
+	list_reagents = list("noalco_beer" = 30)
 
 
 /obj/item/reagent_containers/food/drinks/cans/adminbooze
@@ -210,8 +247,8 @@
 	list_reagents = list("mutagen" = 25, "charcoal" = 10, "thirteenloko" = 15)
 
 /obj/item/reagent_containers/food/drinks/cans/ale
-	name = "Magm-Ale"
-	desc = "A true dorf's drink of choice."
+	name = "Tail Tells Tales Ale"
+	desc = "The label has a tail drawn on it that extends the entire length of the bottle. If you rip it off, you can read some short tale or legend on the back of the label."
 	icon_state = "alebottle"
 	item_state = "beer"
 	is_glass = 1
@@ -289,12 +326,13 @@
 	desc = "this shouldn't ever be spawned. shame on you"
 	icon_state = "glass_bottle"
 
+
 /obj/item/reagent_containers/food/drinks/cans/bottler/on_reagent_change()
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
-/obj/item/reagent_containers/food/drinks/cans/bottler/update_icon()
-	overlays.Cut()
 
+/obj/item/reagent_containers/food/drinks/cans/bottler/update_overlays()
+	. = ..()
 	if(reagents.total_volume)
 		var/image/filling = image('icons/obj/reagentfillings.dmi', src, "[icon_state]10")
 
@@ -313,7 +351,8 @@
 				filling.icon_state = "[icon_state]50"
 
 		filling.icon += mix_color_from_reagents(reagents.reagent_list)
-		overlays += filling
+		. += filling
+
 
 /obj/item/reagent_containers/food/drinks/cans/bottler/glass_bottle
 	name = "glass bottle"

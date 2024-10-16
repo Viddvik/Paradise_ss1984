@@ -1,6 +1,7 @@
 PROCESSING_SUBSYSTEM_DEF(dcs)
 	name = "Datum Component System"
 	flags = SS_NO_INIT
+	ss_id = "datum_component_system"
 
 	var/list/elements_by_type = list()
 	// Update this if you add in components which actually use this as a processor
@@ -9,7 +10,7 @@ PROCESSING_SUBSYSTEM_DEF(dcs)
 /datum/controller/subsystem/processing/dcs/Recover()
 	comp_lookup = SSdcs.comp_lookup
 
-/datum/controller/subsystem/processing/dcs/proc/GetElement(list/arguments)
+/datum/controller/subsystem/processing/dcs/proc/GetElement(list/arguments, init_element = TRUE)
 	var/datum/element/eletype = arguments[1]
 	var/element_id = eletype
 
@@ -20,8 +21,8 @@ PROCESSING_SUBSYSTEM_DEF(dcs)
 		element_id = GetIdFromArguments(arguments)
 
 	. = elements_by_type[element_id]
-	if(.)
-		return
+	if(. || !init_element)
+		return .
 	. = elements_by_type[element_id] = new eletype
 
 /****

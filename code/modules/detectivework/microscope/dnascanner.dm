@@ -5,8 +5,8 @@
 	icon = 'icons/obj/forensics.dmi'
 	icon_state = "dnaopen"
 	layer = BELOW_OBJ_LAYER
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 
 	var/obj/item/forensics/swab = null
 	var/scanning = 0
@@ -20,20 +20,25 @@
 	component_parts += new /obj/item/stock_parts/manipulator(null)
 	component_parts += new /obj/item/stock_parts/micro_laser(null)
 
-/obj/machinery/dnaforensics/attackby(obj/item/W as obj, mob/user as mob)
 
-	if(swab)
-		to_chat(user, "<span class='warning'>Внутри сканера уже есть пробирка.</span>")
-		return
+/obj/machinery/dnaforensics/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 
-	if(istype(W, /obj/item/forensics/swab))
+	if(istype(I, /obj/item/forensics/swab))
 		add_fingerprint(user)
-		to_chat(user, "<span class='notice'>Вы вставляете \the [W] в ДНК анализатор.</span>")
-		user.drop_transfer_item_to_loc(W, src)
-		swab = W
-		update_icon()
-		return
-	..()
+		if(swab)
+			to_chat(user, span_warning("Внутри сканера уже есть пробирка."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("Вы вставляете пробирку в ДНК анализатор."))
+		swab = I
+		update_icon(UPDATE_ICON_STATE)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/machinery/dnaforensics/attack_hand(mob/user)
 
@@ -41,21 +46,20 @@
 		to_chat(user, "<span class='warning'>Сканер пуст!</span>")
 		return
 	add_fingerprint(user)
-	scanning = 1
-	update_icon()
+	scanning = TRUE
+	update_icon(UPDATE_ICON_STATE)
 	to_chat(user, "<span class='notice'>Сканер начинает с жужением анализировать содержимое пробирки \the [swab].</span>")
 
-	if(!do_after(user, 25, src) || !swab)
+	if(!do_after(user, 2.5 SECONDS, src) || !swab)
 		to_chat(user, "<span class='notice'>Вы перестали анализировать \the [swab].</span>")
-		scanning = 0
-		update_icon()
+		scanning = FALSE
+		update_icon(UPDATE_ICON_STATE)
 
 		return
 
 	to_chat(user, "<span class='notice'>Печать отчета...</span>")
 	var/obj/item/paper/report = new(get_turf(src))
-	report.stamped = list(/obj/item/stamp)
-	report.overlays = list("paper_stamped")
+	report.stamp(/obj/item/stamp)
 	report_num++
 
 	if(swab)
@@ -73,12 +77,12 @@
 		report.info += "<b>\nАнализируемый объект:</b><br>[bloodswab.name]<br>[bloodswab.desc]<br><br>" + data
 		report.forceMove(src.loc)
 		report.update_icon()
-		scanning = 0
-		update_icon()
+		scanning = FALSE
+		update_icon(UPDATE_ICON_STATE)
 	return
 
 /obj/machinery/dnaforensics/proc/remove_sample(mob/living/remover)
-	if(!istype(remover) || remover.incapacitated() || !Adjacent(remover))
+	if(!istype(remover) || remover.incapacitated() || HAS_TRAIT(remover, TRAIT_HANDS_BLOCKED) || !Adjacent(remover))
 		return
 	if(!swab)
 		to_chat(remover, "<span class='warning'>Внутри сканера нет образца!.</span>")
@@ -87,18 +91,18 @@
 	swab.forceMove_turf()
 	remover.put_in_hands(swab, ignore_anim = FALSE)
 	swab = null
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/machinery/dnaforensics/AltClick()
-	remove_sample(usr)
+/obj/machinery/dnaforensics/AltClick(mob/user)
+	remove_sample(user)
 
-/obj/machinery/dnaforensics/MouseDrop(atom/other)
-	if(usr == other)
+/obj/machinery/dnaforensics/MouseDrop(atom/over_object, src_location, over_location, src_control, over_control, params)
+	if(usr == over_object)
 		remove_sample(usr)
-	else
-		return ..()
+		return FALSE
+	return ..()
 
-/obj/machinery/dnaforensics/update_icon()
+/obj/machinery/dnaforensics/update_icon_state()
 	icon_state = "dnaopen"
 	if(swab)
 		icon_state = "dnaclosed"

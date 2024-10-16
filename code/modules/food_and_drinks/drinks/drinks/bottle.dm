@@ -20,8 +20,8 @@
 	if(ranged)
 		B.loc = new_location
 	else
-		user.drop_from_active_hand()
-		user.put_in_active_hand(B)
+		user.drop_from_active_hand(TRUE, TRUE)
+		user.put_in_active_hand(B, silent = TRUE)
 	B.icon_state = icon_state
 
 	var/icon/I = new('icons/obj/drinks.dmi', icon_state)
@@ -42,17 +42,16 @@
 
 	qdel(src)
 
-/obj/item/reagent_containers/food/drinks/bottle/attack(mob/living/target, mob/living/user)
 
-	if(!target)
-		return
-
+/obj/item/reagent_containers/food/drinks/bottle/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
 	if(user.a_intent != INTENT_HARM || !isGlass)
 		return ..()
 
 	if(HAS_TRAIT(user, TRAIT_PACIFISM) || GLOB.pacifism_after_gt)
-		to_chat(user, "<span class='warning'>You don't want to harm [target]!</span>")
-		return
+		to_chat(user, span_warning("You don't want to harm [target]!"))
+		return ATTACK_CHAIN_PROCEED
+
+	. = ATTACK_CHAIN_BLOCKED_ALL
 
 	force = 15 //Smashing bottles over someoen's head hurts.
 
@@ -64,16 +63,17 @@
 	//Calculating duration and calculating damage.
 	if(ishuman(target))
 
-		var/mob/living/carbon/human/H = target
+		var/mob/living/carbon/human/human_target = target
 		var/headarmor = 0 // Target's head armor
-		armor_block = H.run_armor_check(affecting, "melee","","",armour_penetration) // For normal attack damage
+		armor_block = human_target.run_armor_check(affecting, MELEE,"","",armour_penetration) // For normal attack damage
 
 		//If they have a hat/helmet and the user is targeting their head.
-		if(istype(H.head, /obj/item/clothing/head) && affecting == "head")
+		if(affecting == BODY_ZONE_HEAD && istype(human_target.head, /obj/item/clothing/head))
 
 			// If their head has an armor value, assign headarmor to it, else give it 0.
-			if(H.head.armor.getRating("melee"))
-				headarmor = H.head.armor.getRating("melee")
+			var/armor_get = human_target.head.armor.getRating(MELEE)
+			if(armor_get)
+				headarmor = armor_get
 			else
 				headarmor = 0
 		else
@@ -84,8 +84,8 @@
 
 	else
 		//Only humans can have armor, right?
-		armor_block = target.run_armor_check(affecting, "melee")
-		if(affecting == "head")
+		armor_block = target.run_armor_check(affecting, MELEE)
+		if(affecting == BODY_ZONE_HEAD)
 			armor_duration = duration + force
 	armor_duration /= 10
 
@@ -95,20 +95,24 @@
 
 	// You are going to knock someone out for longer if they are not wearing a helmet.
 	var/head_attack_message = ""
-	if(affecting == "head" && iscarbon(target))
+	if(affecting == BODY_ZONE_HEAD && iscarbon(target))
 		head_attack_message = " on the head"
-		//Weaken the target for the duration that we calculated and divide it by 5.
+		//Knockdown the target for the duration that we calculated and divide it by 5.
 		if(armor_duration)
-			var/stun_time = (min(armor_duration, 10)) STATUS_EFFECT_CONSTANT
-			target.Weaken(stun_time)
+			var/knock_time = (min(armor_duration, 10)) STATUS_EFFECT_CONSTANT
+			target.Knockdown(knock_time)
 
 	//Display an attack message.
 	if(target != user)
-		target.visible_message("<span class='danger'>[user] has hit [target][head_attack_message] with a bottle of [name]!</span>", \
-				"<span class='userdanger'>[user] has hit [target][head_attack_message] with a bottle of [name]!</span>")
+		target.visible_message(
+			span_danger("[user] has hit [target][head_attack_message] with a bottle of [name]!"),
+			span_userdanger("[user] has hit [target][head_attack_message] with a bottle of [name]!"),
+		)
 	else
-		user.visible_message("<span class='danger'>[target] hits [target.p_them()]self with a bottle of [name][head_attack_message]!</span>", \
-				"<span class='userdanger'>[target] hits [target.p_them()]self with a bottle of [name][head_attack_message]!</span>")
+		user.visible_message(
+			span_danger("[target] hits [target.p_them()]self with a bottle of [name][head_attack_message]!"),
+			span_userdanger("[target] hits [target.p_them()]self with a bottle of [name][head_attack_message]!"),
+		)
 
 	//Attack logs
 	add_attack_logs(user, target, "Hit with [src]")
@@ -118,6 +122,7 @@
 
 	//Finally, smash the bottle. This kills (qdel) the bottle.
 	smash(target, user)
+
 
 /obj/item/reagent_containers/food/drinks/bottle/proc/SplashReagents(mob/M)
 	if(reagents && reagents.total_volume)
@@ -206,7 +211,7 @@
 
 /obj/item/reagent_containers/food/drinks/bottle/rum
 	name = "Captain Pete's Cuban Spiced Rum"
-	desc = "This isn't just rum, oh no. It's practically GRIFF in a bottle."
+	desc = "As once skipper said, 'Should pale death with treble dread make the space frontier our bed, God who hears the darkness roll, deign to save our suppliant soul'."
 	icon_state = "rumbottle"
 	list_reagents = list("rum" = 100)
 
@@ -322,6 +327,12 @@
 	icon_state = "sambukabottle"
 	list_reagents = list("sambuka" = 100)
 
+/obj/item/reagent_containers/food/drinks/bottle/arrogant_green_rat
+	name = "Arrogant Green Rat"
+	desc = "Finest wine from the Paradise City, where the grass is green and the girls are pretty."
+	icon_state = "arrogant_green_rat"
+	list_reagents = list("wine" = 100)
+
 //////////////////////////JUICES AND STUFF ///////////////////////
 
 /obj/item/reagent_containers/food/drinks/bottle/orangejuice
@@ -377,17 +388,37 @@
 	list_reagents = list()
 	var/list/accelerants = list(/datum/reagent/consumable/ethanol,/datum/reagent/fuel,/datum/reagent/clf3,/datum/reagent/phlogiston,
 							/datum/reagent/napalm,/datum/reagent/hellwater,/datum/reagent/plasma,/datum/reagent/plasma_dust)
-	var/active = 0
+	var/active = FALSE
+
+
+/obj/item/reagent_containers/food/drinks/bottle/molotov/update_desc(updates = ALL)
+	. = ..()
+	desc = initial(desc)
+	if(!isGlass)
+		desc += " You're not sure if making this out of a carton was the brightest idea."
+
+
+/obj/item/reagent_containers/food/drinks/bottle/molotov/update_icon_state()
+	var/obj/item/reagent_containers/food/drinks/bottle/bottle = locate() in contents
+	if(bottle)
+		icon_state = bottle.icon_state
+
+
+/obj/item/reagent_containers/food/drinks/bottle/molotov/update_overlays()
+	. = ..()
+	if(active)
+		. += GLOB.fire_overlay
+
 
 /obj/item/reagent_containers/food/drinks/bottle/molotov/CheckParts(list/parts_list)
 	..()
-	var/obj/item/reagent_containers/food/drinks/bottle/B = locate() in contents
-	if(B)
-		icon_state = B.icon_state
-		B.reagents.copy_to(src, 100)
-		if(!B.isGlass)
-			desc += " You're not sure if making this out of a carton was the brightest idea."
-			isGlass = 0
+	var/obj/item/reagent_containers/food/drinks/bottle/bottle = locate() in contents
+	if(bottle)
+		bottle.reagents.copy_to(src, 100)
+		if(!bottle.isGlass)
+			isGlass = FALSE
+		update_appearance(UPDATE_DESC|UPDATE_ICON)
+
 
 /obj/item/reagent_containers/food/drinks/bottle/molotov/throw_impact(atom/target, datum/thrownthing/throwingdatum)
 	var/firestarter = 0
@@ -402,29 +433,45 @@
 		new /obj/effect/hotspot(get_turf(target))
 	..()
 
-/obj/item/reagent_containers/food/drinks/bottle/molotov/attackby(obj/item/I, mob/user, params)
-	if(is_hot(I) && !active)
-		active = 1
-		var/turf/bombturf = get_turf(src)
-		message_admins("[ADMIN_LOOKUP(user)] has primed a [name] for detonation at [ADMIN_COORDJMP(bombturf)].")
-		add_game_logs("has primed a [name] for detonation at [AREACOORD(bombturf)].", user)
 
-		to_chat(user, "<span class='info'>You light [src] on fire.</span>")
-		overlays += GLOB.fire_overlay
-		if(!isGlass)
-			spawn(50)
-				if(active)
-					var/counter
-					var/target = loc
-					for(counter = 0, counter < 2, counter++)
-						if(istype(target, /obj/item/storage))
-							var/obj/item/storage/S = target
-							target = S.loc
-					if(istype(target, /atom))
-						var/atom/A = target
-						SplashReagents(A)
-						A.fire_act()
-					qdel(src)
+/obj/item/reagent_containers/food/drinks/bottle/molotov/attackby(obj/item/I, mob/user, params)
+	. = ..()
+
+	if(ATTACK_CHAIN_CANCEL_CHECK(.) || !is_hot(I))
+		return .
+
+	add_fingerprint(user)
+	if(active)
+		to_chat(user, span_warning("The [name] is already lit."))
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	active = TRUE
+	var/turf/bombturf = get_turf(src)
+	message_admins("[ADMIN_LOOKUP(user)] has primed a [name] for detonation at [ADMIN_COORDJMP(bombturf)].")
+	add_game_logs("has primed a [name] for detonation at [AREACOORD(bombturf)].", user)
+	user.visible_message(
+		span_danger("[user] lights [src] on fire!"),
+		span_notice("You light [src] on fire."),
+	)
+	add_overlay(GLOB.fire_overlay)
+	if(!isGlass)
+		addtimer(CALLBACK(src, PROC_REF(splash_reagents), 5 SECONDS))
+
+
+/obj/item/reagent_containers/food/drinks/bottle/molotov/proc/splash_reagents()
+	if(!active)
+		return
+	var/counter
+	var/atom/target = loc
+	for(counter = 0, counter < 2, counter++)
+		if(isstorage(target))
+			var/obj/item/storage/storage = target
+			target = storage.loc
+	if(isatom(target))
+		SplashReagents(target)
+		target.fire_act()
+	qdel(src)
+
 
 /obj/item/reagent_containers/food/drinks/bottle/molotov/attack_self(mob/user)
 	if(active)
@@ -432,5 +479,5 @@
 			to_chat(user, "<span class='danger'>The flame's spread too far on it!</span>")
 			return
 		to_chat(user, "<span class='info'>You snuff out the flame on \the [src].</span>")
-		overlays -= GLOB.fire_overlay
-		active = 0
+		active = FALSE
+		update_icon(UPDATE_OVERLAYS)

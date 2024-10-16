@@ -26,19 +26,21 @@
 	if(cooldown > world.time)
 		return 0
 	cooldown = world.time + 10
+	var/static/icon/shield_overlay = icon('icons/effects/effects.dmi', "shield-grey")
+
+
 	if(toggle)
-		overlays.Cut()
+		cut_overlay(shield_overlay)
 		melee_damage_lower = initial(melee_damage_lower)
 		melee_damage_upper = initial(melee_damage_upper)
 		obj_damage = initial(obj_damage)
-		speed = initial(speed)
 		damage_transfer = 0.4
 		to_chat(src, "<span class='danger'>Вы переключились в боевой режим.</span>")
 		toggle = FALSE
 	else
-		var/icon/shield_overlay = icon('icons/effects/effects.dmi', "shield-grey")
+
 		shield_overlay *= name_color
-		overlays.Add(shield_overlay)
+		add_overlay(shield_overlay)
 		melee_damage_lower = 2
 		melee_damage_upper = 2
 		damage_transfer = 0.05 //damage? what's damage?
@@ -62,22 +64,34 @@
 				summoner.forceMove(get_turf(src))
 				new /obj/effect/temp_visual/guardian/phase(get_turf(summoner))//Protector
 
-/mob/living/simple_animal/hostile/guardian/protector/adjustHealth(amount, updating_health = TRUE) //The spirit is invincible, but passes on damage to the summoner
-	var/damage = amount * damage_transfer
-	if(prob(85)) //15% chance of block
-		if(summoner)
-			if(loc == summoner)
-				return
-			summoner.adjustBruteLoss(damage)
-			if(damage)
-				to_chat(summoner, "<span class='danger'>Ваш [name] под атакой! Вы получаете урон!</span>")
-				summoner.visible_message("<span class='danger'>Кровь хлещет из [summoner] ибо [src] получает урон!</span>")
-			if(summoner.stat == UNCONSCIOUS)
-				to_chat(summoner, "<span class='danger'>Your body can't take the strain of sustaining [src] in this condition, it begins to fall apart!</span>")
-				summoner.adjustCloneLoss(damage/2)
-	else
-		to_chat(summoner, "<span class='danger'>Ваш [name] под атакой, поглощая урон!</span>")
-		visible_message("<span class='danger'>[src] поглотил урон!</span>")
+
+/mob/living/simple_animal/hostile/guardian/protector/adjustHealth(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	damage_type = BRUTE,
+	forced = FALSE,
+)
+	. = STATUS_UPDATE_NONE
+	if(!summoner || loc == summoner)
+		return .
+
+	if(prob(15))	// 15% chance of block
+		to_chat(summoner, span_danger("Ваш [name] под атакой, поглощает урон!"))
+		visible_message(span_danger("[src] поглотил урон!"))
+		return .
+
+	amount *= damage_transfer
+	summoner.adjustBruteLoss(amount)
+	if(amount <= 0)
+		return .
+
+	to_chat(summoner, span_danger("Ваш [name] под атакой! Вы получаете урон!"))
+	summoner.visible_message(span_danger("Кровь хлещет из [summoner] ибо [src] получает урон!"))
+	if(summoner.stat == UNCONSCIOUS)
+		to_chat(summoner, span_danger("Your body can't take the strain of sustaining [src] in this condition, it begins to fall apart!"))
+		summoner.adjustCloneLoss(amount / 2)
+
 
 /obj/effect/proc_holder/spell/forcewall/greater/guardian
 	name = "Голографическая силовая стена"
@@ -94,8 +108,10 @@
 	icon_state = "at_shield2"
 	lifetime = 15 SECONDS
 
-/obj/effect/forcefield/wizard/guardian/CanPass(atom/movable/mover, turf/target)
-	var/mob/living/simple_animal/hostile/guardian/P = wizard
-	if(mover == wizard || istype(P) && mover == P.summoner)
+
+/obj/effect/forcefield/wizard/guardian/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	var/mob/living/simple_animal/hostile/guardian/guardian = wizard
+	if(istype(guardian) && mover == guardian.summoner)
 		return TRUE
-	return FALSE
+

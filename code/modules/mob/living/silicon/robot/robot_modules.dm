@@ -50,10 +50,10 @@
 
 /obj/item/robot_module/proc/fix_modules()
 	for(var/obj/item/I in modules)
-		I.flags |= NODROP
+		ADD_TRAIT(I, TRAIT_NODROP, CYBORG_ITEM_TRAIT)
 		I.mouse_opacity = MOUSE_OPACITY_OPAQUE
 	if(emag)
-		emag.flags |= NODROP
+		ADD_TRAIT(emag, TRAIT_NODROP, CYBORG_ITEM_TRAIT)
 		emag.mouse_opacity = MOUSE_OPACITY_OPAQUE
 
 /obj/item/robot_module/proc/handle_storages()
@@ -120,33 +120,33 @@
 
 /obj/item/robot_module/proc/add_languages(mob/living/silicon/robot/R)
 	//full set of languages
-	R.add_language("Galactic Common", 1)
-	R.add_language("Sol Common", 1)
-	R.add_language("Tradeband", 1)
-	R.add_language("Gutter", 0)
-	R.add_language("Neo-Russkiya", 0)
-	R.add_language("Sinta'unathi", 0)
-	R.add_language("Siik'tajr", 0)
-	R.add_language("Canilunzt", 0)
-	R.add_language("Skrellian", 0)
-	R.add_language("Vox-pidgin", 0)
-	R.add_language("Rootspeak", 0)
-	R.add_language("Trinary", 1)
-	R.add_language("Chittin", 0)
-	R.add_language("Bubblish", 0)
-	R.add_language("Orluum", 0)
-	R.add_language("Clownish",0)
-	R.add_language("Tkachi", 0)
+	R.add_language(LANGUAGE_GALACTIC_COMMON, 1)
+	R.add_language(LANGUAGE_SOL_COMMON, 1)
+	R.add_language(LANGUAGE_TRADER, 1)
+	R.add_language(LANGUAGE_GUTTER, 0)
+	R.add_language(LANGUAGE_NEO_RUSSIAN, 0)
+	R.add_language(LANGUAGE_UNATHI, 0)
+	R.add_language(LANGUAGE_TAJARAN, 0)
+	R.add_language(LANGUAGE_VULPKANIN, 0)
+	R.add_language(LANGUAGE_SKRELL, 0)
+	R.add_language(LANGUAGE_VOX, 0)
+	R.add_language(LANGUAGE_DIONA, 0)
+	R.add_language(LANGUAGE_TRINARY, 1)
+	R.add_language(LANGUAGE_KIDAN, 0)
+	R.add_language(LANGUAGE_SLIME, 0)
+	R.add_language(LANGUAGE_DRASK, 0)
+	R.add_language(LANGUAGE_CLOWN,0)
+	R.add_language(LANGUAGE_MOTH, 0)
 
 /obj/item/robot_module/proc/add_subsystems_and_actions(mob/living/silicon/robot/R)
-	R.verbs |= subsystems
+	add_verb(R, subsystems)
 	for(var/A in module_actions)
 		var/datum/action/act = new A()
 		act.Grant(R)
 		R.module_actions += act
 
 /obj/item/robot_module/proc/remove_subsystems_and_actions(mob/living/silicon/robot/R)
-	R.verbs -= subsystems
+	remove_verb(R, subsystems)
 	for(var/datum/action/A in R.module_actions)
 		A.Remove(R)
 		qdel(A)
@@ -181,10 +181,9 @@
 	..()
 	modules += new /obj/item/extinguisher/mini(src) // for firefighting, and propulsion in space
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	// sec
 	modules += new /obj/item/restraints/handcuffs/cable/zipties(src)
-	modules += new /obj/item/melee/classic_baton/telescopic(src) // for minimal possablity to execute sec part of the module and also for tests
+	modules += new /obj/item/melee/baton/telescopic(src) // for minimal possablity to execute sec part of the module and also for tests
 	// janitorial
 	modules += new /obj/item/soap/nanotrasen(src)
 	modules += new /obj/item/lightreplacer/cyborg(src)
@@ -266,15 +265,26 @@
 	modules += new /obj/item/surgicaldrill(src)
 	modules += new /obj/item/gripper/medical(src)
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	modules += new /obj/item/rlf(src)
 
-	emag = new /obj/item/reagent_containers/borghypo/basic/emagged_borg_hypo(src) // emagged med. cyborg gets a special hypospray.
+	emag = new /obj/item/reagent_containers/borghypo/emagged(src) // emagged med. cyborg gets a special hypospray.
 // can pierce through thick skin and hardsuits.
 
 
 	fix_modules()
 	handle_storages()
+
+// Disable safeties on the borg's defib.
+/obj/item/robot_module/medical/emag_act(mob/user)
+	. = ..()
+	for(var/obj/item/twohanded/shockpaddles/borg/defib in modules)
+		defib.emag_act()
+
+// Enable safeties on the borg's defib.
+/obj/item/robot_module/medical/unemag()
+	for(var/obj/item/twohanded/shockpaddles/borg/defib in modules)
+		defib.emag_act()
+	return ..()
 
 /obj/item/robot_module/medical/respawn_consumable(mob/living/silicon/robot/R)
 	if(emag)
@@ -285,7 +295,7 @@
 /obj/item/robot_module/engineering
 	name = "Engineering"
 	module_type = "Engineer"
-	subsystems = list(/mob/living/silicon/proc/subsystem_power_monitor)
+	subsystems = list(/mob/living/silicon/proc/subsystem_power_monitor, /mob/living/silicon/proc/subsystem_blueprints)
 	module_actions = list(
 		/datum/action/innate/robot_sight/meson,
 	)
@@ -320,14 +330,12 @@
 	modules += new /obj/item/gripper(src)
 	modules += new /obj/item/matter_decompiler(src)
 	modules += new /obj/item/floor_painter(src)
-	modules += new /obj/item/areaeditor/blueprints/cyborg(src)
 	modules += new /obj/item/stack/sheet/metal/cyborg(src)
 	modules += new /obj/item/stack/sheet/glass/cyborg(src)
 	modules += new /obj/item/stack/sheet/rglass/cyborg(src)
 	modules += new /obj/item/stack/cable_coil/cyborg(src)
 	modules += new /obj/item/stack/rods/cyborg(src)
 	modules += new /obj/item/stack/tile/plasteel/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	emag = new /obj/item/gun/energy/emittercannon(src)
 
 	fix_modules()
@@ -358,16 +366,16 @@
 /obj/item/robot_module/security/New()
 	..()
 	modules += new /obj/item/restraints/handcuffs/cable/zipties(src)
-	modules += new /obj/item/melee/baton/loaded(src)
+	modules += new /obj/item/melee/baton/security(src)
 	modules += new /obj/item/gun/energy/disabler/cyborg(src)
 	modules += new /obj/item/holosign_creator/security(src)
 	modules += new /obj/item/clothing/mask/gas/sechailer/cyborg(src)
 	modules += new /obj/item/extinguisher/mini(src)
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	emag = new /obj/item/gun/energy/laser/cyborg(src)
 
 	fix_modules()
+
 
 /obj/item/robot_module/janitor
 	name = "Janitor"
@@ -392,8 +400,8 @@
 	modules += new /obj/item/lightreplacer/cyborg(src)
 	modules += new /obj/item/holosign_creator/janitor(src)
 	modules += new /obj/item/extinguisher/mini(src)
+	modules += new /obj/item/reagent_containers/spray/pestspray(src) //kill all kidans!
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	emag = new /obj/item/reagent_containers/spray(src)
 
 	emag.reagents.add_reagent("lube", 250)
@@ -423,6 +431,17 @@
 
 	modules += new /obj/item/handheld_chem_dispenser/booze(src)
 	modules += new /obj/item/handheld_chem_dispenser/soda(src)
+	modules += new /obj/item/handheld_chem_dispenser/botanical(src)
+	modules += new /obj/item/handheld_chem_dispenser/cooking(src)
+	modules += new /obj/item/kitchen/knife(src)
+	modules += new /obj/item/reagent_containers/glass/bucket(src)
+	modules += new /obj/item/cultivator(src)
+	modules += new /obj/item/shovel/spade(src)
+	modules += new /obj/item/storage/bag/plants/portaseeder(src)
+	modules += new /obj/item/plant_analyzer(src)
+	modules += new /obj/item/kitchen/rollingpin(src)
+	modules += new /obj/item/bikehorn(src)
+	modules += new /obj/item/reagent_containers/spray/pestspray(src)
 	modules += new /obj/item/pen(src)
 	modules += new /obj/item/razor(src)
 	modules += new /obj/item/instrument/piano_synth(src)
@@ -441,7 +460,6 @@
 	modules += new /obj/item/reagent_containers/food/drinks/shaker(src)
 	modules += new /obj/item/extinguisher(src)
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	emag = new /obj/item/reagent_containers/food/drinks/cans/beer(src)
 
 	var/datum/reagents/R = new/datum/reagents(50)
@@ -456,26 +474,29 @@
 	if(emag)
 		var/obj/item/reagent_containers/food/drinks/cans/beer/B = emag
 		B.reagents.add_reagent("beer2", 2)
+	var/obj/item/reagent_containers/spray/pestspray/spray = locate() in modules
+	spray?.reagents.add_reagent("pestkiller", 3)
 	..()
 
 /obj/item/robot_module/butler/add_languages(var/mob/living/silicon/robot/R)
 	//full set of languages
-	R.add_language("Galactic Common", 1)
-	R.add_language("Sol Common", 1)
-	R.add_language("Tradeband", 1)
-	R.add_language("Gutter", 1)
-	R.add_language("Sinta'unathi", 1)
-	R.add_language("Siik'tajr", 1)
-	R.add_language("Canilunzt", 1)
-	R.add_language("Skrellian", 1)
-	R.add_language("Vox-pidgin", 1)
-	R.add_language("Rootspeak", 1)
-	R.add_language("Trinary", 1)
-	R.add_language("Chittin", 1)
-	R.add_language("Bubblish", 1)
-	R.add_language("Clownish",1)
-	R.add_language("Neo-Russkiya", 1)
-	R.add_language("Tkachi", 1)
+	R.add_language(LANGUAGE_GALACTIC_COMMON, 1)
+	R.add_language(LANGUAGE_SOL_COMMON, 1)
+	R.add_language(LANGUAGE_TRADER, 1)
+	R.add_language(LANGUAGE_GUTTER, 1)
+	R.add_language(LANGUAGE_NEO_RUSSIAN, 1)
+	R.add_language(LANGUAGE_UNATHI, 1)
+	R.add_language(LANGUAGE_TAJARAN, 1)
+	R.add_language(LANGUAGE_VULPKANIN, 1)
+	R.add_language(LANGUAGE_SKRELL, 1)
+	R.add_language(LANGUAGE_VOX, 1)
+	R.add_language(LANGUAGE_DIONA, 1)
+	R.add_language(LANGUAGE_TRINARY, 1)
+	R.add_language(LANGUAGE_KIDAN, 1)
+	R.add_language(LANGUAGE_SLIME, 1)
+	R.add_language(LANGUAGE_DRASK, 1)
+	R.add_language(LANGUAGE_CLOWN,1)
+	R.add_language(LANGUAGE_MOTH, 1)
 
 /obj/item/robot_module/butler/handle_death(mob/living/silicon/robot/R, gibbed)
 	var/obj/item/storage/bag/tray/cyborg/T = locate(/obj/item/storage/bag/tray/cyborg) in modules
@@ -517,18 +538,37 @@
 	modules += new /obj/item/storage/bag/sheetsnatcher/borg(src)
 	modules += new /obj/item/t_scanner/adv_mining_scanner/cyborg(src)
 	modules += new /obj/item/gun/energy/kinetic_accelerator/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	modules += new /obj/item/crowbar/cyborg(src)
 	emag = new /obj/item/borg/stun(src)
 
 	fix_modules()
 
+// Replace their normal drill with a diamond drill.
+/obj/item/robot_module/miner/emag_act()
+	. = ..()
+	for(var/obj/item/pickaxe/drill/cyborg/D in modules)
+		// Make sure we don't remove the diamond drill If they already have a diamond drill from the borg upgrade.
+		if(!istype(D, /obj/item/pickaxe/drill/cyborg/diamond))
+			qdel(D)
+			modules -= D // Remove it from this list so it doesn't get added in the rebuild.
+	modules += new /obj/item/pickaxe/drill/cyborg/diamond(src)
+	rebuild()
+
+// Readd the normal drill
+/obj/item/robot_module/miner/unemag()
+	for(var/obj/item/pickaxe/drill/cyborg/diamond/drill in modules)
+		qdel(drill)
+		modules -= drill
+	modules += new /obj/item/pickaxe/drill/cyborg(src)
+	rebuild()
+	return ..()
+
 /obj/item/robot_module/miner/handle_custom_removal(component_id, mob/living/user, obj/item/W)
-    if(component_id == "KA modkits")
-        for(var/obj/item/gun/energy/kinetic_accelerator/cyborg/D in src)
-            D.attackby(W, user)
-        return TRUE
-    return ..()
+	if(component_id == "KA modkits")
+		for(var/obj/item/gun/energy/kinetic_accelerator/cyborg/D in src)
+			W.melee_attack_chain(user, D)
+		return TRUE
+	return ..()
 
 /obj/item/robot_module/deathsquad
 	name = "Deathsquad"
@@ -546,10 +586,9 @@
 	modules += new /obj/item/melee/energy/sword/cyborg(src)
 	modules += new /obj/item/gun/energy/pulse/cyborg(src)
 	modules += new /obj/item/crowbar(src)
-	modules += new /obj/item/gps/cyborg(src)
 	modules += new /obj/item/gripper/nuclear(src)
 	modules += new /obj/item/pinpointer(src)
-	emag = null
+	emag = new /obj/item/gun/energy/pulse/destroyer/annihilator(src)
 
 	fix_modules()
 
@@ -571,7 +610,6 @@
 	modules += new /obj/item/pinpointer/operative(src)
 	modules += new /obj/item/pinpointer/nukeop(src)
 	modules += new /obj/item/gripper/nuclear(src)
-	modules += new /obj/item/gps/syndiecyborg(src)
 	emag = null
 
 	fix_modules()
@@ -612,7 +650,6 @@
 	modules += new /obj/item/pinpointer/operative(src)
 	modules += new /obj/item/pinpointer/nukeop(src)
 	modules += new /obj/item/gripper/nuclear(src)
-	modules += new /obj/item/gps/syndiecyborg(src)
 	emag = null
 
 	fix_modules()
@@ -652,7 +689,6 @@
 	modules += new /obj/item/stack/cable_coil/cyborg(src)
 	modules += new /obj/item/stack/rods/cyborg(src)
 	modules += new /obj/item/stack/tile/plasteel/cyborg(src)
-	modules += new /obj/item/gps/syndiecyborg(src)
 	emag = null
 
 	fix_modules()
@@ -667,20 +703,20 @@
 	channels = list("Security" = 1)
 	default_skin = "droidcombat"
 	borg_skins = list("Destroyer" = "droidcombat")
+	has_transform_animation = TRUE
 
 /obj/item/robot_module/destroyer/New()
 	..()
 
 	modules += new /obj/item/gun/energy/immolator/multi/cyborg(src) // See comments on /robot_module/combat below
-	modules += new /obj/item/melee/baton/loaded(src) // secondary weapon, for things immune to burn, immune to ranged weapons, or for arresting low-grade threats
+	modules += new /obj/item/melee/baton/security(src) // secondary weapon, for things immune to burn, immune to ranged weapons, or for arresting low-grade threats
 	modules += new /obj/item/restraints/handcuffs/cable/zipties(src)
 	modules += new /obj/item/pickaxe/drill/jackhammer(src) // for breaking walls to execute flanking moves
 	modules += new /obj/item/borg/destroyer/mobility(src)
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/syndiecyborg(src)
 	modules += new /obj/item/gripper/nuclear(src)
 	modules += new /obj/item/pinpointer(src)
-	emag = null
+	emag = new /obj/item/gun/energy/pulse/destroyer/annihilator(src)
 	fix_modules()
 
 
@@ -699,12 +735,11 @@
 	// So, borg has way more burst damage, but also takes way longer to recharge / get back in the fight once depleted. Has to find a borg recharger and sit in it for ages.
 	// Organic gamma sec ERT carries alternate weapons, including a box of flashbangs, and can load up on a huge number of guns from science. Borg cannot do either.
 	// Overall, gamma borg has higher skill floor but lower skill ceiling.
-	modules += new /obj/item/melee/baton/loaded(src) // secondary weapon, for things immune to burn, immune to ranged weapons, or for arresting low-grade threats
+	modules += new /obj/item/melee/baton/security(src) // secondary weapon, for things immune to burn, immune to ranged weapons, or for arresting low-grade threats
 	modules += new /obj/item/restraints/handcuffs/cable/zipties(src)
 	modules += new /obj/item/pickaxe/drill/jackhammer(src) // for breaking walls to execute flanking moves
 	modules += new /obj/item/extinguisher/mini(src)
 	modules += new /obj/item/crowbar/cyborg(src)
-	modules += new /obj/item/gps/cyborg(src)
 	modules += new /obj/item/gripper/nuclear(src)
 	modules += new /obj/item/pinpointer(src)
 	emag = null
@@ -741,7 +776,7 @@
 
 /obj/item/robot_module/hunter/add_languages(var/mob/living/silicon/robot/R)
 	..()
-	R.add_language("xenocommon", 1)
+	R.add_language(LANGUAGE_XENOS, 1)
 
 /obj/item/robot_module/drone
 	name = "Drone"
@@ -912,14 +947,18 @@
 	fix_modules()
 	handle_storages()
 
+
 //checks whether this item is a module of the robot it is located in.
 /obj/item/proc/is_robot_module()
 	if(!istype(loc, /mob/living/silicon/robot))
-		return 0
+		return FALSE
 
-	var/mob/living/silicon/robot/R = loc
+	var/mob/living/silicon/robot/robot = loc
+	if(!robot.module)
+		return FALSE
 
-	return (src in R.module.modules)
+	return (src in robot.module.modules)
+
 
 /datum/robot_energy_storage
 	var/name = "Generic energy storage"
@@ -991,3 +1030,16 @@
 	max_energy = 160
 	recharge_rate = 2
 	name = "Wood Storage"
+
+
+/**
+ * Called when the robot owner of this module has their power cell replaced.
+ *
+ * Changes the linked power cell for module items to the newly inserted cell, or to `null`.
+ * Arguments:
+ * * unlink_cell - If TRUE, set the item's power cell variable to `null` rather than linking it to a new one.
+ */
+/obj/item/robot_module/proc/update_cells(unlink_cell = FALSE)
+	for(var/obj/item/melee/baton/security/baton in modules)
+		baton.link_new_cell(unlink_cell)
+

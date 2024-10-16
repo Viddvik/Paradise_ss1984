@@ -17,27 +17,34 @@
 	eject_abductee()
 	return ..()
 
-/obj/machinery/abductor/experiment/MouseDrop_T(mob/living/carbon/human/target, mob/user)
+
+/obj/machinery/abductor/experiment/update_icon_state()
+	icon_state = "experiment[occupant ? "" : "-open"]"
+
+
+
+/obj/machinery/abductor/experiment/MouseDrop_T(mob/living/carbon/human/target, mob/user, params)
 	if(stat)
 		return
-	if(user.stat || user.lying || !Adjacent(user) || !target.Adjacent(user) || !ishuman(target))
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user) || !target.Adjacent(user) || !ishuman(target))
 		return
 	if(isabductor(target))
 		return
 	if(occupant)
 		to_chat(user, "<span class='notice'>[src] is already occupied.</span>")
-		return //occupied
+		return TRUE //occupied
 	if(target.buckled)
 		return
 	if(target.has_buckled_mobs()) //mob attached to us
 		to_chat(user, "<span class='warning'>[target] will not fit into [src] because [target.p_they()] [target.p_have()] a slime latched onto [target.p_their()] head.</span>")
-		return
+		return TRUE
 	visible_message("[user] puts [target] into the [src].")
 
 	target.forceMove(src)
 	occupant = target
-	icon_state = "experiment"
+	update_icon(UPDATE_ICON_STATE)
 	add_fingerprint(user)
+	return TRUE
 
 /obj/machinery/abductor/experiment/attack_hand(mob/user)
 	if(..())
@@ -56,7 +63,7 @@
 	return I
 
 /obj/machinery/abductor/experiment/proc/experimentUI(mob/user)
-	var/dat = {"<meta charset="UTF-8">"}
+	var/dat = {"<!DOCTYPE html><meta charset="UTF-8">"}
 	dat += "<h3> Experiment </h3>"
 	if(occupant)
 		var/icon/H = icon(dissection_icon(occupant), dir = SOUTH)
@@ -67,9 +74,9 @@
 			dat += "</td><td>"
 		else
 			dat += "ERR: Unable to retrieve image data for occupant."
-		dat += "<a href='?src=[UID()];experiment=1'>Probe</a><br>"
-		dat += "<a href='?src=[UID()];experiment=2'>Dissect</a><br>"
-		dat += "<a href='?src=[UID()];experiment=3'>Analyze</a><br>"
+		dat += "<a href='byond://?src=[UID()];experiment=1'>Probe</a><br>"
+		dat += "<a href='byond://?src=[UID()];experiment=2'>Dissect</a><br>"
+		dat += "<a href='byond://?src=[UID()];experiment=3'>Analyze</a><br>"
 		dat += "</td></tr></table>"
 	else
 		dat += "<span class='linkOff'>Experiment </span>"
@@ -89,10 +96,9 @@
 	dat += "<br>"
 	dat += "[flash]"
 	dat += "<br>"
-	dat += "<a href='?src=[UID()];refresh=1'>Scan</a>"
-	dat += "<a href='?src=[UID()];[occupant ? "eject=1'>Eject Occupant</a>" : "unoccupied=1'>Unoccupied</a>"]"
+	dat += "<a href='byond://?src=[UID()];refresh=1'>Scan</a>"
+	dat += "<a href='byond://?src=[UID()];[occupant ? "eject=1'>Eject Occupant</a>" : "unoccupied=1'>Unoccupied</a>"]"
 	var/datum/browser/popup = new(user, "experiment", "Probing Console", 300, 300)
-	popup.set_title_image(user.browse_rsc_icon(icon, icon_state))
 	popup.set_content(dat)
 	popup.open()
 
@@ -143,11 +149,8 @@
 		var/datum/objective/abductee/O = new objtype()
 		SSticker.mode.abductees += H.mind
 		H.mind.objectives += O
-		var/obj_count = 1
-		to_chat(H, "<span class='notice'>Your current objectives:</span>")
-		for(var/datum/objective/objective in H.mind.objectives)
-			to_chat(H, "<B>Objective #[obj_count]</B>: [objective.explanation_text]")
-			obj_count++
+		var/list/messages = H.mind.prepare_announce_objectives()
+		to_chat(H, chat_box_red(messages.Join("<br>"))) // let the player know they have a new objective
 		SSticker.mode.update_abductor_icons_added(H.mind)
 
 		for(var/obj/item/organ/internal/heart/gland/G in H.internal_organs)
@@ -181,28 +184,23 @@
 	H.uncuff()
 	return
 
-/obj/machinery/abductor/experiment/attackby(obj/item/G, mob/user)
-	if(istype(G, /obj/item/grab))
-		var/obj/item/grab/grabbed = G
-		if(!ishuman(grabbed.affecting))
-			return
-		if(isabductor(grabbed.affecting))
-			return
-		if(occupant)
-			to_chat(user, "<span class='notice'>The [src] is already occupied!</span>")
-			return
-		if(grabbed.affecting.has_buckled_mobs()) //mob attached to us
-			to_chat(user, "<span class='warning'>[grabbed.affecting] will not fit into [src] because [grabbed.affecting.p_they()] [grabbed.affecting.p_have()] a slime latched onto [grabbed.affecting.p_their()] head.</span>")
-			return
-		visible_message("[user] puts [grabbed.affecting] into the [src].")
-		var/mob/living/carbon/human/H = grabbed.affecting
-		H.forceMove(src)
-		occupant = H
-		icon_state = "experiment"
-		add_fingerprint(user)
-		qdel(G)
-		return
-	return ..()
+
+/obj/machinery/abductor/experiment/grab_attack(mob/living/grabber, atom/movable/grabbed_thing)
+	. = TRUE
+	if(grabber.grab_state < GRAB_AGGRESSIVE || !ishuman(grabbed_thing) || isabductor(grabbed_thing))
+		return .
+	if(occupant)
+		to_chat(grabber, span_warning("[src] is already occupied!"))
+		return .
+	if(grabbed_thing.has_buckled_mobs()) //mob attached to us
+		to_chat(grabber, span_warning("[grabbed_thing] will not fit into [src] because [grabbed_thing.p_they()] [grabbed_thing.p_have()] a slime latched onto [grabbed_thing.p_their()] head."))
+		return .
+	visible_message("[grabber] puts [grabbed_thing] into the [src].")
+	grabbed_thing.forceMove(src)
+	occupant = grabbed_thing
+	update_icon(UPDATE_ICON_STATE)
+	add_fingerprint(grabber)
+
 
 /obj/machinery/abductor/experiment/ex_act(severity)
 	if(occupant)
@@ -221,4 +219,4 @@
 		return
 	occupant.forceMove(get_turf(src))
 	occupant = null
-	icon_state = "experiment-open"
+	update_icon(UPDATE_ICON_STATE)

@@ -1,5 +1,10 @@
+#define SLAUGHTER_MINPLAYERS 30
+#define LAUGHTER_MINPLAYERS 30
+#define SHADOW_MINPLAYERS 40
+
 /datum/event/spawn_slaughter
 	var/key_of_slaughter
+	var/minplayers = SLAUGHTER_MINPLAYERS
 	var/mob/living/simple_animal/demon/demon = /mob/living/simple_animal/demon/slaughter
 
 
@@ -33,15 +38,11 @@
 /datum/event/spawn_slaughter/proc/get_spawn_loc(mob/player)
 	RETURN_TYPE(/turf)
 	var/list/spawn_locs = list()
-	for(var/thing in GLOB.landmarks_list)
-		var/obj/effect/landmark/landmark = thing
+	for(var/obj/effect/landmark/landmark in GLOB.landmarks_list)
 		if(isturf(landmark.loc) && landmark.name == "revenantspawn")
 			spawn_locs += landmark.loc
 	if(!spawn_locs)	// If we can't find any good spots, try the carp spawns
-		for(var/thing in GLOB.landmarks_list)
-			var/obj/effect/landmark/landmark = thing
-			if(isturf(landmark.loc) && landmark.name == "carpspawn")
-				spawn_locs += landmark.loc
+		spawn_locs += GLOB.carplist
 	if(!spawn_locs) //If we can't find a good place, just spawn at the player's location
 		spawn_locs += get_turf(player)
 	if(!spawn_locs) //If we can't find THAT, then give up
@@ -51,14 +52,21 @@
 
 
 /datum/event/spawn_slaughter/start()
+	if(num_station_players() <= minplayers)
+		var/datum/event_container/EC = SSevents.event_containers[EVENT_LEVEL_MAJOR]
+		EC.next_event_time = world.time + (60 * 10)
+		return	//we don't spawn demons on lowpop. Instead, we reroll!
+
 	INVOKE_ASYNC(src, PROC_REF(get_slaughter))
 
 
 /datum/event/spawn_slaughter/laughter
 	demon = /mob/living/simple_animal/demon/slaughter/laughter
+	minplayers = LAUGHTER_MINPLAYERS
 
 /datum/event/spawn_slaughter/shadow
 	demon = /mob/living/simple_animal/demon/shadow
+	minplayers = SHADOW_MINPLAYERS
 
 
 /datum/event/spawn_slaughter/shadow/get_spawn_loc()
@@ -69,3 +77,6 @@
 		return check // return the first turf that is dark nearby.
 	kill()
 
+#undef SLAUGHTER_MINPLAYERS
+#undef LAUGHTER_MINPLAYERS
+#undef SHADOW_MINPLAYERS

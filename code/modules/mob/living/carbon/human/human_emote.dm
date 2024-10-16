@@ -50,8 +50,8 @@
 	key_third_person = "claps"
 	message = "хлопа%(ет,ют)%."
 	message_mime = "бесшумно хлопа%(ет,ют)%."
-	message_param = EMOTE_PARAM_USE_POSTFIX
 	message_postfix = ", смотря на %t."
+	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
 	sound = list(
@@ -67,9 +67,9 @@
 	var/obj/item/organ/external/right_arm = user.bodyparts_by_name[BODY_ZONE_R_ARM]
 	var/left_hand_good = FALSE
 	var/right_hand_good = FALSE
-	if(left_arm && !(left_arm.status & (ORGAN_SPLINTED|ORGAN_BROKEN)))
+	if(!left_arm?.has_fracture_or_splint())
 		left_hand_good = TRUE
-	if(right_arm && !(right_arm.status & (ORGAN_SPLINTED|ORGAN_BROKEN)))
+	if(!right_arm?.has_fracture_or_splint())
 		right_hand_good = TRUE
 
 	if(!left_hand_good || !right_hand_good)
@@ -193,7 +193,6 @@
 	key_third_person = "hugs"
 	message = "обнима%(ет,ют)% себя."
 	message_param = "обнима%(ет,ют)% %t."
-	message_postfix = " %t."
 	hands_use_check = TRUE
 
 
@@ -219,7 +218,7 @@
 	key = "scream"
 	key_third_person = "screams"
 	message = "крич%(ит,ат)%!"
-	message_mime = "делает вид, что крич%(ит,ат)%!"
+	message_mime = "дела%(ет,ют)% вид, что крич%(ит,ат)%!"
 	message_postfix = " на %t!"
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	muzzled_noises = list("очень громкие")
@@ -228,10 +227,9 @@
 	cooldown = 5 SECONDS
 	unintentional_audio_cooldown = 3.5 SECONDS
 	volume = 80
-	species_type_blacklist_typecache = list(/datum/species/machine)	// has silicon scream
-	mob_type_blacklist_typecache = list(
-		/mob/living/carbon/human/lesser, // screech instead
-		/mob/living/silicon // Robot sounds
+	species_type_blacklist_typecache = list(
+		/datum/species/machine,	// has silicon scream
+		/datum/species/monkey,	// screech instead
 	)
 
 
@@ -462,7 +460,7 @@
 
 /datum/emote/living/carbon/human/highfive/can_run_emote(mob/living/carbon/user, status_check, intentional)
 	. = ..()
-	if(!. || user.restrained())
+	if(HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return FALSE
 
 
@@ -503,9 +501,9 @@
 	var/obj/item/organ/external/right_arm = user.bodyparts_by_name[BODY_ZONE_R_ARM]
 	var/left_hand_good = FALSE
 	var/right_hand_good = FALSE
-	if(left_arm && !(left_arm.status & (ORGAN_SPLINTED|ORGAN_BROKEN)))
+	if(!left_arm?.has_fracture_or_splint())
 		left_hand_good = TRUE
-	if(right_arm && !(right_arm.status & (ORGAN_SPLINTED|ORGAN_BROKEN)))
+	if(!right_arm?.has_fracture_or_splint())
 		right_hand_good = TRUE
 
 	if(!left_hand_good && !right_hand_good)
@@ -529,6 +527,8 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
 	vary = TRUE
+	audio_cooldown = 1 MINUTES
+	cooldown = 10 SECONDS
 	species_type_blacklist_typecache = list(/datum/species/machine)
 	// Credits: Ultimate Fart Series
 	// https://freesound.org/people/Jagadamba
@@ -549,7 +549,7 @@
 		if(fart_act)
 			farted_on_something = TRUE
 	if(!farted_on_something)
-		if(user.mind?.assigned_role == "Clown" && prob(30))
+		if(user.mind?.assigned_role == JOB_TITLE_CLOWN && prob(30))
 			confettigibs(user)
 		return ..()
 
@@ -621,7 +621,6 @@
 	key_third_person = "scratch"
 	message = "чеш%(ет,ут)%ся."
 	message_param = "чеш%(ет,ут)% %t."
-	message_postfix = " %t."
 	hands_use_check = TRUE
 
 
@@ -631,10 +630,11 @@
 /datum/emote/living/carbon/human/rattle
 	key = "rattle"
 	key_third_person = "rattles"
-	message = "гремит костями."
+	message = "грем%(ит,ят)% костями."
 	message_postfix = ", смотря на %t."
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
+	audio_cooldown = 15 SECONDS
 	vary = TRUE
 	volume = 80
 	sound = 'sound/voice/plas_rattle.ogg'
@@ -704,9 +704,8 @@
 	key = "screech"
 	key_third_person = "screeches"
 	message = "визж%(ит,ат)%!"
-	mob_type_blacklist_typecache = null
-	mob_type_allowed_typecache = list(/mob/living/carbon/human/lesser)
 	species_type_whitelist_typecache = list(/datum/species/monkey)
+	species_type_blacklist_typecache = null
 
 
 /datum/emote/living/carbon/human/scream/screech/roar
@@ -918,7 +917,7 @@
 /datum/emote/living/carbon/human/kidan/can_run_emote(mob/living/carbon/human/user, status_check = TRUE, intentional = FALSE)
 	. = ..()
 	if(. && head_required && !user.get_organ(BODY_ZONE_HEAD))
-		user.custom_emote(EMOTE_VISIBLE, "отчаянно дёрга%(ет,ют)%ся!")
+		user.custom_emote(EMOTE_VISIBLE, "отчаянно дёрга[pluralize_ru(user.gender, "ет", "ют")]ся!")
 		return FALSE
 
 
@@ -931,7 +930,7 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
 	muzzled_noises = list("тихие")
-	audio_cooldown = 3 SECONDS
+	audio_cooldown = 15 SECONDS
 	// Credit to DrMinky (freesound.org) for the sound.
 	sound = 'sound/effects/Kidanclack.ogg'
 
@@ -959,7 +958,7 @@
 	message_postfix = ", смотря на %t."
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
-	audio_cooldown = 3 SECONDS
+	audio_cooldown = 9 SECONDS
 	sound = list(
 		'sound/voice/kidan/wiggles_antennae1.ogg',
 		'sound/voice/kidan/wiggles_antennae2.ogg',
@@ -974,7 +973,7 @@
 	message_postfix = ", смотря на %t."
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
-	audio_cooldown = 2 SECONDS
+	audio_cooldown = 6 SECONDS
 	sound = list(
 		'sound/voice/kidan/waves_antennae_sharply1.ogg',
 		'sound/voice/kidan/waves_antennae_sharply2.ogg',
@@ -999,22 +998,22 @@
 /datum/emote/living/carbon/human/drask/drask_talk/drone
 	key = "drone"
 	key_third_person = "drones"
-	message = "гуд%(ит,ат)%."
-	message_mime = "делает вид, что гуд%(ит,ат)%."
+	message = "гуд%(ит,ят)%."
+	message_mime = "дела%(ет,ют)% вид, что гуд%(ит,ят)%."
 
 
 /datum/emote/living/carbon/human/drask/drask_talk/hum
 	key = "hum"
 	key_third_person = "hums"
 	message = "грохоч%(ет,ут)%."
-	message_mime = "делает вид, что грохоч%(ет,ут)%."
+	message_mime = "дела%(ет,ют)% вид, что грохоч%(ет,ут)%."
 
 
 /datum/emote/living/carbon/human/drask/drask_talk/rumble
 	key = "rumble"
 	key_third_person = "rumbles"
 	message = "урч%(ит,ат)%."
-	message_mime = "делает вид, что урч%(ит,ат)%."
+	message_mime = "дела%(ет,ют)% вид, что урч%(ит,ат)%."
 
 
 /**
@@ -1027,14 +1026,14 @@
 /datum/emote/living/carbon/human/unathi/hiss
 	key = "hiss"
 	key_third_person = "hisses"
-	message = "шип%(ит,ат)%!"
-	message_mime = "тихо шип%(ит,ат)%!"
+	message = "шип%(ит,ят)%!"
+	message_mime = "тихо шип%(ит,ят)%!"
 	message_postfix = " на %t!"
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
 	muzzled_noises = list("раздражённые", "свистящие", "шипящие")
 	age_based = TRUE
-	audio_cooldown = 3 SECONDS
+	audio_cooldown = 15 SECONDS
 	// Credit to Jamius (freesound.org) for the sound.
 	sound = 'sound/effects/unathihiss.ogg'
 
@@ -1048,7 +1047,7 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
 	muzzled_noises = list("урчащие", "гортанные")
-	audio_cooldown = 6 SECONDS
+	audio_cooldown = 30 SECONDS
 	age_based = TRUE
 	volume = 65
 	sound = list(
@@ -1066,7 +1065,7 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
 	muzzled_noises = list("раздражённые", "утробные", "громкие")
-	audio_cooldown = 6 SECONDS
+	audio_cooldown = 30 SECONDS
 	age_based = TRUE
 	sound = list(
 		'sound/voice/unathi/roar.ogg',
@@ -1079,12 +1078,12 @@
 	key = "threat"
 	key_third_person = "threat"
 	message = "угрожающе рыч%(ит,ат)%!"
-	message_mime = "угрожающе раскрыва%(ит,ют)% пасть!"
+	message_mime = "угрожающе раскрыва%(ет,ют)% пасть!"
 	message_postfix = " на %t!"
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
 	muzzled_noises = list("очень раздражённые", "громкие")
-	audio_cooldown = 6 SECONDS
+	audio_cooldown = 16 SECONDS
 	age_based = TRUE
 	volume = 80
 	sound = list(
@@ -1103,15 +1102,15 @@
 	emote_type = EMOTE_AUDIBLE
 	tail_required = TRUE
 	volume = 100
-	audio_cooldown = 3 SECONDS
+	audio_cooldown = 15 SECONDS
 	sound = 'sound/voice/unathi/whip_short.ogg'
 
 
 /datum/emote/living/carbon/human/unathi/whip/whip_l
 	key = "whip_l"
 	key_third_person = ""
-	message = "хлеста%(ет,ют)% хвостом."
-	audio_cooldown = 6 SECONDS
+	message = "хлещ%(ет,ут)% хвостом."
+	audio_cooldown = 15 SECONDS
 	sound = 'sound/voice/unathi/whip.ogg'
 
 
@@ -1131,6 +1130,7 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
 	age_based = TRUE
+	audio_cooldown = 15 SECONDS
 	//Credit https://www.youtube.com/watch?v=ufnvlRjsOTI [0:13 - 0:16]
 	sound = 'sound/voice/dionatalk1.ogg'
 
@@ -1143,7 +1143,7 @@
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE
 	age_based = TRUE
-	audio_cooldown = 3 SECONDS
+	audio_cooldown = 15 SECONDS
 
 
 /datum/emote/living/carbon/human/slime/can_run_emote(mob/living/carbon/human/user, status_check, intentional)
@@ -1152,8 +1152,8 @@
 		return FALSE
 	if(isslimeperson(user))
 		return TRUE
-	for(var/obj/item/organ/external/limb in user.bodyparts) // if your limbs are squishy you can squish too!
-		if(istype(limb.dna?.species, /datum/species/slime))
+	for(var/obj/item/organ/external/bodypart as anything in user.bodyparts) // if your limbs are squishy you can squish too!
+		if(bodypart.dna && istype(bodypart.dna.species, /datum/species/slime))
 			return TRUE
 	return FALSE
 
@@ -1257,8 +1257,8 @@
 /datum/emote/living/carbon/human/tajaran/hiss
 	key = "hiss"
 	key_third_person = "hisses"
-	message = "шип%(ит,ат)%!"
-	message_mime = "тихо шип%(ит,ат)%!"
+	message = "шип%(ит,ят)%!"
+	message_mime = "тихо шип%(ит,ят)%!"
 	message_postfix = " на %t!"
 	message_param = EMOTE_PARAM_USE_POSTFIX
 	emote_type = EMOTE_AUDIBLE|EMOTE_MOUTH
@@ -1328,8 +1328,8 @@
 		message = initial(message)
 		return ..()
 
-	var/translated = bodypart.limb_name
-	switch(bodypart.limb_name)
+	var/translated = bodypart.limb_zone
+	switch(bodypart.limb_zone)
 		if(BODY_ZONE_HEAD)
 			translated = "костями черепа"
 		if(BODY_ZONE_CHEST)

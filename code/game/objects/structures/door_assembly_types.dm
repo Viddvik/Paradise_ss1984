@@ -152,7 +152,7 @@
 		bound_width = world.icon_size
 		bound_height = width * world.icon_size
 
-/obj/structure/door_assembly/multi_tile/Move()
+/obj/structure/door_assembly/multi_tile/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(dir in list(EAST, WEST))
 		bound_width = width * world.icon_size
@@ -173,7 +173,7 @@
 	. = ..()
 	icon = SSticker.cultdat?.airlock_runed_icon_file
 	overlays_file = SSticker.cultdat?.airlock_runed_overlays_file
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/structure/door_assembly/door_assembly_cult_fake
 	name = "cult airlock assembly"
@@ -187,7 +187,7 @@
 	. = ..()
 	icon = SSticker.cultdat?.airlock_runed_icon_file
 	overlays_file = SSticker.cultdat?.airlock_runed_overlays_file
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/structure/door_assembly/door_assembly_cult/unruned
 	icon = 'icons/obj/doors/airlocks/cult/unruned/cult.dmi'
@@ -199,7 +199,7 @@
 	. = ..()
 	icon = SSticker.cultdat?.airlock_unruned_icon_file
 	overlays_file = SSticker.cultdat?.airlock_unruned_overlays_file
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/structure/door_assembly/door_assembly_clock
 	name = "clock airlock assembly"

@@ -16,15 +16,35 @@
 	go_out()
 	return ..()
 
-/obj/machinery/bodyscanner/power_change()
-	..()
+/obj/machinery/bodyscanner/power_change(forced = FALSE)
+	if(!..())
+		return
 	if(!(stat & (BROKEN|NOPOWER)))
 		set_light(2)
 	else
-		set_light(0)
+		set_light_on(FALSE)
+
+
+/obj/machinery/bodyscanner/examine(mob/user)
+	. = ..()
+	if(occupant)
+		if(occupant.is_dead())
+			. += span_warning("You see [occupant.name] inside. [occupant.p_they(TRUE)] [occupant.p_are()] dead!>")
+		else
+			. += span_notice("You see [occupant.name] inside.")
+	if(Adjacent(user))
+		. += span_info("You can <b>Alt-Click</b> to eject the current occupant. <b>Click-drag</b> someone to the scanner to place them inside.")
+
+
+/obj/machinery/bodyscanner/update_icon_state()
+	if(occupant)
+		icon_state = "bodyscanner"
+	else
+		icon_state = "bodyscanner-open"
+
 
 /obj/machinery/bodyscanner/process()
-	for(var/mob/M as mob in src) // makes sure that simple mobs don't get stuck inside a sleeper when they resist out of occupant's grasp
+	for(var/mob/M in src) // makes sure that simple mobs don't get stuck inside a sleeper when they resist out of occupant's grasp
 		if(M == occupant)
 			continue
 		else
@@ -40,36 +60,30 @@
 	component_parts += new /obj/item/stack/cable_coil(null, 2)
 	RefreshParts()
 
-/obj/machinery/bodyscanner/attackby(obj/item/I, mob/user)
-	if(exchange_parts(user, I))
-		return
 
-	if(istype(I, /obj/item/grab))
-		var/obj/item/grab/TYPECAST_YOUR_SHIT = I
-		if(panel_open)
-			to_chat(user, span_notice("Close the maintenance panel first."))
-			return
-		if(!ishuman(TYPECAST_YOUR_SHIT.affecting))
-			return
-		if(occupant)
-			to_chat(user, span_notice("The scanner is already occupied!"))
-			return
-		if(TYPECAST_YOUR_SHIT.affecting.has_buckled_mobs()) //mob attached to us
-			to_chat(user, span_warning("[TYPECAST_YOUR_SHIT.affecting] will not fit into [src] because [TYPECAST_YOUR_SHIT.affecting.p_they()] [TYPECAST_YOUR_SHIT.affecting.p_have()] a fucking slime latched onto [TYPECAST_YOUR_SHIT.affecting.p_their()] head."))
-			return
-		var/mob/living/carbon/human/M = TYPECAST_YOUR_SHIT.affecting
-		if(M.abiotic())
-			to_chat(user, span_notice("Subject cannot have abiotic items on."))
-			return
-		M.forceMove(src)
-		occupant = M
-		icon_state = "bodyscanner"
-		add_fingerprint(user)
-		qdel(TYPECAST_YOUR_SHIT)
-		SStgui.update_uis(src)
-		return
+/obj/machinery/bodyscanner/grab_attack(mob/living/grabber, atom/movable/grabbed_thing)
+	. = TRUE
+	if(grabber.grab_state < GRAB_AGGRESSIVE || !ishuman(grabbed_thing))
+		return .
+	if(panel_open)
+		to_chat(grabber, span_warning("Close the maintenance panel first."))
+		return .
+	var/mob/living/carbon/human/target = grabbed_thing
+	if(occupant)
+		to_chat(grabber, span_warning("[src] is already occupied!"))
+		return .
+	if(target.abiotic())
+		to_chat(grabber, span_warning("Subject cannot have abiotic items on."))
+		return .
+	if(target.has_buckled_mobs()) //mob attached to us
+		to_chat(grabber, span_warning("[grabbed_thing] will not fit into the [src] because [grabbed_thing.p_they()] [grabbed_thing.p_have()] a slime latched onto [grabbed_thing.p_their()] head."))
+		return .
+	grabbed_thing.forceMove(src)
+	occupant = grabbed_thing
+	update_icon(UPDATE_ICON_STATE)
+	add_fingerprint(grabber)
+	SStgui.update_uis(src)
 
-	return ..()
 
 /obj/machinery/bodyscanner/crowbar_act(mob/user, obj/item/I)
 	if(default_deconstruction_crowbar(user, I))
@@ -78,6 +92,7 @@
 /obj/machinery/bodyscanner/screwdriver_act(mob/user, obj/item/I)
 	if(default_deconstruction_screwdriver(user, "bodyscanner-o", "bodyscanner-open", I))
 		return TRUE
+
 
 /obj/machinery/bodyscanner/wrench_act(mob/user, obj/item/I)
 	. = TRUE
@@ -89,15 +104,14 @@
 	if(panel_open)
 		to_chat(user, span_notice("Close the maintenance panel first."))
 		return
-	if(dir == EAST)
-		setDir(WEST)
-	else
-		setDir(EAST)
 
-/obj/machinery/bodyscanner/MouseDrop_T(mob/living/carbon/human/H, mob/user)
+	setDir(turn(dir, -90))
+
+
+/obj/machinery/bodyscanner/MouseDrop_T(mob/living/carbon/human/H, mob/user, params)
 	if(!istype(H))
 		return FALSE //not human
-	if(user.incapacitated())
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return FALSE //user shouldn't be doing things
 	if(H.anchored)
 		return FALSE //mob is anchored???
@@ -107,18 +121,18 @@
 		return FALSE //not a borg or human
 	if(panel_open)
 		to_chat(user, span_notice("Close the maintenance panel first."))
-		return FALSE //panel open
+		return TRUE //panel open
 	if(occupant)
 		to_chat(user, span_notice("[src] is already occupied."))
-		return FALSE //occupied
+		return TRUE //occupied
 	if(H.buckled)
 		return FALSE
 	if(H.abiotic())
 		to_chat(user, span_notice("Subject cannot have abiotic items on."))
-		return FALSE
+		return TRUE
 	if(H.has_buckled_mobs()) //mob attached to us
 		to_chat(user, span_warning("[H] will not fit into [src] because [H.p_they()] [H.p_have()] a slime latched onto [H.p_their()] head."))
-		return
+		return TRUE
 
 	if(H == user)
 		visible_message("[user] climbs into [src].")
@@ -128,9 +142,10 @@
 	add_fingerprint(user)
 	H.forceMove(src)
 	occupant = H
-	icon_state = "bodyscanner"
+	update_icon(UPDATE_ICON_STATE)
 	add_fingerprint(user)
 	SStgui.update_uis(src)
+	return TRUE
 
 /obj/machinery/bodyscanner/attack_ai(user)
 	return attack_hand(user)
@@ -156,7 +171,7 @@
 	ui_interact(user)
 
 /obj/machinery/bodyscanner/relaymove(mob/user)
-	if(user.incapacitated())
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return FALSE //maybe they should be able to get out with cuffs, but whatever
 	go_out()
 
@@ -165,7 +180,7 @@
 	set category = "Object"
 	set name = "Eject Body Scanner"
 
-	if(usr.incapacitated())
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	go_out()
 	add_fingerprint(usr)
@@ -175,7 +190,7 @@
 		return
 	occupant.forceMove(loc)
 	occupant = null
-	icon_state = "bodyscanner-open"
+	update_icon(UPDATE_ICON_STATE)
 	// eject trash the occupant dropped
 	for(var/atom/movable/A in contents - component_parts)
 		A.forceMove(loc)
@@ -194,7 +209,7 @@
 	if(A == occupant)
 		occupant = null
 		updateUsrDialog()
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/bodyscanner/narsie_act()
 	go_out()
@@ -206,10 +221,10 @@
 	new /obj/effect/decal/cleanable/blood/gibs/clock(get_turf(src))
 	qdel(src)
 
-/obj/machinery/bodyscanner/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/bodyscanner/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BodyScanner", "Body Scanner", 690, 600)
+		ui = new(user, src, "BodyScanner", "Body Scanner")
 		ui.open()
 
 /obj/machinery/bodyscanner/ui_data(mob/user)
@@ -252,7 +267,7 @@
 
 		var/bloodData[0]
 		bloodData["hasBlood"] = FALSE
-		if(!(NO_BLOOD in occupant.dna.species.species_traits))
+		if(!HAS_TRAIT(occupant, TRAIT_NO_BLOOD))
 			bloodData["hasBlood"] = TRUE
 			bloodData["volume"] = occupant.blood_volume
 			bloodData["percent"] = round(((occupant.blood_volume / BLOOD_VOLUME_NORMAL)*100))
@@ -271,7 +286,7 @@
 		occupantData["implant_len"] = implantData.len
 
 		var/extOrganData[0]
-		for(var/obj/item/organ/external/E in occupant.bodyparts)
+		for(var/obj/item/organ/external/E as anything in occupant.bodyparts)
 			var/organData[0]
 			organData["name"] = E.name
 			organData["open"] = E.open
@@ -284,7 +299,7 @@
 			organData["broken"] = E.min_broken_damage
 
 			var/shrapnelData[0]
-			for(var/obj/I in E.embedded_objects)
+			for(var/obj/item/I in E.embedded_objects)
 				var/shrapnelSubData[0]
 				shrapnelSubData["name"] = I.name
 
@@ -294,13 +309,13 @@
 			organData["shrapnel_len"] = shrapnelData.len
 
 			var/organStatus[0]
-			if(E.status & ORGAN_BROKEN)
+			if(E.has_fracture())
 				organStatus["broken"] = E.broken_description
 			if(E.is_robotic())
 				organStatus["robotic"] = TRUE
-			if(E.status & ORGAN_SPLINTED)
+			if(E.is_splinted())
 				organStatus["splinted"] = TRUE
-			if(E.status & ORGAN_DEAD)
+			if(E.is_dead())
 				organStatus["dead"] = TRUE
 
 			organData["status"] = organStatus
@@ -308,7 +323,7 @@
 			if(istype(E, /obj/item/organ/external/chest) && occupant.is_lung_ruptured())
 				organData["lungRuptured"] = TRUE
 
-			if(E.internal_bleeding)
+			if(E.has_internal_bleeding())
 				organData["internalBleeding"] = TRUE
 
 			extOrganData.Add(list(organData))
@@ -316,25 +331,25 @@
 		occupantData["extOrgan"] = extOrganData
 
 		var/intOrganData[0]
-		for(var/obj/item/organ/internal/I in occupant.internal_organs)
+		for(var/obj/item/organ/internal/organ as anything in occupant.internal_organs)
 			var/organData[0]
-			organData["name"] = I.name
-			organData["desc"] = I.desc
-			organData["germ_level"] = I.germ_level
-			organData["damage"] = I.damage
-			organData["maxHealth"] = I.max_damage
-			organData["bruised"] = I.min_bruised_damage
-			organData["broken"] = I.min_broken_damage
-			organData["robotic"] = I.is_robotic()
-			organData["dead"] = (I.status & ORGAN_DEAD)
+			organData["name"] = organ.name
+			organData["desc"] = organ.desc
+			organData["germ_level"] = organ.germ_level
+			organData["damage"] = organ.damage
+			organData["maxHealth"] = organ.max_damage
+			organData["bruised"] = organ.min_bruised_damage
+			organData["broken"] = organ.min_broken_damage
+			organData["robotic"] = organ.is_robotic()
+			organData["dead"] = (organ.is_dead())
 
 			intOrganData.Add(list(organData))
 
 		occupantData["intOrgan"] = intOrganData
 
-		occupantData["blind"] = (BLINDNESS in occupant.mutations)
-		occupantData["colourblind"] = (COLOURBLIND in occupant.mutations)
-		occupantData["nearsighted"] = (NEARSIGHTED in occupant.mutations)
+		occupantData["blind"] = HAS_TRAIT(occupant, TRAIT_BLIND)
+		occupantData["colourblind"] = HAS_TRAIT(occupant, TRAIT_COLORBLIND)
+		occupantData["nearsighted"] = HAS_TRAIT(occupant, TRAIT_NEARSIGHTED)
 
 	data["occupant"] = occupantData
 	return data
@@ -457,7 +472,7 @@
 		dat += "<th>Other Wounds</th>"
 		dat += "</tr>"
 
-		for(var/obj/item/organ/external/e in occupant.bodyparts)
+		for(var/obj/item/organ/external/e as anything in occupant.bodyparts)
 			dat += "<tr>"
 			var/AN = ""
 			var/open = ""
@@ -469,15 +484,15 @@
 			var/splint = ""
 			var/internal_bleeding = ""
 			var/lung_ruptured = ""
-			if(e.internal_bleeding)
+			if(e.has_internal_bleeding())
 				internal_bleeding = "<br>Internal bleeding"
 			if(istype(e, /obj/item/organ/external/chest) && occupant.is_lung_ruptured())
 				lung_ruptured = "Lung ruptured:"
-			if(e.status & ORGAN_SPLINTED)
+			if(e.is_splinted())
 				splint = "Splinted:"
-			if(e.status & ORGAN_BROKEN)
+			if(e.has_fracture())
 				AN = "[e.broken_description]:"
-			if(e.status & ORGAN_DEAD)
+			if(e.is_dead())
 				dead = "DEAD:"
 			if(e.is_robotic())
 				robot = "Robotic:"
@@ -499,23 +514,19 @@
 				if(INFECTION_LEVEL_TWO + 400 to INFINITY)
 					infected = "Septic:"
 
-			var/unknown_body = 0
-			for(var/I in e.embedded_objects)
-				unknown_body++
-
-			if(unknown_body || e.hidden)
+			if(LAZYLEN(e.embedded_objects) || e.hidden)
 				imp += "Unknown body present:"
 			if(!AN && !open && !infected && !imp)
 				AN = "None:"
 			dat += "<td>[e.name]</td><td>[e.burn_dam]</td><td>[e.brute_dam]</td><td>[robot][bled][AN][splint][open][infected][imp][internal_bleeding][lung_ruptured][dead]</td>"
 			dat += "</tr>"
-		for(var/obj/item/organ/internal/i in occupant.internal_organs)
-			var/mech = i.desc
+		for(var/obj/item/organ/internal/organ as anything in occupant.internal_organs)
+			var/mech = organ.desc
 			var/infection = "None"
 			var/dead = ""
-			if(i.status & ORGAN_DEAD)
+			if(organ.is_dead())
 				dead = "DEAD:"
-			switch(i.germ_level)
+			switch(organ.germ_level)
 				if(1 to INFECTION_LEVEL_ONE + 200)
 					infection = "Mild Infection:"
 				if(INFECTION_LEVEL_ONE + 200 to INFECTION_LEVEL_ONE + 300)
@@ -532,14 +543,14 @@
 					infection = "Septic:"
 
 			dat += "<tr>"
-			dat += "<td>[i.name]</td><td>N/A</td><td>[i.damage]</td><td>[infection]:[mech][dead]</td><td></td>"
+			dat += "<td>[organ.name]</td><td>N/A</td><td>[organ.damage]</td><td>[infection]:[mech][dead]</td><td></td>"
 			dat += "</tr>"
 		dat += "</table>"
-		if(BLINDNESS in occupant.mutations)
+		if(HAS_TRAIT(occupant, TRAIT_BLIND))
 			dat += "<font color='red'>Cataracts detected.</font><BR>"
-		if(COLOURBLIND in occupant.mutations)
+		if(HAS_TRAIT(occupant, TRAIT_COLORBLIND))
 			dat += "<font color='red'>Photoreceptor abnormalities detected.</font><BR>"
-		if(NEARSIGHTED in occupant.mutations)
+		if(HAS_TRAIT(occupant, TRAIT_NEARSIGHTED))
 			dat += "<font color='red'>Retinal misalignment detected.</font><BR>"
 	else
 		dat += "[src] is empty."

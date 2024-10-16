@@ -104,7 +104,7 @@
 // Papers
 /obj/item/paper/fluff/ruins/oldstation
 	name = "Cryo Awakening Alert"
-	language = "Sol Common"
+	language = LANGUAGE_SOL_COMMON
 	info = "<B>**WARNING**</B><BR><BR>Catastrophic damage sustained to station. Powernet exhausted to reawaken crew.<BR><BR>Immediate Objectives<br><br>1: Activate emergency power generator<br>2: Lift station lockdown on the bridge<br><br>Please locate the 'Damage Report' on the bridge for a detailed situation report."
 
 /obj/item/paper/fluff/ruins/oldstation/damagereport
@@ -152,7 +152,7 @@
 	*eep th* *e**l of **m..<br><br> The last words completly faded." // yep, the temperature overheat, some players set power to 5 and make the gen to blow up, rip oldstation.
 
 /obj/item/paper/ruins/oldstation
-	language = "Sol Common"
+	language = LANGUAGE_SOL_COMMON
 
 /obj/item/paper/ruins/oldstation/protoinventory
 	name = "Theta RnD Prototype Inventory Secure Storage"
@@ -231,16 +231,21 @@
 	helmettype = /obj/item/clothing/head/helmet/space/hardsuit/ancient
 	var/footstep = 1
 
-/obj/item/clothing/suit/space/hardsuit/ancient/on_mob_move()
-	var/mob/living/carbon/human/H = loc
-	if(!istype(H) || H.wear_suit != src)
-		return
+/obj/item/clothing/suit/space/hardsuit/ancient/equipped(mob/user, slot, initial)
+	. = ..()
+	if(slot & slot_flags)
+		RegisterSignal(user, COMSIG_MOB_CLIENT_MOVED, PROC_REF(on_mob_move), override = TRUE)
+
+/obj/item/clothing/suit/space/hardsuit/ancient/dropped(mob/user, slot, silent)
+	. = ..()
+	UnregisterSignal(user, COMSIG_MOB_CLIENT_MOVED)
+
+/obj/item/clothing/suit/space/hardsuit/ancient/on_mob_move(mob/user, dir)
 	if(footstep > 1)
-		playsound(src, 'sound/effects/servostep.ogg', 100, 1)
+		playsound(src, 'sound/effects/servostep.ogg', 100, TRUE)
 		footstep = 0
 	else
 		footstep++
-	..()
 
 // Chemical bottles
 /obj/item/reagent_containers/glass/bottle/aluminum
@@ -348,13 +353,15 @@
 /area/ruin/space/ancientstation
 	name = "Charlie Station Main Corridor"
 	icon_state = "green"
-	has_gravity = TRUE
+	has_gravity = STANDARD_GRAVITY
 
 /area/ruin/space/ancientstation/powered
 	name = "Powered Tile"
 	icon_state = "teleporter"
 	requires_power = FALSE
-	dynamic_lighting = DYNAMIC_LIGHTING_FORCED
+	static_lighting = FALSE
+	base_lighting_alpha = 255
+	base_lighting_color = COLOR_WHITE
 
 /area/ruin/space/ancientstation/space
 	name = "Exposed To Space"
@@ -364,7 +371,6 @@
 /area/ruin/space/ancientstation/atmos
 	name = "Beta Station Atmospherics"
 	icon_state = "atmos"
-	has_gravity = TRUE
 	ambientsounds = ENGINEERING_SOUNDS
 
 /area/ruin/space/ancientstation/betanorth

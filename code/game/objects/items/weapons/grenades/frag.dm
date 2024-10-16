@@ -4,6 +4,7 @@
 	icon_state = "frag"
 	item_state = "flashbang"
 	origin_tech = "materials=3;magnets=4"
+	det_time = 3 SECONDS
 	var/range = 5
 	var/max_shrapnel = 4
 	var/embed_prob = 100 //reduced by armor
@@ -13,7 +14,7 @@
 	update_mob()
 	var/turf/epicenter = get_turf(src)
 	for(var/mob/living/carbon/human/H in epicenter)
-		if(H.resting) //grenade is jumped on but get real fucked up
+		if(H.body_position == LYING_DOWN) //grenade is jumped on but get real fucked up
 			embed_shrapnel(H, max_shrapnel)
 			range = 1
 	explosion(loc, 0, 1, range, breach = FALSE, cause = src)
@@ -26,7 +27,7 @@
 
 /obj/item/grenade/frag/proc/embed_shrapnel(mob/living/carbon/human/H, amount)
 	for(var/i = 0, i < amount, i++)
-		if(prob(embed_prob - H.getarmor(null, "bomb")))
+		if(prob(embed_prob - H.getarmor(attack_flag = BOMB)))
 			var/obj/item/embedded/S = new embedded_type(src)
 			H.hitby(S, skipcatch = 1)
 			S.throwforce = 1

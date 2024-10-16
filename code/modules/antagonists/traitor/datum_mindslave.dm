@@ -29,7 +29,7 @@
 	..()
 
 
-/datum/antagonist/mindslave/Destroy(force, ...)
+/datum/antagonist/mindslave/Destroy(force)
 	if(owner.som)
 		owner.som.serv -= owner
 		owner.som.leave_serv_hud(owner)
@@ -82,13 +82,12 @@
 
 
 /datum/antagonist/mindslave/greet()
-	var/mob/living/carbon/human/mindslave = owner.current
 	// Show them the custom greeting text if it exists.
 	if(greet_text)
-		to_chat(mindslave, span_dangerbigger(greet_text))
+		return span_dangerbigger(greet_text)
 	else // Default greeting text if nothing is given.
-		to_chat(mindslave, span_dangerbigger("<B>You are now completely loyal to [master.current.name]!</B> \
-							You must lay down your life to protect [master.current.p_them()] and assist in [master.current.p_their()] goals at any cost."))
+		return span_dangerbigger("<b>You are now completely loyal to [master.current.name]!</b> \
+							You must lay down your life to protect [master.current.p_them()] and assist in [master.current.p_their()] goals at any cost.")
 
 
 /datum/antagonist/mindslave/farewell()

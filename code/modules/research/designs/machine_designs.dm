@@ -82,6 +82,16 @@
 	build_path = /obj/item/circuitboard/quantumpad
 	category = list ("Teleportation Machinery")
 
+/datum/design/robotic_pad
+	name = "Machine Board (Robotic Request Quantum Pad Board)"
+	desc = "The circuit board for a robotic requests quantum telepad."
+	id = "robo_quantumpad"
+	req_tech = list("programming" = 5, "bluespace" = 5, "plasmatech" = 4, "engineering" = 5)
+	build_type = IMPRINTER
+	materials = list(MAT_GLASS = 1000)
+	build_path = /obj/item/circuitboard/roboquest_pad
+	category = list ("Teleportation Machinery")
+
 /datum/design/teleport_hub
 	name = "Machine Board (Teleportation Hub)"
 	desc = "Allows for the construction of circuit boards used to build a Teleportation Hub."
@@ -566,7 +576,7 @@
 	name = "Machine Design (Rift Scan Server)"
 	desc = "Плата сервера сканирования и изучения блюспейс разлома."
 	id = "brs_server"
-	req_tech = list("bluespace" = 20) // unreachable
+	req_tech = null	// Unreachable by tech researching.
 	build_type = IMPRINTER
 	materials = list(MAT_GLASS = 1000, MAT_BLUESPACE = 100)
 	build_path = /obj/item/circuitboard/brs_server
@@ -576,7 +586,7 @@
 	name = "Machine Design (Portable Rift Scanner)"
 	desc = "Плата портативного сканера блюспейс разлома."
 	id = "brs_portable_scanner"
-	req_tech = list("bluespace" = 20) // unreachable
+	req_tech = null	// Unreachable by tech researching.
 	build_type = IMPRINTER
 	materials = list(MAT_GLASS = 1000, MAT_BLUESPACE = 200)
 	build_path = /obj/item/circuitboard/brs_portable_scanner
@@ -586,7 +596,7 @@
 	name = "Machine Design (Stationary Rift Scanner)"
 	desc = "Плата стационарного сканера блюспейс разлома."
 	id = "brs_stationary_scanner"
-	req_tech = list("bluespace" = 20) // unreachable
+	req_tech = null	// Unreachable by tech researching.
 	build_type = IMPRINTER
 	materials = list(MAT_GLASS = 1000, MAT_BLUESPACE = 500)
 	build_path = /obj/item/circuitboard/brs_stationary_scanner

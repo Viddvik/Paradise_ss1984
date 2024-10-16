@@ -47,7 +47,7 @@
 
 /datum/dog_fashion/head/hardhat/apply(mob/living/simple_animal/pet/dog/D)
 	..()
-	D.set_light(4)
+	D.set_light_range(4)
 
 /datum/dog_fashion/head/helmet
 	name = "Sergeant REAL_NAME"
@@ -155,11 +155,11 @@
 
 /datum/dog_fashion/head/reindeer/apply(mob/living/simple_animal/pet/dog/D)
 	..()
-	D.set_light(2, 2, LIGHT_COLOR_RED)
+	D.set_light_range_power_color(2, 2, LIGHT_COLOR_RED)
 
 /datum/dog_fashion/head/sombrero
 	name = "Segnor REAL_NAME"
-	desc = "You must respect Elder Dogname"
+	desc = "You must respect Elder Dogname."
 
 /datum/dog_fashion/head/sombrero/New(mob/M)
 	..()
@@ -193,17 +193,18 @@
 
 /datum/dog_fashion/head/cone
 	name = "REAL_NAME"
-	desc = "Omnicone's Chosen Champion"
+	desc = "Omnicone's Chosen Champion."
 
 /datum/dog_fashion/back/hardsuit
 	name = "Space Explorer REAL_NAME"
 	desc = "That's one small step for a corgi. One giant yap for corgikind."
 
-/datum/dog_fashion/back/hardsuit/apply(mob/living/simple_animal/pet/dog/D)
+/datum/dog_fashion/back/hardsuit/apply(mob/living/simple_animal/pet/dog/doggo)
 	..()
-	D.mutations.Add(BREATHLESS)
-	D.atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	D.minbodytemp = 0
+	ADD_TRAIT(doggo, TRAIT_NO_BREATH, CORGI_HARDSUIT_TRAIT)
+	doggo.atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
+	var/datum/component/animal_temperature/temp = doggo.GetComponent(/datum/component/animal_temperature)
+	temp?.minbodytemp = 0
 
 /datum/dog_fashion/head/fried_vox_empty
 	name = "Colonel REAL_NAME"

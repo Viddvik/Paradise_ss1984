@@ -10,7 +10,6 @@
 #define PD_UPGRADE_MAX_CHARGE   "Capacity"
 
 /obj/effect/proc_holder/spell/pulse_demon
-	panel = "Pulse Demon"
 	school = "pulse demon"
 	human_req = FALSE
 	clothes_req = FALSE
@@ -138,7 +137,7 @@
 		return FALSE
 	playsound(T, 'sound/magic/lightningshock.ogg', 50, TRUE)
 	O.Beam(target, icon_state = "lightning[rand(1, 12)]", icon = 'icons/effects/effects.dmi', time = 1 SECONDS)
-	for(var/turf/working in getline(O, T))
+	for(var/turf/working as anything in get_line(O, T))
 		for(var/mob/living/L in working)
 			if(!electrocute_mob(L, C.powernet, user)) // give a little bit of non-lethal counterplay against insuls
 				L.Jitter(5 SECONDS)

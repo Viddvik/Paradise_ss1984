@@ -3,21 +3,20 @@
 	desc = "An incredibly lifelike marble carving"
 	icon = 'icons/obj/statue.dmi'
 	icon_state = "human_male"
-	density = 1
-	anchored = 1
+	density = TRUE
+	anchored = TRUE
 	max_integrity = 0 //destroying the statue kills the mob within
+	no_overlays = TRUE
 	var/intialTox = 0 	//these are here to keep the mob from taking damage from things that logically wouldn't affect a rock
 	var/intialFire = 0	//it's a little sloppy I know but it was this or the GODMODE flag. Lesser of two evils.
 	var/intialBrute = 0
 	var/intialOxy = 0
 	var/timer = 240 //eventually the person will be freed
 
-/obj/structure/closet/statue/Initialize(mapload, var/mob/living/L)
+/obj/structure/closet/statue/Initialize(mapload, mob/living/L)
 	. = ..()
 	if(ishuman(L) || iscorgi(L))
-		if(L.buckled)
-			L.buckled = 0
-			L.anchored = 0
+		L.buckled?.unbuckle_mob(L, force = TRUE)
 		L.forceMove(src)
 		ADD_TRAIT(L, TRAIT_MUTE, "statue")
 		max_integrity = L.health + 100 //stoning damaged mobs will result in easier to shatter statues
@@ -25,7 +24,7 @@
 		intialFire = L.getFireLoss()
 		intialBrute = L.getBruteLoss()
 		intialOxy = L.getOxyLoss()
-		if(issmall(L))
+		if(is_monkeybasic(L))
 			name = "statue of a monkey"
 			icon_state = "monkey"
 		else if(ishuman(L))
@@ -46,10 +45,13 @@
 /obj/structure/closet/statue/process()
 	timer--
 	for(var/mob/living/M in src) //Go-go gadget stasis field
-		M.setToxLoss(intialTox)
-		M.adjustFireLoss(intialFire - M.getFireLoss())
-		M.adjustBruteLoss(intialBrute - M.getBruteLoss())
-		M.setOxyLoss(intialOxy)
+		var/update = NONE
+		update |= M.adjustFireLoss(intialFire - M.getFireLoss(), FALSE)
+		update |= M.adjustBruteLoss(intialBrute - M.getBruteLoss(), FALSE)
+		update |= M.setToxLoss(intialTox, FALSE)
+		update |= M.setOxyLoss(intialOxy, FALSE)
+		if(update)
+			M.updatehealth()
 	if(timer <= 0)
 		dump_contents()
 		STOP_PROCESSING(SSobj, src)
@@ -69,7 +71,7 @@
 	for(var/mob/living/M in src)
 		M.forceMove(loc)
 		REMOVE_TRAIT(M, TRAIT_MUTE, "statue")
-		M.take_overall_damage((M.health - obj_integrity - 100),0) //any new damage the statue incurred is transfered to the mob
+		M.take_overall_damage((M.health - obj_integrity - 100)) //any new damage the statue incurred is transfered to the mob
 
 	..()
 
@@ -86,6 +88,9 @@
 /obj/structure/closet/statue/toggle()
 	return
 
+/obj/structure/closet/statue/shove_impact(mob/living/target, mob/living/attacker)
+	return FALSE
+
 /obj/structure/closet/statue/obj_destruction(damage_flag)
 	for(var/mob/M in src)
 		shatter(M)
@@ -94,7 +99,7 @@
 /obj/structure/closet/statue/welder_act()
 	return
 
-/obj/structure/closet/statue/MouseDrop_T()
+/obj/structure/closet/statue/MouseDrop_T(atom/dropping, mob/user, params)
 	return
 
 /obj/structure/closet/statue/relaymove()
@@ -106,11 +111,11 @@
 /obj/structure/closet/statue/verb_toggleopen()
 	return
 
-/obj/structure/closet/statue/update_icon()
+/obj/structure/closet/statue/update_icon_state()
 	return
 
 /obj/structure/closet/statue/proc/shatter(mob/user)
 	if(user)
 		user.dust()
 	dump_contents()
-	visible_message("<span class='warning'>[src] shatters!. </span>")
+	visible_message("<span class='warning'>[src] shatters!</span>")

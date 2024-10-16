@@ -11,25 +11,27 @@
 	lefthand_file = 'icons/mob/inhands/clothing_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/clothing_righthand.dmi'
 	w_class = WEIGHT_CLASS_BULKY
-	slot_flags = SLOT_BACK	//ERROOOOO
+	slot_flags = ITEM_SLOT_BACK	//ERROOOOO
 	max_w_class = WEIGHT_CLASS_NORMAL
 	max_combined_w_class = 21
 	storage_slots = 21
 	resistance_flags = NONE
 	max_integrity = 300
 	sprite_sheets = list(
-		"Vox" = 'icons/mob/clothing/species/vox/back.dmi',
-		"Vox Armalis" = 'icons/mob/clothing/species/armalis/back.dmi',
-		"Grey" = 'icons/mob/clothing/species/grey/back.dmi'
+		SPECIES_VOX = 'icons/mob/clothing/species/vox/back.dmi',
+		SPECIES_VOX_ARMALIS = 'icons/mob/clothing/species/armalis/back.dmi',
+		SPECIES_GREY = 'icons/mob/clothing/species/grey/back.dmi'
 		) //For Armalis anything but this and the nitrogen tank will use the default backpack icon.
 	equip_sound = 'sound/items/handling/backpack_equip.ogg'
 	pickup_sound = 'sound/items/handling/backpack_pickup.ogg'
 	drop_sound = 'sound/items/handling/backpack_drop.ogg'
 
-/obj/item/storage/backpack/attackby(obj/item/W as obj, mob/user as mob, params)
-	if(in_range(user, src))
-		playsound(src.loc, "rustle", 50, 1, -5)
-		return ..()
+
+/obj/item/storage/backpack/attackby(obj/item/I, mob/user, params)
+	. = ..()
+	if(!ATTACK_CHAIN_CANCEL_CHECK(.))
+		playsound(loc, "rustle", 50, TRUE, -5)
+
 
 /obj/item/storage/backpack/examine(mob/user)
 	var/space_used = 0
@@ -61,35 +63,56 @@
 	max_w_class = WEIGHT_CLASS_HUGE
 	max_combined_w_class = 35
 	resistance_flags = FIRE_PROOF
-	flags_2 = NO_MAT_REDEMPTION_2
+	item_flags = NO_MAT_REDEMPTION
 	cant_hold = list(/obj/item/storage/backpack/holding)
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 60, "acid" = 50)
 
-/obj/item/storage/backpack/holding/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/storage/backpack/holding))
-		var/response = alert(user, "This creates a singularity, destroying you and much of the station. Are you SURE?","IMMINENT DEATH!", "Yes", "No")
-		if(response == "Yes")
-			user.visible_message("<span class='warning'>[user] grins as [user.p_they()] begin[user.p_s()] to put a Bag of Holding into a Bag of Holding!</span>", "<span class='warning'>You begin to put the Bag of Holding into the Bag of Holding!</span>")
-			var/list/play_records = params2list(user.client.prefs.exp)
-			var/livingtime = text2num(play_records[EXP_TYPE_LIVING])
-			if (user.mind.special_role || livingtime > 9000)
-				if(do_after(user, 30, target=src))
-					investigate_log("has become a singularity. Caused by [key_name_log(user)]", INVESTIGATE_ENGINE)
-					user.visible_message("<span class='warning'>[user] erupts in evil laughter as [user.p_they()] put[user.p_s()] the Bag of Holding into another Bag of Holding!</span>", "<span class='warning'>You can't help but laugh wildly as you put the Bag of Holding into another Bag of Holding, complete darkness surrounding you.</span>","<span class='warning'> You hear the sound of scientific evil brewing! </span>")
-					qdel(W)
-					var/obj/singularity/singulo = new /obj/singularity(get_turf(user))
-					singulo.energy = 300 //To give it a small boost
-					message_admins("[ADMIN_FULLMONTY(user)] created singularity using two bag of holding at [ADMIN_COORDJMP(singulo)]!")
-					add_game_logs("created singularity using two bag of holding!", user)
-					qdel(src)
-				else
-					user.visible_message("After careful consideration, [user] has decided that putting a Bag of Holding inside another Bag of Holding would not yield the ideal outcome.","You come to the realization that this might not be the greatest idea.")
-			else
-				user.visible_message("After careful consideration, [user] has decided that putting a Bag of Holding inside another Bag of Holding would not yield the ideal outcome.","You come to the realization that this might not be the greatest idea.")
-				message_admins("[ADMIN_LOOKUPFLW(user)] tried to create a singularity with bag of holding (feature disabled for non-special roles)")
-				add_game_logs("tried to create a singularity with bag of holding (feature disabled for non-special roles)", user)
-	else
-		. = ..()
+
+/obj/item/storage/backpack/holding/attackby(obj/item/I, mob/user, params)
+	if(!istype(I, /obj/item/storage/backpack/holding))
+		return ..()
+
+	. = ATTACK_CHAIN_BLOCKED_ALL
+	add_fingerprint(user)
+	var/response = tgui_alert(user, "This creates a singularity, destroying you and much of the station. Are you SURE?", "IMMINENT DEATH!", list("No", "Yes"))
+	if(response != "Yes")
+		return .
+
+	user.visible_message(
+		span_warning("[user] grins as [user.p_they()] begin[user.p_s()] to put a Bag of Holding into a Bag of Holding!"),
+		span_warning("You begin to put the Bag of Holding into the Bag of Holding!"),
+	)
+	var/list/play_records = params2list(user.client.prefs.exp)
+	var/livingtime = text2num(play_records[EXP_TYPE_LIVING])
+	if(!user.mind.special_role && !check_rights(R_ADMIN, FALSE, user) && livingtime < 9000)
+		user.visible_message(
+			span_notice("After careful consideration, [user] has decided that putting a Bag of Holding inside another Bag of Holding would not yield the ideal outcome."),
+			span_notice("You come to the realization that this might not be the greatest idea."),
+		)
+		message_admins("[ADMIN_LOOKUPFLW(user)] tried to create a singularity with bag of holding (feature disabled for non-special roles)")
+		add_game_logs("tried to create a singularity with bag of holding (feature disabled for non-special roles)", user)
+		return .
+
+	if(!do_after(user, 3 SECONDS, src))
+		user.visible_message(
+			span_notice("After careful consideration, [user] has decided that putting a Bag of Holding inside another Bag of Holding would not yield the ideal outcome."),
+			span_notice("You come to the realization that this might not be the greatest idea."),
+		)
+		return .
+
+	investigate_log("has become a singularity. Caused by [key_name_log(user)]", INVESTIGATE_ENGINE)
+	user.visible_message(
+		span_warning("[user] erupts in evil laughter as [user.p_they()] put[user.p_s()] the Bag of Holding into another Bag of Holding!"),
+		span_warning("You can't help but laugh wildly as you put the Bag of Holding into another Bag of Holding, complete darkness surrounding you."),
+		span_italics("You hear the sound of scientific evil brewing!"),
+	)
+	qdel(I)
+	var/obj/singularity/singulo = new(get_turf(user))
+	singulo.energy = 300 //To give it a small boost
+	message_admins("[ADMIN_FULLMONTY(user)] created singularity using two bag of holding at [ADMIN_COORDJMP(singulo)]!")
+	add_game_logs("created singularity using two bag of holding!", user)
+	qdel(src)
+
 
 /obj/item/storage/backpack/holding/satchel
 	name = "Satchel of holding"
@@ -110,7 +133,8 @@
 	max_w_class = WEIGHT_CLASS_NORMAL
 	max_combined_w_class = 400 // can store a ton of shit!
 
-/obj/item/storage/backpack/santabag/update_icon()
+
+/obj/item/storage/backpack/santabag/update_icon_state()
 	var/items_count = length(contents)
 	switch(items_count)
 		if(1 to 10)
@@ -120,10 +144,8 @@
 		if(21 to INFINITY)
 			icon_state = "giftbag2"
 
-	if(ishuman(loc))
-		var/mob/living/carbon/human/H = loc
-		H.update_inv_l_hand()
-		H.update_inv_r_hand()
+	update_equipped_item(update_speedmods = FALSE)
+
 
 /obj/item/storage/backpack/cultpack
 	name = "trophy rack"
@@ -293,6 +315,7 @@
 	name = "leather satchel"
 	desc = "An NT Deluxe satchel, with the finest quality leather and the company logo in a thin gold stitch"
 	icon_state = "nt_deluxe"
+	item_state = "nt_deluxe"
 
 /obj/item/storage/backpack/satchel_lizard
 	name = "lizard skin handbag"
@@ -384,6 +407,7 @@
 	name = "leather satchel"
 	desc = "It's a very fancy satchel made with fine leather."
 	icon_state = "satchel"
+	item_state = "leather_satchel"
 	resistance_flags = FIRE_PROOF
 	var/strap_side_straight = FALSE
 
@@ -392,7 +416,7 @@
 	set category = "Object"
 	set src in usr
 
-	if(usr.incapacitated())
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	strap_side_straight = !strap_side_straight
 	icon_state = strap_side_straight ? "satchel-flipped" : "satchel"
@@ -413,14 +437,14 @@
 	level = 1
 	cant_hold = list(/obj/item/storage/backpack/satchel_flat) //muh recursive backpacks
 
-/obj/item/storage/backpack/satchel_flat/hide(var/intact)
+/obj/item/storage/backpack/satchel_flat/hide(intact)
 	if(intact)
-		invisibility = INVISIBILITY_ABSTRACT
-		anchored = 1 //otherwise you can start pulling, cover it, and drag around an invisible backpack.
+		invisibility = INVISIBILITY_MAXIMUM
+		set_anchored(TRUE) //otherwise you can start pulling, cover it, and drag around an invisible backpack.
 		icon_state = "[initial(icon_state)]2"
 	else
 		invisibility = initial(invisibility)
-		anchored = 0
+		set_anchored(FALSE)
 		icon_state = initial(icon_state)
 
 /obj/item/storage/backpack/satchel_flat/populate_contents()
@@ -511,7 +535,8 @@
 	desc = "A kit containing everything a crewmember needs to support a shaft miner in the field."
 
 /obj/item/storage/backpack/duffel/mining_conscript/populate_contents()
-	new /obj/item/pickaxe(src)
+	new /obj/item/pickaxe/mini(src)
+	new /obj/item/card/mining_access_card(src)
 	new /obj/item/clothing/glasses/meson(src)
 	new /obj/item/mining_scanner(src)
 	new /obj/item/storage/bag/ore(src)
@@ -523,7 +548,29 @@
 	new /obj/item/flashlight/seclite(src)
 	new /obj/item/clothing/suit/hooded/explorer(src)
 	new /obj/item/storage/bag/gem(src)
+	new /obj/item/wormhole_jaunter(src)
 
+/obj/item/storage/backpack/duffel/minebot_kit
+	name = "minebot Kit"
+	desc = "A kit containing everything to set up your new minebot friend."
+
+/obj/item/storage/backpack/duffel/minebot_kit/populate_contents()
+	new /obj/item/mining_drone_cube(src)
+	new /obj/item/borg/upgrade/modkit/minebot_passthrough(src)
+	new /obj/item/slimepotion/sentience/mining(src)
+	new /obj/item/weldingtool/hugetank(src)
+	new /obj/item/clothing/head/welding(src)
+
+/obj/item/storage/backpack/duffel/vendor_ext
+	name = "extraction and rescue kit"
+	desc = "A kit containing everything to save your fellow miners from imminent death."
+
+/obj/item/storage/backpack/duffel/vendor_ext/populate_contents()
+	new /obj/item/extraction_pack(src)
+	new /obj/item/radio/weather_monitor(src)
+	new /obj/item/fulton_core(src)
+	new /obj/item/stack/marker_beacon/thirty(src)
+	new /obj/item/storage/box/minertracker(src)
 
 /obj/item/storage/backpack/duffel/syndie/ammo/smg
 	desc = "A large duffel bag, packed to the brim with C-20r magazines."
@@ -630,6 +677,60 @@
 	icon_state = "duffel-security"
 	item_state = "duffel-security"
 
+/obj/item/storage/backpack/duffel/security/blob
+	name = "Level 5 Biohazard Emergency kit"
+
+/obj/item/storage/backpack/duffel/security/blob/populate_contents()
+	new /obj/item/gun/energy/xray (src)
+	new /obj/item/weldingtool/largetank (src)
+	new /obj/item/clothing/glasses/sunglasses (src)
+	new /obj/item/clothing/ears/earmuffs (src)
+	new /obj/item/storage/box/flashbangs (src)
+
+/obj/item/storage/backpack/duffel/security/spiders
+	name = "Level 3 Biohazard Emergency kit"
+
+/obj/item/storage/backpack/duffel/security/spiders/populate_contents()
+	new /obj/item/gun/projectile/shotgun/automatic/combat (src)
+	new /obj/item/ammo_box/shotgun/dragonsbreath (src)
+	new /obj/item/ammo_box/shotgun/dragonsbreath (src)
+	new /obj/item/clothing/mask/gas/sechailer/swat (src)
+	new /obj/item/clothing/suit/armor/heavy (src)
+	new /obj/item/clothing/gloves/combat (src)
+	new /obj/item/clothing/shoes/combat/swat (src)
+	new /obj/item/grenade/gas/plasma (src)
+	new /obj/item/grenade/gas/plasma (src)
+	new /obj/item/grenade/gas/plasma (src)
+
+/obj/item/storage/backpack/duffel/security/riot
+	name = "Riot Supply Kit"
+
+/obj/item/storage/backpack/duffel/security/riot/populate_contents()
+	new /obj/item/clothing/head/helmet/riot (src)
+	new /obj/item/clothing/suit/armor/riot (src)
+	new /obj/item/clothing/gloves/combat (src)
+	new /obj/item/clothing/shoes/combat/swat (src)
+	new /obj/item/melee/baton (src)
+	new /obj/item/shield/riot/tele (src)
+	new /obj/item/gun/energy/gun/pdw9 (src)
+	new /obj/item/grenade/flashbang (src)
+	new /obj/item/grenade/flashbang (src)
+	new /obj/item/storage/box/zipties (src)
+	new /obj/item/storage/box/bola (src)
+
+/obj/item/storage/backpack/duffel/security/war
+	name = "Wartime Emergency Kit"
+
+/obj/item/storage/backpack/duffel/security/war/populate_contents()
+	new /obj/item/gun/projectile/automatic/ar (src)
+	new /obj/item/ammo_box/magazine/m556 (src)
+	new /obj/item/ammo_box/magazine/m556 (src)
+	new /obj/item/clothing/mask/gas/sechailer/swat (src)
+	new /obj/item/clothing/suit/armor/heavy (src)
+	new /obj/item/clothing/gloves/combat (src)
+	new /obj/item/clothing/shoes/combat/swat (src)
+	new /obj/item/grenade/frag (src)
+
 /obj/item/storage/backpack/duffel/virology
 	name = "virology duffelbag"
 	desc = "A white duffelbag designed to contain biohazards."
@@ -667,6 +768,17 @@
 	item_state = "duffel-eng"
 	resistance_flags = FIRE_PROOF
 
+/obj/item/storage/backpack/duffel/engineering/building_event
+	name = "Event Building kit"
+
+/obj/item/storage/backpack/duffel/engineering/building_event/populate_contents()
+	new /obj/item/clothing/glasses/meson/sunglasses (src)
+	new /obj/item/clothing/gloves/color/yellow (src)
+	new /obj/item/storage/belt/utility/chief/full (src)
+	new /obj/item/rcd/preloaded (src)
+	new /obj/item/rcd_ammo/large (src)
+	new /obj/item/rcd_ammo/large (src)
+
 /obj/item/storage/backpack/duffel/atmos
 	name = "atmospherics duffelbag"
 	desc = "A duffelbag designed to hold tools. This one is specially designed for atmospherics."
@@ -679,6 +791,16 @@
 	desc = "A duffelbag designed to hold seeds and fauna."
 	icon_state = "duffel-hydro"
 	item_state = "duffel-hydro"
+
+/obj/item/storage/backpack/duffel/hydro/weed
+	name = "Space Weed Emergency kit"
+
+/obj/item/storage/backpack/duffel/hydro/weed/populate_contents()
+	new /obj/item/clothing/mask/gas (src)
+	new /obj/item/scythe/tele (src)
+	new /obj/item/grenade/chem_grenade/antiweed (src)
+	new /obj/item/grenade/chem_grenade/antiweed (src)
+	new /obj/item/grenade/chem_grenade/antiweed (src)
 
 /obj/item/storage/backpack/duffel/clown
 	name = "smiles von wiggleton"
@@ -748,14 +870,14 @@
 	max_combined_w_class = 4
 	storage_slots = 1
 	sprite_sheets = list(
-		"Vox" = 'icons/mob/clothing/species/vox/back.dmi',
-		"Drask" = 'icons/mob/clothing/species/drask/back.dmi',
-		"Grey" = 'icons/mob/clothing/species/grey/back.dmi',
-		"Monkey" = 'icons/mob/clothing/species/monkey/back.dmi',
-		"Farwa" = 'icons/mob/clothing/species/monkey/back.dmi',
-		"Wolpin" = 'icons/mob/clothing/species/monkey/back.dmi',
-		"Neara" = 'icons/mob/clothing/species/monkey/back.dmi',
-		"Stok" = 'icons/mob/clothing/species/monkey/back.dmi'
+		SPECIES_VOX = 'icons/mob/clothing/species/vox/back.dmi',
+		SPECIES_DRASK = 'icons/mob/clothing/species/drask/back.dmi',
+		SPECIES_GREY = 'icons/mob/clothing/species/grey/back.dmi',
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/back.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/back.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/back.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/back.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/back.dmi'
 		)
 	can_hold = list(/obj/item/instrument, /obj/item/gun)
 	cant_hold = list(/obj/item/instrument/accordion, /obj/item/instrument/harmonica)

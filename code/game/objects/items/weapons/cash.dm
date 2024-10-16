@@ -22,8 +22,7 @@
 	max_amount = CASHMAX
 	merge_type = /obj/item/stack/spacecash
 
-/obj/item/stack/spacecash/update_icon()
-	..()
+/obj/item/stack/spacecash/update_icon_state()
 	name = "[amount == CASHMAX ? "[CASHMAX]" : amount] Credit[amount > 1 ? "s" : ""]"
 	switch(amount)
 		if(CASH1 to CASH2 - 1)
@@ -83,8 +82,18 @@
 /obj/item/stack/spacecash/c1000
 	amount = 1000
 
+/obj/item/stack/spacecash/c5000
+	amount = 5000
+
 /obj/item/stack/spacecash/c1000000
 	amount = 1000000
+
+//A crutch for the vending machine, well, or an ingenious roflcat solution
+/obj/item/stack/spacecash/magic_linked/Initialize(mapload, new_amount = 150, merge = TRUE)
+	. = ..()
+	//roflcat
+	if(loc)
+		SScapitalism.payment_account.credit(new_amount * -1, "Выдача наличности")
 
 ///// USSP space cash
 
@@ -111,8 +120,7 @@
 	..()
 	update_icon()
 
-/obj/item/stack/spacecash/ussp/update_icon()
-	..()
+/obj/item/stack/spacecash/ussp/update_icon_state()
 	name = "[amount == CASHMAX ? "[CASHMAX]" : amount] Ruble[amount > 1 ? "s" : ""]"
 	switch(amount)
 		if(CASH1 to CASH2 - 1)

@@ -31,7 +31,7 @@
 	else
 		..()
 
-/obj/item/reagent_containers/food/snacks/update_icon()
+/obj/item/reagent_containers/food/snacks/update_icon_state()
 	if(!opened)
 		icon_state = "[initial(icon_state)]-closed"
 	else
@@ -59,37 +59,43 @@
 	if(!opened)
 		opened = TRUE
 		to_chat(user, "<span class='notice'>You open the [src].</span>")
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 		return ..()
 	else
 		return
 
-/obj/item/reagent_containers/food/snacks/attack(mob/M, mob/user, def_zone)
+
+/obj/item/reagent_containers/food/snacks/attack(mob/living/carbon/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!iscarbon(target) || (user.a_intent == INTENT_HARM && force))
+		return ..()
+
+	. = ATTACK_CHAIN_PROCEED
+
 	if(!opened)
-		to_chat(user, "<span class='notice'>You need to open the [src]!</span>")
-		return
-	if(reagents && !reagents.total_volume)						//Shouldn't be needed but it checks to see if it has anything left in it.
-		to_chat(user, "<span class='warning'>None of [src] left, oh no!</span>")
-		M.drop_item_ground(src)	//so icons update :[
+		to_chat(user, span_warning("You need to open the [src]!"))
+		return .
+
+	if(reagents && !reagents.total_volume)	//Shouldn't be needed but it checks to see if it has anything left in it.
+		to_chat(user, span_warning("None of [src] left, oh no!"))
 		qdel(src)
-		return FALSE
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(!get_location_accessible(M, "mouth"))
-		if(M == user)
-			to_chat(user, "<span class='warning'>Your face is obscured, so you cant eat.</span>")
+	if(!get_location_accessible(target, BODY_ZONE_PRECISE_MOUTH))
+		if(target == user)
+			to_chat(user, span_warning("Your face is obscured."))
 		else
-			to_chat(user, "<span class='warning'>[M]'s face is obscured, so[M.p_they()] cant eat.</span>")
-		return FALSE
+			to_chat(user, span_warning("[target]'s face is obscured."))
+		return .
 
-	if(iscarbon(M))
-		var/mob/living/carbon/C = M
-		if(C.eat(src, user))
-			bitecount++
-			On_Consume(C, user)
-			return TRUE
-	return FALSE
+	if(!target.eat(src, user))
+		return .
 
-/obj/item/reagent_containers/food/snacks/afterattack(obj/target, mob/user, proximity)
+	. |= ATTACK_CHAIN_SUCCESS
+	bitecount++
+	On_Consume(target, user)
+
+
+/obj/item/reagent_containers/food/snacks/afterattack(obj/target, mob/user, proximity, params)
 	return
 
 /obj/item/reagent_containers/food/snacks/examine(mob/user)
@@ -104,46 +110,41 @@
 				. += "<span class='notice'>[src] was bitten multiple times!</span>"
 
 
-/obj/item/reagent_containers/food/snacks/attackby(obj/item/W, mob/user, params)
-	if(istype(W,/obj/item/pen))
-		rename_interactive(user, W, use_prefix = FALSE, prompt = "What would you like to name this dish?")
-		return
-	if(istype(W,/obj/item/storage))
-		..() // -> item/attackby(, params)
+/obj/item/reagent_containers/food/snacks/attackby(obj/item/I, mob/user, params)
+	if(is_pen(I))
+		rename_interactive(user, I, use_prefix = FALSE, prompt = "What would you like to name this dish?")
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
-	else if(istype(W,/obj/item/kitchen/utensil))
+	if(isstorage(I))
+		return ..()
 
-		var/obj/item/kitchen/utensil/U = W
-
-		if(U.contents.len >= U.max_contents)
-			to_chat(user, "<span class='warning'>You cannot fit anything else on your [U].")
-			return
-
-		user.visible_message( \
-			"[user] scoops up some [src] with \the [U]!", \
-			"<span class='notice'>You scoop up some [src] with \the [U]!" \
+	if(istype(I, /obj/item/kitchen/utensil))
+		var/obj/item/kitchen/utensil/utensil = I
+		if(length(utensil.contents) >= utensil.max_contents)
+			to_chat(user, span_warning("You cannot fit anything else on your [utensil.name]."))
+			return ATTACK_CHAIN_PROCEED
+		user.visible_message(
+			span_notice("[user] scoops up some [name] with [utensil]."),
+			span_notice("You scoop up some [name] with [utensil]!"),
 		)
-
 		bitecount++
-		U.overlays.Cut()
-		var/image/I = new(U.icon, "loadedfood")
-		I.color = filling_color
-		U.overlays += I
-
-		var/obj/item/reagent_containers/food/snacks/collected = new type
+		var/obj/item/reagent_containers/food/snacks/collected = new type(utensil)
 		collected.name = name
-		collected.loc = U
 		collected.reagents.remove_any(collected.reagents.total_volume)
 		collected.trash = null
+		utensil.update_icon(UPDATE_OVERLAYS)
 		if(reagents.total_volume > bitesize)
 			reagents.trans_to(collected, bitesize)
-		else
-			reagents.trans_to(collected, reagents.total_volume)
-			generate_trash(loc)
-			qdel(src)
-		return TRUE
-	else
-		return ..()
+			return ATTACK_CHAIN_PROCEED_SUCCESS
+		reagents.trans_to(collected, reagents.total_volume)
+		generate_trash(drop_location())
+		if(loc == user)
+			user.temporarily_remove_item_from_inventory(src, force = TRUE)
+		qdel(src)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/item/reagent_containers/food/snacks/proc/generate_trash(atom/location)
 	if(trash)
@@ -151,7 +152,7 @@
 			. = new trash(location)
 			trash = null
 			return
-		else if(istype(trash, /obj/item))
+		else if(isitem(trash))
 			var/obj/item/trash_item = trash
 			trash_item.forceMove(location)
 			. = trash
@@ -197,7 +198,9 @@
 	. += "<span class='notice'>Alt-click to put something small inside.</span>"
 
 /obj/item/reagent_containers/food/snacks/sliceable/AltClick(mob/living/user)
-	if(!istype(user) || user.incapacitated())
+	if(!iscarbon(user))
+		return
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		to_chat(user, "<span class='warning'>You can't do that right now!</span>")
 		return
 	var/obj/item/I = user.get_active_hand()
@@ -211,8 +214,6 @@
 		// Nope, no bluespace slice food
 		to_chat(user, "<span class='warning'>You cannot fit [I] in [src]!</span>")
 		return
-	if(!iscarbon(user))
-		return
 	if(!user.drop_transfer_item_to_loc(I, src))
 		to_chat(user, "<span class='warning'>You cannot slip [I] inside [src]!</span>")
 		return
@@ -220,34 +221,51 @@
 	total_w_class += I.w_class
 	add_fingerprint(user)
 
-/obj/item/reagent_containers/food/snacks/sliceable/attackby(obj/item/I, mob/user, params)
-	if((slices_num <= 0 || !slices_num) || !slice_path)
-		return FALSE
 
-	var/inaccurate = TRUE
-	if(I.sharp)
-		if(istype(I, /obj/item/kitchen/knife) || istype(I, /obj/item/scalpel))
-			inaccurate = FALSE
-	else
-		return TRUE
-	if(!isturf(loc) || !(locate(/obj/structure/table) in loc) && \
-			!(locate(/obj/machinery/optable) in loc) && !(locate(/obj/item/storage/bag/tray) in loc))
-		to_chat(user, "<span class='warning'>You cannot slice [src] here! You need a table or at least a tray to do it.</span>")
-		return TRUE
+/obj/item/reagent_containers/food/snacks/sliceable/attackby(obj/item/I, mob/user, params)
+	. = ..()
+
+	if(ATTACK_CHAIN_CANCEL_CHECK(.) || !is_sharp(I) || (slices_num <= 0 || !slices_num) || !slice_path)
+		return .
+
+	if(!isturf(loc))
+		to_chat(user, span_warning("You cannot slice [src] [ismob(loc) ? "in inventory" : "in [loc]"]."))
+		return .
+
+	var/static/list/acceptable_surfaces = typecacheof(list(
+		/obj/structure/table,
+		/obj/machinery/optable,
+		/obj/item/storage/bag/tray,
+	))
+	var/acceptable = FALSE
+	for(var/thing in loc)
+		if(is_type_in_typecache(thing, acceptable_surfaces))
+			acceptable = TRUE
+			break
+	if(!acceptable)
+		to_chat(user, span_warning("You cannot slice [src] here! You need a table or at least a tray to do it."))
+		return .
+
+	. |= ATTACK_CHAIN_BLOCKED_ALL
 	var/slices_lost = 0
-	if(!inaccurate)
-		user.visible_message("<span class='notice'>[user] slices [src]!</span>",
-		 "<span class='notice'>You slice [src]!</span>")
+	if(istype(I, /obj/item/kitchen/knife) || istype(I, /obj/item/scalpel))
+		user.visible_message(
+			span_notice("[user] slices [src] with [I]."),
+			span_notice("You have sliced [src]."),
+		)
 	else
-		user.visible_message("<span class='notice'>[user] crudely slices [src] with [I]!</span>",
-			"<span class='notice'>You crudely slice [src] with your [I]</span>!")
-		slices_lost = rand(1,min(1,round(slices_num/2)))
-	var/reagents_per_slice = reagents.total_volume/slices_num
-	for(var/i=1 to (slices_num-slices_lost))
-		var/obj/slice = new slice_path (loc)
-		reagents.trans_to(slice,reagents_per_slice)
+		slices_lost = rand(1, min(1, round(slices_num / 2)))
+		user.visible_message(
+			span_notice("[user] crudely slices [src] with [I]."),
+			span_notice("You have crudely sliced [src]."),
+		)
+	var/reagents_per_slice = reagents.total_volume / slices_num
+	for(var/i = 1 to (slices_num - slices_lost))
+		var/obj/slice = new slice_path(loc)
+		reagents.trans_to(slice, reagents_per_slice)
 	qdel(src)
-	return ..()
+
+
 ////////////////////////////////////////////////////////////////////////////////
 /// FOOD END
 ////////////////////////////////////////////////////////////////////////////////

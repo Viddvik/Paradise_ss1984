@@ -8,16 +8,19 @@
 	item_state = ""
 	w_class = WEIGHT_CLASS_TINY
 
-/obj/item/evidencebag/afterattack(obj/item/I, mob/user,proximity)
+/obj/item/evidencebag/afterattack(obj/item/I, mob/user, proximity, params)
 	if(!proximity || loc == I)
 		return
 	evidencebagEquip(I, user)
 
+
 /obj/item/evidencebag/attackby(obj/item/I, mob/user, params)
 	if(evidencebagEquip(I, user))
-		return 1
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
 
-/obj/item/evidencebag/proc/evidencebagEquip(obj/item/I, mob/user)
+
+/obj/item/evidencebag/proc/evidencebagEquip(obj/item/I, mob/user)	// this shit is bad
 	if(!istype(I) || I.anchored == 1)
 		return
 
@@ -38,7 +41,7 @@
 		return
 
 	if(!isturf(I.loc)) //If it isn't on the floor. Do some checks to see if it's in our hands or a box. Otherwise give up.
-		if(istype(I.loc,/obj/item/storage))	//in a container.
+		if(isstorage(I.loc))	//in a container.
 			var/obj/item/storage/U = I.loc
 			U.remove_from_storage(I, src)
 		else if(user.l_hand == I)					//in a hand
@@ -61,8 +64,8 @@
 	img.plane = FLOAT_PLANE
 	I.pixel_x = xx		//and then return it
 	I.pixel_y = yy
-	overlays += img
-	overlays += "evidence"	//should look nicer for transparent stuff. not really that important, but hey.
+	add_overlay(img)
+	add_overlay("evidence")	//should look nicer for transparent stuff. not really that important, but hey.
 
 	desc = "An evidence bag containing [I]. [I.desc]"
 	I.loc = src
@@ -74,11 +77,11 @@
 		var/obj/item/I = contents[1]
 		user.visible_message("<span class='notice'>[user] takes [I] out of [src].</span>", "<span class='notice'>You take [I] out of [src].</span>",\
 		"<span class='notice'>You hear someone rustle around in a plastic bag, and remove something.</span>")
-		overlays.Cut()	//remove the overlays
-		user.put_in_hands(I)
+		cut_overlays()	//remove the overlays
 		w_class = WEIGHT_CLASS_TINY
 		icon_state = "evidenceobj"
 		desc = "An empty evidence bag."
+		user.put_in_hands(I)
 
 	else
 		to_chat(user, "[src] is empty.")

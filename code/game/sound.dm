@@ -1,3 +1,4 @@
+GLOBAL_LIST_EMPTY(cached_songs)
 
 ///Default override for echo
 /sound
@@ -57,24 +58,22 @@ falloff_distance - Distance at which falloff begins. Sound is at peak volume (in
 	// Looping through the player list has the added bonus of working for mobs inside containers
 	var/sound/S = sound(get_sfx(soundin))
 	var/maxdistance = SOUND_RANGE + extrarange
-	var/list/listeners = GLOB.player_list
+	var/source_z = turf_source.z
+	var/list/listeners = SSmobs.clients_by_zlevel[source_z].Copy()
 	if(!ignore_walls) //these sounds don't carry through walls
 		listeners = listeners & hearers(maxdistance, turf_source)
-	for(var/mob/M in listeners)
-		if(!M.client)
+	else
+		var/turf/above_turf = GET_TURF_ABOVE(turf_source)
+		if(above_turf?.transparent_floor)
+			listeners += SSmobs.clients_by_zlevel[above_turf.z]
+		var/turf/below_turf = GET_TURF_BELOW(turf_source)
+		if(below_turf?.transparent_floor)
+			listeners += SSmobs.clients_by_zlevel[below_turf.z]
+	for(var/mob/listening_mob in listeners | SSmobs.dead_players_by_zlevel[source_z])//observers always hear through walls
+		if(!listening_mob.client)
 			continue
-
-		var/turf/T = get_turf(M) // These checks need to be changed if z-levels are ever further refactored
-		if(!T)
-			continue
-		if(T.z != turf_source.z)
-			continue
-
-		var/distance = get_dist(M, turf_source)
-
-		if(distance <= maxdistance)
-			M.playsound_local(turf_source, soundin, vol, vary, frequency, falloff_exponent, channel, pressure_affected, S, maxdistance, falloff_distance, 1, use_reverb)
-
+		if(get_dist(listening_mob, turf_source) <= maxdistance)
+			listening_mob.playsound_local(turf_source, soundin, vol, vary, frequency, falloff_exponent, channel, pressure_affected, S, maxdistance, falloff_distance, 1, use_reverb)
 
 /mob/proc/playsound_local(turf/turf_source, soundin, vol as num, vary, frequency, falloff_exponent = SOUND_FALLOFF_EXPONENT, channel = 0, pressure_affected = TRUE, sound/S, max_distance, falloff_distance = SOUND_DEFAULT_FALLOFF_DISTANCE, distance_multiplier = 1, use_reverb = TRUE, wait = FALSE)
 	if(!client || !can_hear())
@@ -186,12 +185,32 @@ falloff_distance - Distance at which falloff begins. Sound is at peak volume (in
 	S.status = SOUND_UPDATE
 	SEND_SOUND(src, S)
 
+/client/proc/playtitlemusic(vol = 85)
+	set waitfor = FALSE
 
-/client/proc/playtitlemusic()
-	if(!SSticker || !SSticker.login_music || CONFIG_GET(flag/disable_lobby_music))
+	if(!SSticker || CONFIG_GET(flag/disable_lobby_music) || !CONFIG_GET(string/invoke_youtubedl))
 		return
+
+	UNTIL(SSticker.login_music) //wait for SSticker init to set the login music
+	UNTIL(tgui_panel)
+	UNTIL(SSassets.initialized)
+
+	var/url = SSticker.login_music_data["url"]
+	switch(CONFIG_GET(string/asset_transport))
+		if ("webroot")
+			var/datum/asset/music/my_asset
+			var/filepath = SSticker.login_music_data["path"]
+			if(GLOB.cached_songs[filepath])
+				my_asset = GLOB.cached_songs[filepath]
+			else
+				my_asset = new /datum/asset/music(filepath)
+				GLOB.cached_songs[filepath] = my_asset
+
+			url = my_asset.get_url()
+
 	if(prefs.sound & SOUND_LOBBY)
-		SEND_SOUND(src, sound(SSticker.login_music, repeat = 0, wait = 0, volume = 85 * prefs.get_channel_volume(CHANNEL_LOBBYMUSIC), channel = CHANNEL_LOBBYMUSIC)) // MAD JAMS
+		tgui_panel?.play_music(url, SSticker.login_music_data)
+		to_chat(src, span_notice("Сейчас играет: [SSticker.login_music_data["title_link"]]"))
 
 
 /proc/get_rand_frequency()

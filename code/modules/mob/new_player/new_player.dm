@@ -7,106 +7,48 @@
 
 	invisibility = INVISIBILITY_ABSTRACT
 
-	density = 0
-	stat = 2
-	canmove = 0
+	density = FALSE
+	stat = DEAD
+
 
 /mob/new_player/Initialize(mapload)
 	SHOULD_CALL_PARENT(FALSE)
-	if(initialized)
+	if(flags & INITIALIZED)
 		stack_trace("Warning: [src]([type]) initialized multiple times!")
-	initialized = TRUE
+	flags |= INITIALIZED
 	GLOB.mob_list += src
 	return INITIALIZE_HINT_NORMAL
 
-/mob/new_player/verb/new_player_panel()
-	set src = usr
-
-	if(client.tos_consent)
-		new_player_panel_proc()
-	else
-		privacy_consent()
-
-
 /mob/new_player/proc/privacy_consent()
 	src << browse(null, "window=playersetup")
-	var/output = {"<meta charset="UTF-8">"} + GLOB.join_tos
-	output += "<p><a href='byond://?src=[UID()];consent_signed=SIGNED'>I consent</A>"
-	output += "<p><a href='byond://?src=[UID()];consent_rejected=NOTSIGNED'>I DO NOT consent</A>"
+	var/output = {"<!DOCTYPE html><meta charset="UTF-8">"} + GLOB.join_tos
+	output += "<p><a href='byond://?src=[UID()];consent_signed=SIGNED'>Я согласен</A>"
+	output += "<p><a href='byond://?src=[UID()];consent_rejected=NOTSIGNED'>Я НЕ согласен</A>"
 	src << browse(output,"window=privacy_consent;size=500x300")
-	var/datum/browser/popup = new(src, "privacy_consent", "<div align='center'>Privacy Consent</div>", 500, 400)
+	var/datum/browser/popup = new(src, "privacy_consent", "<div align='center'>Политика Конфидициальности</div>", 500, 400)
 	popup.set_window_options("can_close=0")
 	popup.set_content(output)
 	popup.open(0)
 	return
 
-
-/mob/new_player/proc/new_player_panel_proc()
-	set waitfor = FALSE
-	var/real_name = client.prefs.real_name
-	if(client.prefs.toggles2 & PREFTOGGLE_2_RANDOMSLOT)
-		real_name = "Random Character Slot"
-	var/output = {"<meta charset="UTF-8"><center><p><a href='byond://?src=[UID()];show_preferences=1'>Setup Character</A><br /><i>[real_name]</i></p>"}
-
-	if(!SSticker || SSticker.current_state <= GAME_STATE_PREGAME)
-		if(!ready)	output += "<p><a href='byond://?src=[UID()];ready=1'>Declare Ready</A></p>"
-		else	output += "<p><b>You are ready</b> (<a href='byond://?src=[UID()];ready=2'>Cancel</A>)</p>"
-	else
-		output += "<p><a href='byond://?src=[UID()];manifest=1'>View the Crew Manifest</A></p>"
-		output += "<p><a href='byond://?src=[UID()];late_join=1'>Join Game!</A></p>"
-
-	var/list/antags = client.prefs.be_special
-	if(antags && antags.len)
-		if(!client.skip_antag) output += "<p><a href='byond://?src=[UID()];skip_antag=1'>Global Antag Candidacy</A>"
-		else	output += "<p><a href='byond://?src=[UID()];skip_antag=2'>Global Antag Candidacy</A>"
-		output += "<br /><small>You are <b>[client.skip_antag ? "ineligible" : "eligible"]</b> for all antag roles.</small></p>"
-
-	if(!SSticker || SSticker.current_state == GAME_STATE_STARTUP)
-		output += "<p>Observe (Please wait...)</p>"
-	else
-		output += "<p><a href='byond://?src=[UID()];observe=1'>Observe</A></p>"
-
-	if(GLOB.join_tos)
-		output += "<p><a href='byond://?src=[UID()];tos=1'>Terms of Service</A></p>"
-
-	output += "</center>"
-
-	var/datum/browser/popup = new(src, "playersetup", "<div align='center'>New Player Options</div>", 240, 330)
-	popup.set_window_options("can_close=0")
-	popup.set_content(output)
-	popup.open(0)
-	return
-
-/mob/new_player/Stat()
-	statpanel("Status")
-
-	..()
-
-	statpanel("Lobby")
-	if(client.statpanel=="Lobby" && SSticker)
-		if(SSticker.hide_mode)
-			stat("Game Mode:", "Secret")
+/mob/new_player/get_status_tab_items()
+	var/list/status_tab_data = ..()
+	. = status_tab_data
+	if(SSticker)
+		if(!SSticker.hide_mode)
+			status_tab_data[++status_tab_data.len] = list("Game Mode:", "[GLOB.master_mode]")
 		else
-			if(SSticker.hide_mode == 0)
-				stat("Game Mode:", "[GLOB.master_mode]") // Old setting for showing the game mode
-			else
-				stat("Game Mode: ", "Secret")
-
-		if((SSticker.current_state == GAME_STATE_PREGAME) && SSticker.ticker_going)
-			stat("Time To Start:", round(SSticker.pregame_timeleft/10))
-		if((SSticker.current_state == GAME_STATE_PREGAME) && !SSticker.ticker_going)
-			stat("Time To Start:", "DELAYED")
+			status_tab_data[++status_tab_data.len] = list("Game Mode:", "Secret")
 
 		if(SSticker.current_state == GAME_STATE_PREGAME)
-			stat("Players:", "[totalPlayers]")
-			//if(check_rights(R_ADMIN, 0, src))
-			stat("Players Ready:", "[totalPlayersReady]")
-			totalPlayers = 0
+			status_tab_data[++status_tab_data.len] = list("Time To Start:", SSticker.ticker_going ? deciseconds_to_time_stamp(SSticker.pregame_timeleft) : "DELAYED")
+
+		if(SSticker.current_state == GAME_STATE_PREGAME)
+			status_tab_data[++status_tab_data.len] = list("Players Ready:", "[totalPlayersReady]")
 			totalPlayersReady = 0
 			for(var/mob/new_player/player in GLOB.player_list)
 				if(check_rights(R_ADMIN, 0, src))
-					stat("[player.key]", (player.ready)?("(Playing)"):(null))
-				totalPlayers++
+					status_tab_data[++status_tab_data.len] = list("[player.key]", player.ready ? "(Ready)" : "(Not ready)")
 				if(player.ready)
 					totalPlayersReady++
 
@@ -124,9 +66,7 @@
 		qdel(query)
 		src << browse(null, "window=privacy_consent")
 		client.tos_consent = TRUE
-		// Now they have accepted TOS, we can log data
-		client.chatOutput.sendClientData()
-		new_player_panel_proc()
+
 	if(href_list["consent_rejected"])
 		client.tos_consent = FALSE
 		to_chat(usr, "<span class='warning'>You must consent to the terms of service before you can join!</span>")
@@ -138,12 +78,13 @@
 		qdel(query)
 
 	if(href_list["show_preferences"])
+		client.prefs.current_tab = 0
 		client.prefs.ShowChoices(src)
 		return TRUE
 
 	if(href_list["ready"])
 		if(!client.tos_consent)
-			to_chat(usr, "<span class='warning'>You must consent to the terms of service before you can join!</span>")
+			to_chat(usr, "<span class='warning'>Вы долнжны согласится с политикой конфидициальноти перед игрой!</span>")
 			return FALSE
 		if(client.version_blocked)
 			client.show_update_notice()
@@ -168,15 +109,37 @@
 				client.prefs.ShowChoices(src)
 				return FALSE
 		ready = !ready
-		new_player_panel_proc()
+		client << output(ready, "title_browser:ready")
 
 	if(href_list["skip_antag"])
-		client.skip_antag = !client.skip_antag
-		new_player_panel_proc()
+		client.prefs?.skip_antag = !client.prefs?.skip_antag
+		client << output(client.prefs.skip_antag, "title_browser:skip_antag")
+
+	if(href_list["game_preferences"])
+		client.prefs.current_tab = 1
+		client.prefs.ShowChoices(usr)
+
+	if(href_list["job_preferences"])
+		client.prefs.SetChoices(usr)
+
+	if(href_list["wiki"])
+		if(tgui_alert(usr, "Открыть вики проекта?", "Вики", list("Да", "Нет")) != "Да")
+			return
+		client << link(CONFIG_GET(string/wikiurl))
+
+	if(href_list["discord"])
+		if(tgui_alert(usr, "Перейти на дискорд сервер?", "Дискорд", list("Да", "Нет")) != "Да")
+			return
+		client << link(CONFIG_GET(string/discordurl))
+
+	if(href_list["changelog"])
+		client.changelog()
+
+	if(href_list["sound_options"])
+		client.volume_mixer()
 
 	if(href_list["refresh"])
 		src << browse(null, "window=playersetup") //closes the player setup window
-		new_player_panel_proc()
 
 	if(href_list["observe"])
 		if(!client.tos_consent)
@@ -189,26 +152,27 @@
 			if(!client.prefs.discord_id || (client.prefs.discord_id && length(client.prefs.discord_id) == 32))
 				client.prefs.load_preferences(client)
 				to_chat(usr, "<span class='danger'>Вам необходимо привязать дискорд-профиль к аккаунту!</span>")
-				to_chat(usr, "<span class='warning'>Нажмите 'Привязка Discord' во вкладке 'Special Verbs' для получения инструкций.</span>")
+				to_chat(usr, "<span class='warning'>Нажмите 'Привязка Discord' в меню или во вкладке 'Special Verbs' для получения инструкций.</span>")
 				return FALSE
 		if(!SSticker || SSticker.current_state == GAME_STATE_STARTUP)
 			to_chat(usr, "<span class='warning'>You must wait for the server to finish starting before you can join!</span>")
 			return FALSE
 
-		if(alert(src,"Are you sure you wish to observe?[(CONFIG_GET(flag/respawn_observer) ? "" : " You cannot normally join the round after doing this!")]","Player Setup","Yes","No") == "Yes")
+		if(tgui_alert(src,"Вы уверены что хотите стать наблюдателем?[(CONFIG_GET(flag/respawn_observer) ? "" : " Вы не сможете зайти в раунд за члена экипажа после этого!")]","Наблюдать", list("Да","Нет")) == "Да")
 			if(!client)
 				return 1
 			var/mob/dead/observer/observer = new()
 			src << browse(null, "window=playersetup")
 			spawning = 1
-			stop_sound_channel(CHANNEL_LOBBYMUSIC)
+			// stop_sound_channel(CHANNEL_LOBBYMUSIC)
+			client?.tgui_panel?.stop_music()
 
 
 			observer.started_as_observer = 1
 			close_spawn_windows()
 			var/obj/O = locate("landmark*Observer-Start")
 			to_chat(src, "<span class='notice'>Now teleporting.</span>")
-			observer.forceMove(O.loc)
+			observer.abstract_move(get_turf(O))
 			observer.timeofdeath = world.time // Set the time of death so that the respawn timer works correctly.
 			client.prefs.update_preview_icon(1)
 			observer.icon = client.prefs.preview_icon
@@ -223,6 +187,7 @@
 			if (CONFIG_GET(flag/respawn_observer)) GLOB.respawnable_list += observer			// If enabled in config - observer cant respawn as Player
 			qdel(src)
 			return 1
+
 	if(href_list["tos"])
 		privacy_consent()
 		return FALSE
@@ -246,10 +211,6 @@
 		if(!is_used_species_available(client.prefs.species))
 			to_chat(usr, "<span class='warning'>Выбранная раса персонажа недоступна для игры в данный момент! Выберите другого персонажа.</span>")
 			return
-		if(client.prefs.species in GLOB.whitelisted_species)
-			if(!is_alien_whitelisted(src, client.prefs.species) && CONFIG_GET(flag/usealienwhitelist))
-				to_chat(src, alert("You are currently not whitelisted to play [client.prefs.species]."))
-				return FALSE
 		if(CONFIG_GET(flag/tts_enabled))
 			if(!client.prefs.tts_seed)
 				to_chat(usr, "<span class='danger'>Вам необходимо настроить голос персонажа! Не забудьте сохранить настройки.</span>")
@@ -266,6 +227,9 @@
 	if(href_list["manifest"])
 		ViewManifest()
 
+	if(href_list["connect_discord"])
+		client?.link_discord_account()
+
 	if(href_list["SelectedJob"])
 
 		if(!GLOB.enter_allowed)
@@ -278,11 +242,6 @@
 		if(!is_used_species_available(client.prefs.species))
 			to_chat(usr, "<span class='warning'>Выбранная раса персонажа недоступна для игры в данный момент! Выберите другого персонажа.</span>")
 			return
-
-		if(client.prefs.species in GLOB.whitelisted_species)
-			if(!is_alien_whitelisted(src, client.prefs.species) && CONFIG_GET(flag/usealienwhitelist))
-				to_chat(src, alert("You are currently not whitelisted to play [client.prefs.species]."))
-				return FALSE
 
 		//Prevents people rejoining as same character.
 		if(!is_admin(usr)) //Админам можно всё
@@ -298,15 +257,24 @@
 	if(!ready && href_list["preference"])
 		if(client)
 			client.prefs.process_link(src, href_list)
-	else if(!href_list["late_join"])
-		new_player_panel()
+
+	if(href_list["change_picture"])
+		client.admin_change_title_screen()
+		return
+
+	if(href_list["leave_notice"])
+		client.change_title_screen_notice()
+		return
+
+	if(href_list["focus"])
+		winset(client, "mapwindow.map", "focus=true")
+		return
 
 /mob/new_player/proc/IsJobAvailable(rank)
 	var/datum/job/job = SSjobs.GetJob(rank)
 	if(!job)	return 0
 	if(!job.is_position_available()) return 0
 	if(jobban_isbanned(src,rank))	return 0
-	if(!is_job_whitelisted(src, rank))	 return 0
 	if(!job.player_old_enough(client))	return 0
 	if(job.admin_only && !(check_rights(R_ADMIN, 0))) return 0
 	if(job.available_in_playtime(client))
@@ -315,11 +283,11 @@
 		return 0
 
 	if(CONFIG_GET(flag/assistant_limit))
-		if(job.title == "Civilian")
+		if(job.title == JOB_TITLE_CIVILIAN)
 			var/count = 0
-			var/datum/job/officer = SSjobs.GetJob("Security Officer")
-			var/datum/job/warden = SSjobs.GetJob("Warden")
-			var/datum/job/hos = SSjobs.GetJob("Head of Security")
+			var/datum/job/officer = SSjobs.GetJob(JOB_TITLE_OFFICER)
+			var/datum/job/warden = SSjobs.GetJob(JOB_TITLE_WARDEN)
+			var/datum/job/hos = SSjobs.GetJob(JOB_TITLE_HOS)
 			count += (officer.current_positions + warden.current_positions + hos.current_positions)
 			if(job.current_positions > (CONFIG_GET(number/assistant_ratio) * count))
 				if(count >= 5) // if theres more than 5 security on the station just let assistants join regardless, they should be able to handle the tide
@@ -335,8 +303,10 @@
 		return 0
 
 /mob/new_player/proc/is_used_species_available(species)
-	var/list/available_species = list("Human", "Tajaran", "Skrell", "Unathi", "Diona", "Vulpkanin")
-	available_species += GLOB.whitelisted_species
+	if(has_admin_rights())
+		return TRUE
+	var/list/available_species = list(SPECIES_HUMAN)
+	available_species += CONFIG_GET(str_list/playable_species)
 	if(species in available_species)
 		return TRUE
 	else
@@ -398,13 +368,19 @@
 		alert(msg)
 		return FALSE
 
+	if(thisjob.species_in_blacklist(client))
+		var/msg = "Должность [rank] недоступна для данной расы. Выберите другую."
+		to_chat(src, msg)
+		alert(msg)
+		return FALSE
+
 	SSjobs.AssignRole(src, rank, 1)
 
 	var/mob/living/character = create_character()	//creates the human and transfers vars and mind
 	character = SSjobs.AssignRank(character, rank, 1)					//equips the human
 
 	// AIs don't need a spawnpoint, they must spawn at an empty core
-	if(character.mind.assigned_role == "AI")
+	if(character.mind.assigned_role == JOB_TITLE_AI)
 		var/mob/living/silicon/ai/ai_character = character.AIize() // AIize the character, but don't move them yet
 
 		// IsJobAvailable for AI checks that there is an empty core available in this list
@@ -444,18 +420,15 @@
 			join_message = "прибыл на станцию"
 
 	character.lastarea = get_area(loc)
-	// Moving wheelchair if they have one
-	if(character.buckled && istype(character.buckled, /obj/structure/chair/wheelchair))
-		character.buckled.forceMove(character.loc)
-		character.buckled.dir = character.dir
 
 	character = SSjobs.EquipRank(character, rank, 1)					//equips the human
 	EquipCustomItems(character)
 
 	SSticker.mode.latespawn(character)
 
-	if(character.mind.assigned_role == "Cyborg")
-		AnnounceCyborg(character, rank, join_message)
+	if(character.mind.assigned_role == JOB_TITLE_CYBORG)
+		var/mob/living/silicon/robot/R = character
+		AnnounceCyborg(character, R.mind.role_alt_title ? R.mind.role_alt_title : JOB_TITLE_CYBORG, join_message)
 	else
 		SSticker.minds += character.mind//Cyborgs and AIs handle this in the transform proc.	//TODO!!!!! ~Carn
 		if(!IsAdminJob(rank))
@@ -482,13 +455,13 @@
 		if(ailist.len)
 			var/mob/living/silicon/ai/announcer = pick(ailist)
 			if(character.mind)
-				if((character.mind.assigned_role != "Cyborg") && (character.mind.assigned_role != character.mind.special_role))
+				if((character.mind.assigned_role != JOB_TITLE_CYBORG) && (character.mind.assigned_role != character.mind.special_role))
 					var/arrivalmessage = create_announce_message(character, rank, join_message, announcer.arrivalmsg)
 					announcer.say(";[arrivalmessage]")
 
 		else
 			if(character.mind)
-				if((character.mind.assigned_role != "Cyborg") && (character.mind.assigned_role != character.mind.special_role))
+				if((character.mind.assigned_role != JOB_TITLE_CYBORG) && (character.mind.assigned_role != character.mind.special_role))
 					var/arrivalmessage = create_announce_message(character, rank, join_message, GLOB.global_announcer_base_text)
 					GLOB.global_announcer.autosay(arrivalmessage, "Arrivals Announcement Computer")
 
@@ -580,7 +553,7 @@
 				if(job.title in categorizedJobs[jobcat]["titles"])
 					categorized = 1
 					if(jobcat == "Command") // Put captain at top of command jobs
-						if(job.title == "Captain")
+						if(job.title == JOB_TITLE_CAPTAIN)
 							jobs.Insert(1, job)
 						else
 							jobs += job
@@ -637,17 +610,18 @@
 		client.prefs.real_name = random_name(client.prefs.gender)
 	client.prefs.copy_to(new_character)
 
-	stop_sound_channel(CHANNEL_LOBBYMUSIC)
+	// stop_sound_channel(CHANNEL_LOBBYMUSIC)
+	client?.tgui_panel?.stop_music()
 
 
 	if(mind)
 		mind.active = 0					//we wish to transfer the key manually
-		if(mind.assigned_role == "Clown")				//give them a clownname if they are a clown
+		if(mind.assigned_role == JOB_TITLE_CLOWN)				//give them a clownname if they are a clown
 			new_character.real_name = pick(GLOB.clown_names)	//I hate this being here of all places but unfortunately dna is based on real_name!
-			new_character.rename_self("clown")
-		else if(mind.assigned_role == "Mime")
+			new_character.rename_self(JOB_TITLE_CLOWN)
+		else if(mind.assigned_role == JOB_TITLE_MIME)
 			new_character.real_name = pick(GLOB.mime_names)
-			new_character.rename_self("mime")
+			new_character.rename_self(JOB_TITLE_MIME)
 		mind.set_original_mob(new_character)
 		mind.transfer_to(new_character)					//won't transfer key since the mind is not active
 		GLOB.human_names_list += new_character.real_name
@@ -662,23 +636,24 @@
 	var/datum/species/chosen_species
 	if(client.prefs.species)
 		chosen_species = GLOB.all_species[client.prefs.species]
-	if(!(chosen_species && (is_species_whitelisted(chosen_species) || has_admin_rights())))
+	if(!chosen_species)
 		// Have to recheck admin due to no usr at roundstart. Latejoins are fine though.
 		log_runtime(EXCEPTION("[src] had species [client.prefs.species], though they weren't supposed to. Setting to Human."), src)
-		client.prefs.species = "Human"
+		client.prefs.species = SPECIES_HUMAN
 
 	var/datum/language/chosen_language
 	if(client.prefs.language)
 		chosen_language = GLOB.all_languages[client.prefs.language]
-	if((chosen_language == null && client.prefs.language != "None") || (chosen_language && chosen_language.flags & RESTRICTED))
+	if((!chosen_language && client.prefs.language != LANGUAGE_NONE) || (chosen_language && chosen_language.flags & RESTRICTED))
 		log_runtime(EXCEPTION("[src] had language [client.prefs.language], though they weren't supposed to. Setting to None."), src)
-		client.prefs.language = "None"
+		client.prefs.language = LANGUAGE_NONE
 
 /mob/new_player/proc/ViewManifest()
-	GLOB.generic_crew_manifest.ui_interact(usr, state = GLOB.always_state)
+	GLOB.generic_crew_manifest.ui_interact(usr)
 
-/mob/new_player/Move()
-	return 0
+
+/mob/new_player/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
+	return FALSE
 
 
 /mob/new_player/proc/close_spawn_windows()
@@ -692,10 +667,6 @@
 /mob/new_player/proc/has_admin_rights()
 	return check_rights(R_ADMIN, 0, src)
 
-/mob/new_player/proc/is_species_whitelisted(datum/species/S)
-	if(!S) return 1
-	return is_alien_whitelisted(src, S.name) || !CONFIG_GET(flag/usealienwhitelist) || !(IS_WHITELISTED in S.species_traits)
-
 /mob/new_player/get_gender()
 	if(!client || !client.prefs) ..()
 	return client.prefs.gender
@@ -705,4 +676,8 @@
 
 // No hearing announcements
 /mob/new_player/can_hear()
-	return 0
+	return FALSE
+
+/mob/new_player/mob_negates_gravity()
+	return TRUE //no need to calculate if they have gravity.
+

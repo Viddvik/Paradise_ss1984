@@ -8,14 +8,17 @@
 
 	var/datum/mind/exchange_red
 	var/datum/mind/exchange_blue
+	/// The number of contractors who accepted the offer.
+	var/contractor_accepted = 0
+
 
 /datum/game_mode/traitor
 	name = "traitor"
 	config_tag = "traitor"
-	restricted_jobs = list("Cyborg", "AI")
-	protected_jobs = list("Security Officer", "Warden", "Detective", "Head of Security", "Captain", "Blueshield", "Nanotrasen Representative", "Security Pod Pilot", "Magistrate", "Internal Affairs Agent", "Brig Physician", "Nanotrasen Navy Officer", "Nanotrasen Navy Field Officer", "Special Operations Officer", "Supreme Commander", "Syndicate Officer")
+	restricted_jobs = list(JOB_TITLE_CYBORG, JOB_TITLE_AI)
+	protected_jobs = list(JOB_TITLE_OFFICER, JOB_TITLE_WARDEN, JOB_TITLE_DETECTIVE, JOB_TITLE_HOS, JOB_TITLE_CAPTAIN, JOB_TITLE_BLUESHIELD, JOB_TITLE_REPRESENTATIVE, JOB_TITLE_PILOT, JOB_TITLE_JUDGE, JOB_TITLE_LAWYER, JOB_TITLE_BRIGDOC, JOB_TITLE_CCOFFICER, JOB_TITLE_CCFIELD, JOB_TITLE_CCSPECOPS, JOB_TITLE_CCSUPREME, JOB_TITLE_SYNDICATE)
 	/// Basically all jobs, except AI.
-	var/list/protected_jobs_AI = list("Civilian","Chief Engineer","Station Engineer","Trainee Engineer","Life Support Specialist","Mechanic","Chief Medical Officer","Medical Doctor","Intern","Coroner","Chemist","Geneticist","Virologist","Psychiatrist","Paramedic","Research Director","Scientist","Student Scientist","Roboticist","Head of Personnel","Chaplain","Bartender","Chef","Botanist","Quartermaster","Cargo Technician","Shaft Miner","Clown","Mime","Janitor","Librarian","Barber","Explorer")
+	var/list/protected_jobs_AI = list(JOB_TITLE_CIVILIAN, JOB_TITLE_CHIEF, JOB_TITLE_ENGINEER, JOB_TITLE_ENGINEER_TRAINEE, JOB_TITLE_ATMOSTECH, JOB_TITLE_MECHANIC, JOB_TITLE_CMO, JOB_TITLE_DOCTOR, JOB_TITLE_INTERN, JOB_TITLE_CORONER, JOB_TITLE_CHEMIST, JOB_TITLE_GENETICIST, JOB_TITLE_VIROLOGIST, JOB_TITLE_PSYCHIATRIST, JOB_TITLE_PARAMEDIC, JOB_TITLE_RD, JOB_TITLE_SCIENTIST, JOB_TITLE_SCIENTIST_STUDENT, JOB_TITLE_ROBOTICIST, JOB_TITLE_HOP, JOB_TITLE_CHAPLAIN, JOB_TITLE_BARTENDER, JOB_TITLE_CHEF, JOB_TITLE_BOTANIST, JOB_TITLE_QUARTERMASTER, JOB_TITLE_CARGOTECH, JOB_TITLE_MINER, JOB_TITLE_CLOWN, JOB_TITLE_MIME, JOB_TITLE_JANITOR, JOB_TITLE_LIBRARIAN, JOB_TITLE_BARBER, JOB_TITLE_EXPLORER)
 	required_players = 0
 	required_enemies = 1
 	recommended_enemies = 4
@@ -25,14 +28,6 @@
 	var/datum/mind/pre_malf_AI
 	/// Hard limit on traitors if scaling is turned off.
 	var/traitors_possible = 4
-	// Contractor related
-	/// Minimum number of possible contractors regardless of the number of traitors.
-	var/min_contractors = 1
-	/// How many contractors there are in proportion to traitors.
-	/// Calculated as: num_contractors = max(min_contractors, CEILING(num_traitors * contractor_traitor_ratio, 1))
-	var/contractor_traitor_ratio = 0.25
-	/// List of traitors who are eligible to become a contractor.
-	var/list/datum/mind/selected_contractors = list()
 
 
 /datum/game_mode/traitor/announce()
@@ -47,7 +42,7 @@
 		restricted_jobs += protected_jobs
 
 	var/list/possible_traitors = get_players_for_role(ROLE_TRAITOR)
-	var/list/possible_malfs = get_players_for_role(ROLE_MALF_AI)
+	var/list/possible_malfs = get_players_for_role(ROLE_MALF_AI, req_job_rank = JOB_TITLE_AI)
 
 	var/malf_AI_candidate
 	if(length(possible_malfs))
@@ -69,8 +64,6 @@
 
 	add_game_logs("Number of traitors chosen: [num_traitors]")
 
-	var/num_contractors = max(min_contractors, CEILING(num_traitors * contractor_traitor_ratio, 1))
-
 	for(var/i in 1 to num_traitors)
 		if(!length(possible_traitors))
 			break
@@ -80,24 +73,20 @@
 			if((ROLE_TRAITOR in traitor.current.client.prefs.be_special) && prob(50))	// If traitor is also enabled its 50/50 chance.
 				pre_traitors += traitor
 				traitor.restricted_roles = restricted_jobs
-				if(num_contractors-- > 0)
-					selected_contractors += traitor
 			else
 				pre_malf_AI = traitor
 				pre_malf_AI.restricted_roles = (restricted_jobs|protected_jobs|protected_jobs_AI)	// All jobs are restricted for malf AI despite the config.
-				pre_malf_AI.restricted_roles -= "AI"
+				pre_malf_AI.restricted_roles -= JOB_TITLE_AI
 				SSjobs.new_malf = traitor.current
 		else
 			pre_traitors += traitor
 			traitor.restricted_roles = restricted_jobs
-			if(num_contractors-- > 0)
-				selected_contractors += traitor
 
 
 /datum/game_mode/traitor/post_setup()
 	for(var/datum/mind/traitor in pre_traitors)
 		var/datum/antagonist/traitor/new_antag = new
-		new_antag.is_contractor = (traitor in selected_contractors)
+		new_antag.is_contractor = TRUE
 		addtimer(CALLBACK(traitor, TYPE_PROC_REF(/datum/mind, add_antag_datum), new_antag), rand(1 SECONDS, 10 SECONDS))
 	if(pre_malf_AI)
 		addtimer(CALLBACK(pre_malf_AI, TYPE_PROC_REF(/datum/mind, add_antag_datum), /datum/antagonist/malf_ai), rand(1 SECONDS, 10 SECONDS))

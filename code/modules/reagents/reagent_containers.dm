@@ -21,7 +21,9 @@
 	set category = "Object"
 	set src in usr
 
-	if(!usr.Adjacent(src) || !(ishuman(usr) || isrobot(usr)) || usr.incapacitated())
+	if(!ishuman(usr) && !isrobot(usr))
+		return
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	var/default = null
 	if(amount_per_transfer_from_this in possible_transfer_amounts)
@@ -30,19 +32,20 @@
 
 	if(!N)
 		return
-	if(!usr.Adjacent(src))
+	if(!Adjacent(usr))
 		to_chat(usr, "<span class='warning'>You have moved too far away!</span>")
 		return
 
-	if(usr.incapacitated())
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		to_chat(usr, "<span class='warning'>You can't use your hands!</span>")
 		return
 
 	amount_per_transfer_from_this = N
 	to_chat(usr, "<span class='notice'>[src] will now transfer [N] units at a time.</span>")
 
-/obj/item/reagent_containers/AltClick()
-	set_APTFT()
+/obj/item/reagent_containers/AltClick(mob/user)
+	if(Adjacent(user))
+		set_APTFT()
 
 /obj/item/reagent_containers/verb/empty()
 
@@ -50,11 +53,11 @@
 	set category = "Object"
 	set src in usr
 
-	if(!usr.Adjacent(src) || usr.stat || !usr.canmove || usr.incapacitated())
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	if(alert(usr, "Are you sure you want to empty that?", "Empty Container:", "Yes", "No") != "Yes")
 		return
-	if(!usr.Adjacent(src) || usr.stat || !usr.canmove || usr.incapacitated())
+	if(!usr.Adjacent(src) || usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return
 	if(isturf(usr.loc) && loc == usr)
 		if(!is_open_container() && !pass_open_check)
@@ -113,9 +116,12 @@
 			to_chat(user, "<span class='notice'>You take the lid off [src].</span>")
 			remove_lid()
 
-/obj/item/reagent_containers/attack(mob/M, mob/user, def_zone)
-	if(user.a_intent == INTENT_HARM)
-		return ..()
+
+/obj/item/reagent_containers/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(user.a_intent != INTENT_HARM)
+		return ATTACK_CHAIN_PROCEED
+	return ..()
+
 
 /obj/item/reagent_containers/wash(mob/user, atom/source)
 	if(is_open_container())

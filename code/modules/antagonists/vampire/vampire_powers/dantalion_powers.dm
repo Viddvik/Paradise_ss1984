@@ -32,7 +32,7 @@
 	user.visible_message(span_warning("[user] bites [target]'s neck!"), \
 						span_warning("You bite [target]'s neck and begin the flow of power."))
 	to_chat(target, span_warning("You feel the tendrils of evil invade your mind."))
-	if(do_mob(user, target, 15 SECONDS))
+	if(do_after(user, 15 SECONDS, target, NONE))
 		if(can_enthrall(user, target))
 			handle_enthrall(user, target)
 			var/datum/spell_handler/vampire/V = custom_handler
@@ -81,8 +81,7 @@
 	if(!istype(H))
 		return FALSE
 
-	var/greet_text = "<b>You have been Enthralled by [user.real_name]. Follow [user.p_their()] every command.</b>"
-	H.mind.add_antag_datum(new /datum/antagonist/mindslave/thrall(user.mind, greet_text))
+	H.mind.add_antag_datum(new /datum/antagonist/mindslave/thrall/new_thrall(user.mind))
 	if(jobban_isbanned(H, ROLE_VAMPIRE))
 		SSticker.mode.replace_jobbanned_player(H, SPECIAL_ROLE_VAMPIRE_THRALL)
 	H.Stun(4 SECONDS)
@@ -133,8 +132,8 @@
 
 
 /obj/effect/proc_holder/spell/vampire/thrall_commune/cast(list/targets, mob/user)
-	var/input = stripped_input(user, "Enter a message to relay to the other thralls", "Thrall Commune", "")
-	if(!input)
+	var/input = tgui_input_text(user, "Enter a message to relay to the other thralls", "Thrall Commune")
+	if(! input)
 		revert_cast(user)
 		return
 

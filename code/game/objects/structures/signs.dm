@@ -1,11 +1,30 @@
 /obj/structure/sign
 	icon = 'icons/obj/decals.dmi'
-	anchored = 1
-	opacity = 0
-	density = 0
-	layer = 3.5
+	anchored = TRUE
+	opacity = FALSE
+	density = FALSE
+	layer = NOT_HIGH_OBJ_LAYER
 	max_integrity = 100
+	blocks_emissive = EMISSIVE_BLOCK_GENERIC
+	var/does_emissive = FALSE
+	var/random_number = FALSE
 	armor = list("melee" = 50, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50)
+
+
+/obj/structure/sign/Initialize(mapload)
+	. = ..()
+	if(does_emissive || random_number)
+		update_icon(UPDATE_OVERLAYS)
+
+
+/obj/structure/sign/update_overlays()
+	. = ..()
+
+	underlays.Cut()
+	if(does_emissive)
+		underlays += emissive_appearance(icon, "[icon_state]_lightmask", src)
+	if(random_number)
+		add_overlay(mutable_appearance(icon, "_num[pick("0","1","2","3","4","5","6","7","8","9","10","inf")]"))
 
 /obj/structure/sign/play_attack_sound(damage_amount, damage_type = BRUTE, damage_flag = 0)
 	switch(damage_type)
@@ -16,6 +35,7 @@
 				playsound(loc, 'sound/weapons/tap.ogg', 50, TRUE)
 		if(BURN)
 			playsound(loc, 'sound/items/welder.ogg', 80, TRUE)
+
 
 /obj/structure/sign/screwdriver_act(mob/user, obj/item/I)
 	if(istype(src, /obj/structure/sign/double))
@@ -42,33 +62,36 @@
 	resistance_flags = FLAMMABLE
 	var/sign_state = ""
 
-/obj/item/sign/attackby(obj/item/tool as obj, mob/user as mob)	//construction
-	if(istype(tool, /obj/item/screwdriver) && isturf(user.loc))
-		var/direction = input("In which direction?", "Select direction.") in list("North", "East", "South", "West", "Cancel")
-		if(direction == "Cancel")
-			return
-		if(QDELETED(src))
-			return
-		var/obj/structure/sign/S = new(user.loc)
-		switch(direction)
-			if("North")
-				S.pixel_y = 32
-			if("East")
-				S.pixel_x = 32
-			if("South")
-				S.pixel_y = -32
-			if("West")
-				S.pixel_x = -32
-			else
-				return
-		S.name = name
-		S.desc = desc
-		S.icon_state = sign_state
-		src.transfer_fingerprints_to(S)
-		to_chat(user, "You fasten \the [S] with your [tool].")
-		qdel(src)
-	else
-		return ..()
+
+/obj/item/sign/screwdriver_act(mob/living/user, obj/item/I)
+	if(!isturf(loc))
+		return
+
+	var/direction = input("In which direction?", "Select direction.") in list("North", "East", "South", "West", "Cancel")
+	if(direction == "Cancel")
+		return TRUE // These gotta be true or we stab the sign
+	if(QDELETED(src))
+		return TRUE // Unsure about this, but stabbing something that doesnt exist seems like a bad idea
+
+	var/obj/structure/sign/sign = new(loc)
+	switch(direction)
+		if("North")
+			sign.pixel_y = 32
+		if("East")
+			sign.pixel_x = 32
+		if("South")
+			sign.pixel_y = -32
+		if("West")
+			sign.pixel_x = -32
+		else
+			return TRUE // We dont want to stab it or place it, so we return
+	sign.name = name
+	sign.desc = desc
+	sign.icon_state = sign_state
+	to_chat(user, span_notice("You fasten [sign] with your [I]."))
+	qdel(src)
+	return TRUE
+
 
 /obj/structure/sign/double/map
 	name = "station map"
@@ -80,6 +103,17 @@
 
 /obj/structure/sign/double/map/right
 	icon_state = "map-right"
+
+/obj/structure/sign/double/no_idiots
+	name = "Counting sign"
+	desc = "Indicates how many days the station operates without idiots at the SuperMatter crystal control panel"
+
+/obj/structure/sign/double/no_idiots/left
+	icon_state = "no_idiots_left"
+	random_number = TRUE
+
+/obj/structure/sign/double/no_idiots/right
+	icon_state = "no_idiots_right"
 
 /obj/structure/sign/securearea
 	name = "\improper SECURE AREA"
@@ -178,6 +212,11 @@
 	desc = "This plaque commemorates the fall of the Atmos ZAS division. For all the charred, dizzy, and brittle men who have died in its horrible hands."
 	icon_state = "atmosplaque"
 
+/obj/structure/sign/beautyplaque
+	name = "The Most Beautiful Woman Award for Beauty"
+	desc = "Don't think, feel! It's like pointing your finger at the singularity. Don't concentrate on your finger, or you'll miss this divine beauty."
+	icon_state = "beautyplaque"
+
 /obj/structure/sign/kidanplaque
 	name = "Kidan wall trophy"
 	desc = "A dead and stuffed Diona nymph, mounted on a board."
@@ -212,11 +251,15 @@
 	name = "\improper barber shop sign"
 	desc = "A spinning sign indicating a barbershop is near."
 	icon_state = "barber"
+	does_emissive = TRUE
+	blocks_emissive = FALSE
 
 /obj/structure/sign/chinese
 	name = "\improper chinese restaurant sign"
 	desc = "A glowing dragon invites you in."
 	icon_state = "chinese"
+	does_emissive = TRUE
+	blocks_emissive = FALSE
 
 /obj/structure/sign/science
 	name = "\improper SCIENCE!"
@@ -263,6 +306,16 @@
 	desc = "A sign labelling an area where cargo ships dock."
 	icon_state = "cargo"
 
+/obj/structure/sign/med
+	name = "\improper MEDBAY"
+	desc = "A sign labelling an area where heal is real."
+	icon_state = "med"
+
+/obj/structure/sign/comand
+	name = "\improper BRIDGE"
+	desc = "A sign labelling an area where all heads drinks."
+	icon_state = "comand"
+
 /obj/structure/sign/security
 	name = "\improper SECURITY"
 	desc = "A sign labelling an area where the law is law."
@@ -285,6 +338,14 @@
 
 /obj/structure/sign/medbay/alt
 	icon_state = "bluecross2"
+
+/obj/structure/sign/directions/floor
+	name = "\improper Floor"
+	desc = "A direction sign, pointing out which floor you are."
+	icon_state = "level"
+
+/obj/structure/sign/directions/floor/alt
+	icon_state = "level_alt"
 
 /obj/structure/sign/directions/science
 	name = "\improper Research Division"

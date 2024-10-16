@@ -6,7 +6,7 @@
 /datum/martial_combo/ninja_martial_art/neck_slice/perform_combo(mob/living/carbon/human/user, mob/living/carbon/human/target, datum/martial_art/ninja_martial_art/creeping_widow)
 	if(!ishuman(target))	// Комбо работает только на гуманоидов
 		return MARTIAL_COMBO_DONE_BASIC_HIT
-	if(target.IsWeakened() || target.resting || target.stat)
+	if(target.stat || target.body_position == LYING_DOWN)
 		if(creeping_widow.my_energy_katana && user.get_inactive_hand() == creeping_widow.my_energy_katana)
 			if(creeping_widow.has_focus)
 				user.say("悪気はないんだ...")
@@ -17,11 +17,8 @@
 					playsound(get_turf(target), 'sound/weapons/katana-slice-loud.ogg', 75, TRUE, -1)
 					target.visible_message("<span class='warning'>[user] cuts [target] throat with [creeping_widow.my_energy_katana]!</span>", \
 									"<span class='userdanger'>[user] cuts your throat with [creeping_widow.my_energy_katana]!</span>")
-					for(var/bodypart in target.bodyparts)
-						var/obj/item/organ/external/current_organ = bodypart
-						if(current_organ.limb_name == "head")
-							current_organ.droplimb()	// Просто отрезаем голову. Можешь жить без головы? Значит тебе повезло! Или тебя добьют руками...
-							break
+					var/obj/item/organ/external/head_organ = target.get_organ(BODY_ZONE_HEAD)
+					head_organ?.droplimb()
 				else
 					playsound(get_turf(target), 'sound/weapons/blade_unsheath.ogg', 75, TRUE, -1)
 					target.visible_message("<span class='warning'>[user] tries to cut [target] throat with [creeping_widow.my_energy_katana]! But fails!</span>", \

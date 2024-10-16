@@ -1,17 +1,3 @@
-/proc/issmall(A)
-	if(A && istype(A, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = A
-		if(H.dna.species && H.dna.species.is_small)
-			return 1
- 	return 0
-
-/proc/ispet(A)
-	if(istype(A, /mob/living/simple_animal))
-		var/mob/living/simple_animal/SA = A
-		if(SA.can_collar)
-			return 1
-	return 0
-
 /mob/proc/get_screen_colour()
 
 /mob/proc/update_client_colour(var/time = 10) //Update the mob's client.color with an animation the specified time in length.
@@ -45,7 +31,7 @@
 
 
 /proc/isLivingSSD(mob/M)
-	return istype(M) && M.player_logged && M.stat != DEAD
+	return istype(M) && !isnull(M.player_logged) && M.stat != DEAD
 
 /proc/isAntag(A)
 	if(isliving(A))
@@ -87,7 +73,7 @@
 
 
 /proc/iscuffed(A)
-	if(istype(A, /mob/living/carbon))
+	if(iscarbon(A))
 		var/mob/living/carbon/C = A
 		if(C.handcuffed)
 			return 1
@@ -133,12 +119,13 @@
 		message_admins("No ghosts were willing to take control of [key_name_admin(M)])")
 
 /proc/check_zone(zone)
-	if(!zone)	return "chest"
+	if(!zone)
+		return BODY_ZONE_CHEST
 	switch(zone)
-		if("eyes")
-			zone = "head"
-		if("mouth")
-			zone = "head"
+		if(BODY_ZONE_PRECISE_EYES)
+			zone = BODY_ZONE_HEAD
+		if(BODY_ZONE_PRECISE_MOUTH)
+			zone = BODY_ZONE_HEAD
 	return zone
 
 // Returns zone with a certain probability.
@@ -153,27 +140,36 @@
 	if(prob(probability))
 		return zone
 
-	var/t = rand(1, 18) // randomly pick a different zone, or maybe the same one
-	switch(t)
-		if(1)		 return "head"
-		if(2)		 return "chest"
-		if(3 to 4)	 return "l_arm"
-		if(5 to 6)   return "l_hand"
-		if(7 to 8)	 return "r_arm"
-		if(9 to 10)  return "r_hand"
-		if(11 to 12) return "l_leg"
-		if(13 to 14) return "l_foot"
-		if(15 to 16) return "r_leg"
-		if(17 to 18) return "r_foot"
-
+	switch(rand(1, 18))	// randomly pick a different zone, or maybe the same one
+		if(1)
+			return BODY_ZONE_HEAD
+		if(2)
+			return BODY_ZONE_CHEST
+		if(3 to 4)
+			return BODY_ZONE_L_ARM
+		if(5 to 6)
+			return BODY_ZONE_PRECISE_L_HAND
+		if(7 to 8)
+			return BODY_ZONE_R_ARM
+		if(9 to 10)
+			return BODY_ZONE_PRECISE_R_HAND
+		if(11 to 12)
+			return BODY_ZONE_L_LEG
+		if(13 to 14)
+			return BODY_ZONE_PRECISE_L_FOOT
+		if(15 to 16)
+			return BODY_ZONE_R_LEG
+		if(17 to 18)
+			return BODY_ZONE_PRECISE_R_FOOT
 	return zone
 
+
 /proc/above_neck(zone)
-	var/list/zones = list("head", "mouth", "eyes")
+	var/list/zones = list(BODY_ZONE_HEAD, BODY_ZONE_PRECISE_MOUTH, BODY_ZONE_PRECISE_EYES)
 	if(zones.Find(zone))
-		return 1
-	else
-		return 0
+		return TRUE
+	return FALSE
+
 
 /proc/stars(n, pr)
 	if(pr == null)
@@ -348,14 +344,14 @@
 	return 0
 
 
-/mob/proc/abiotic(var/full_body = 0)
-	if(full_body && ((l_hand && !(l_hand.flags & ABSTRACT)) || (r_hand && !(r_hand.flags & ABSTRACT)) || (back || wear_mask)))
-		return 1
+/mob/proc/abiotic(full_body = FALSE)
+	if(full_body && ((l_hand && !(l_hand.item_flags & ABSTRACT)) || (r_hand && !(r_hand.item_flags & ABSTRACT)) || (back || wear_mask)))
+		return TRUE
 
-	if((l_hand && !(l_hand.flags & ABSTRACT)) || (r_hand && !(r_hand.flags & ABSTRACT)))
-		return 1
+	if((l_hand && !(l_hand.item_flags & ABSTRACT)) || (r_hand && !(r_hand.item_flags & ABSTRACT)))
+		return TRUE
 
-	return 0
+	return FALSE
 
 //converts intent-strings into numbers and back
 GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM))
@@ -413,20 +409,9 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 		to_chat(src, "<span class='notice'>Вы уже спите.</span>")
 		return
 	else
-		if(alert(src, "You sure you want to sleep for a while?", "Sleep", "Yes", "No") == "Yes")
+		if(tgui_alert(src, "You sure you want to sleep for a while?", "Sleep", list("Yes", "No")) == "Yes")
 			SetSleeping(40 SECONDS) //Short nap
 
-/mob/living/verb/lay_down()
-	set name = "Rest"
-	set category = "IC"
-
-	if(!resting)
-		client.move_delay = world.time + 20
-		to_chat(src, "<span class='notice'>Вы отдыхаете.</span>")
-		StartResting()
-	else if(resting)
-		to_chat(src, "<span class='notice'>Вы встаёте.</span>")
-		StopResting()
 
 /proc/get_multitool(mob/user as mob)
 	// Get tool
@@ -499,7 +484,7 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 			if(flashwindow)
 				window_flash(O.client)
 			if(source)
-				var/obj/screen/alert/notify_action/A = O.throw_alert("\ref[source]_notify_action", /obj/screen/alert/notify_action)
+				var/atom/movable/screen/alert/notify_action/A = O.throw_alert("\ref[source]_notify_action", /atom/movable/screen/alert/notify_action)
 				if(A)
 					if(O.client.prefs && O.client.prefs.UI_style)
 						A.icon = ui_style2icon(O.client.prefs.UI_style)
@@ -513,13 +498,14 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 						var/old_plane = source.plane
 						source.layer = FLOAT_LAYER
 						source.plane = FLOAT_PLANE
-						A.overlays += source
+						A.add_overlay(source)
 						source.layer = old_layer
 						source.plane = old_plane
 					else
 						alert_overlay.layer = FLOAT_LAYER
 						alert_overlay.plane = FLOAT_PLANE
-						A.overlays += alert_overlay
+						A.add_overlay(alert_overlay)
+
 
 /**
   * Checks if a mob's ghost can reenter their body or not. Used to check for DNR or AntagHUD.
@@ -573,7 +559,7 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 					if(!search_pda)	break
 					search_id = 0
 
-			else if( search_pda && istype(A,/obj/item/pda) )
+			else if( search_pda && is_pda(A) )
 				var/obj/item/pda/PDA = A
 				if(PDA.owner == oldname)
 					PDA.owner = newname
@@ -601,11 +587,11 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 
 		for(var/i=1,i<=3,i++)	//we get 3 attempts to pick a suitable name.
 			if(force)
-				newname = clean_input("Выберите новое имя.", "Смена имени", oldname, src)
+				newname = tgui_input_text(src, "Выберите новое имя.", "Смена имени", oldname)
 			else
-				newname = clean_input("Вы [role]. Не хотите поменять своё имя на другое? У вас есть 3 минуты для выбора нового имени.", "Смена имени", oldname, src)
+				newname = tgui_input_text(src, "Вы [role]. Не хотите поменять своё имя на другое? У вас есть 3 минуты для выбора нового имени.", "Смена имени", oldname, timeout = 3 MINUTES)
 			if(((world.time - time_passed) > 1800) && !force)
-				alert(src, "К сожалению, время для выбора имени кончилось. Если вы киборг, используйте команду «Namepick»; иначе — «Adminhelp».", "Смена имени")
+				tgui_alert(src, "К сожалению, время для выбора имени кончилось. Если вы киборг, используйте команду «Namepick»; иначе — «Adminhelp».", "Смена имени")
 				return	//took too long
 			newname = reject_bad_name(newname,allow_numbers)	//returns null if the name doesn't meet some basic requirements. Tidies up a few other things like bad-characters.
 
@@ -837,5 +823,29 @@ GLOBAL_LIST_INIT(intents, list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM
 			log_admin("[src.ckey] just got booted back to lobby with no jobs, but antags enabled.")
 			message_admins("[src.ckey] just got booted back to lobby with no jobs enabled, but antag rolling enabled. Likely antag rolling abuse.")
 		return FALSE //This is the only case someone should actually be completely blocked from antag rolling as well
+	return TRUE
+
+
+/mob/proc/can_pass_adjacent(atom/adjacent, list/types_to_exclude)
+	if(!isturf(loc))
+		return FALSE
+	if(!adjacent)
+		return FALSE
+	if(!isturf(adjacent))
+		adjacent = get_turf(adjacent)
+		if(!adjacent)
+			return FALSE
+	if(loc == adjacent)
+		return TRUE
+	if(!in_range(src, adjacent))
+		return FALSE
+	var/border_dir = get_dir(adjacent, src)
+	if(!is_type_in_list(adjacent, types_to_exclude) && !adjacent.CanPass(src, border_dir))
+		return FALSE
+	for(var/atom/check_atom as anything in adjacent)
+		if(is_type_in_list(check_atom, types_to_exclude))
+			continue
+		if(!check_atom.CanPass(src, border_dir))
+			return FALSE
 	return TRUE
 

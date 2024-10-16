@@ -11,8 +11,8 @@
 
 /obj/machinery/mech_bay_recharge_port
 	name = "Mech Bay Power Port"
-	density = 1
-	anchored = 1
+	density = TRUE
+	anchored = TRUE
 	dir = EAST
 	icon = 'icons/obj/mecha/mech_bay.dmi'
 	icon_state = "recharge_port"
@@ -67,10 +67,14 @@
 		MC += C.rating
 	max_charge = MC * 50
 
+
 /obj/machinery/mech_bay_recharge_port/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/machinery/mech_bay_recharge_port/screwdriver_act(mob/user, obj/item/I)
 	if(default_deconstruction_screwdriver(user, "recharge_port-o", "recharge_port", I))
@@ -112,8 +116,8 @@
 
 /obj/machinery/computer/mech_bay_power_console
 	name = "mech bay power control console"
-	density = 1
-	anchored = 1
+	density = TRUE
+	anchored = TRUE
 	icon = 'icons/obj/machines/computer.dmi'
 	icon_keyboard = "tech_key"
 	icon_screen = "recharge_comp"
@@ -122,12 +126,17 @@
 	var/obj/machinery/mech_bay_recharge_port/recharge_port
 
 
-/obj/machinery/computer/mech_bay_power_console/update_icon()
-	if(!recharge_port || !recharge_port.recharging_mecha || !recharge_port.recharging_mecha.cell || !(recharge_port.recharging_mecha.cell.charge < recharge_port.recharging_mecha.cell.maxcharge) || stat & (NOPOWER|BROKEN))
-		icon_screen = "recharge_comp"
+/obj/machinery/computer/mech_bay_power_console/update_overlays()
+	if(stat & (NOPOWER|BROKEN))
+		icon_screen = "recharge_comp" // off
 	else
-		icon_screen = "recharge_comp_on"
-	..()
+		var/obj/item/stock_parts/cell/cell = recharge_port?.recharging_mecha?.cell
+		if(!cell || cell.charge >= cell.maxcharge)
+			icon_screen = "recharge_comp" // don't have a reachable cell to charge or fully charged
+		else
+			icon_screen = "recharge_comp_on" // now we working!
+	. = ..()
+
 
 /obj/machinery/computer/mech_bay_power_console/proc/reconnect()
 	if(recharge_port)
@@ -160,10 +169,10 @@
 		return
 	ui_interact(user)
 
-/obj/machinery/computer/mech_bay_power_console/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/computer/mech_bay_power_console/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "MechBayConsole", name, 400, 150, master_ui, state)
+		ui = new(user, src, "MechBayConsole", name)
 		ui.open()
 
 /obj/machinery/computer/mech_bay_power_console/ui_act(action, params)

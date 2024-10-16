@@ -5,8 +5,8 @@
 //trees
 /obj/structure/flora/tree
 	name = "tree"
-	anchored = 1
-	density = 1
+	anchored = TRUE
+	density = TRUE
 	pixel_x = -16
 	layer = 9
 
@@ -14,15 +14,18 @@
 	name = "pine tree"
 	icon = 'icons/obj/flora/pinetrees.dmi'
 	icon_state = "pine_1"
+	var/randomize_tree = TRUE
 
 /obj/structure/flora/tree/pine/Initialize(mapload)
 	. = ..()
-	icon_state = "pine_[rand(1, 3)]"
+	if(randomize_tree)
+		icon_state = "pine_[rand(1, 3)]"
 
 /obj/structure/flora/tree/pine/xmas
 	name = "xmas tree"
 	icon = 'icons/obj/flora/pinetrees.dmi'
 	icon_state = "pine_c"
+	randomize_tree = FALSE
 
 /obj/structure/flora/tree/dead
 	icon = 'icons/obj/flora/deadtrees.dmi'
@@ -62,7 +65,7 @@
 /obj/structure/flora/grass
 	name = "grass"
 	icon = 'icons/obj/flora/snowflora.dmi'
-	anchored = 1
+	anchored = TRUE
 	max_integrity = 15
 
 /obj/structure/flora/grass/brown
@@ -93,7 +96,7 @@
 	name = "bush"
 	icon = 'icons/obj/flora/snowflora.dmi'
 	icon_state = "snowbush1"
-	anchored = 1
+	anchored = TRUE
 	max_integrity = 15
 
 /obj/structure/flora/bush/Initialize(mapload)
@@ -106,7 +109,7 @@
 	name = "bush"
 	icon = 'icons/obj/flora/ausflora.dmi'
 	icon_state = "firstbush_1"
-	anchored = 1
+	anchored = TRUE
 	max_integrity = 15
 
 /obj/structure/flora/ausbushes/Initialize(mapload)
@@ -223,8 +226,8 @@
 	name = "potted plant"
 	icon = 'icons/obj/flora/plants.dmi'
 	icon_state = "plant-1"
-	flags = NO_PIXEL_RANDOM_DROP
-	anchored = 0
+	item_flags = NO_PIXEL_RANDOM_DROP
+	anchored = FALSE
 	layer = ABOVE_MOB_LAYER
 	w_class = WEIGHT_CLASS_HUGE
 	force = 10
@@ -238,6 +241,8 @@
 	var/l_range_init
 	/// Light power plant will get on init
 	var/l_power_init
+	light_on = FALSE
+	light_system = MOVABLE_LIGHT
 
 
 /obj/item/twohanded/required/kirbyplants/New()
@@ -250,11 +255,13 @@
 	if(num == 9)
 		l_range_init = 2
 		l_power_init = 0.6
-		set_light(l_range_init, l_power_init, COLOR_LUMINOL)
+		set_light_range_power_color(l_range_init, l_power_init, COLOR_LUMINOL)
+		set_light_on(TRUE)
 	else if(num == 20)
 		l_range_init = 2
 		l_power_init = 0.6
-		set_light(l_range_init, l_power_init, COLOR_WHEAT)
+		set_light_range_power_color(l_range_init, l_power_init, COLOR_WHEAT)
+		set_light_on(TRUE)
 
 
 /obj/item/twohanded/required/kirbyplants/Destroy()
@@ -264,10 +271,8 @@
 
 
 /obj/item/twohanded/required/kirbyplants/extinguish_light(force = FALSE)
-	if(light_range)
-		light_power = 0
-		light_range = 0
-		update_light()
+	if(light_on)
+		set_light_on(FALSE)
 		name = "dimmed [name]"
 		desc = "Something shadowy moves to cover the plant. Perhaps shining a light will force it to clear?"
 		START_PROCESSING(SSobj, src)
@@ -285,9 +290,7 @@
 
 /obj/item/twohanded/required/kirbyplants/proc/reset_light()
 	light_process = 0
-	light_power = l_power_init
-	light_range = l_range_init
-	update_light()
+	set_light_on(TRUE)
 	name = initial(name)
 	desc = initial(desc)
 	STOP_PROCESSING(SSobj, src)
@@ -301,8 +304,8 @@
 	I.override = 1
 	user.add_alt_appearance("sneaking_mission", I, GLOB.player_list)
 
-/obj/item/twohanded/required/kirbyplants/dropped(mob/living/user, silent = FALSE)
-	..()
+/obj/item/twohanded/required/kirbyplants/dropped(mob/living/user, slot, silent = FALSE)
+	. = ..()
 	user.remove_alt_appearance("sneaking_mission")
 
 /obj/item/twohanded/required/kirbyplants/dead
@@ -318,7 +321,7 @@
 	icon_state = "rock1"
 	icon = 'icons/obj/flora/rocks.dmi'
 	resistance_flags = FIRE_PROOF
-	anchored = 1
+	anchored = TRUE
 
 /obj/structure/flora/rock/Initialize(mapload)
 	. = ..()
@@ -367,7 +370,7 @@
 	name = "corn stalk"
 	icon = 'icons/obj/flora/plants.dmi'
 	icon_state = "cornstalk1"
-	anchored = 0
+	anchored = FALSE
 	layer = 5
 
 /obj/structure/flora/corn_stalk/alt_1
@@ -380,7 +383,7 @@
 	name = "straw bail"
 	icon = 'icons/obj/flora/plants.dmi'
 	icon_state = "strawbail1"
-	density = 1
+	density = TRUE
 	climbable = 1 // you can climb all over them.
 
 /obj/structure/flora/straw_bail/alt_1
@@ -394,42 +397,70 @@
 	desc = "Pretty thick scrub, it'll take something sharp and a lot of determination to clear away."
 	icon = 'icons/obj/flora/plants.dmi'
 	icon_state = "bush1"
-	density = 1
-	anchored = 1
-	layer = 3.2
-	var/indestructable = 0
+	density = TRUE
+	anchored = TRUE
+	layer = ABOVE_OBJ_LAYER
+	var/indestructable = FALSE
 	var/stump = 0
+
 
 /obj/structure/bush/Initialize(mapload)
 	. = ..()
 	if(prob(20))
-		opacity = 1
+		set_opacity(TRUE)
 
-/obj/structure/bush/attackby(var/obj/I as obj, var/mob/user as mob, params)
-	//hatchets can clear away undergrowth
-	if(istype(I, /obj/item/hatchet) && !stump)
+
+/obj/structure/bush/update_icon_state()
+	icon_state = stump ? "stump[stump]" : initial(icon_state)
+
+
+/obj/structure/bush/update_name(updates = ALL)
+	. = ..()
+	name = stump ? "cleared foliage" : initial(name)
+
+
+/obj/structure/bush/update_desc(updates = ALL)
+	. = ..()
+	desc = stump ? "There used to be dense undergrowth here." : initial(desc)
+
+
+/obj/structure/bush/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
+	if(istype(I, /obj/item/hatchet))	//hatchets can clear away undergrowth
+		add_fingerprint(user)
 		if(indestructable)
 			//this bush marks the edge of the map, you can't destroy it
-			to_chat(user, "<span class='warning'>You flail away at the undergrowth, but it's too thick here.</span>")
-		else
-			user.visible_message("<span class='danger'>[user] begins clearing away [src].</b>","<span class='warning'><b>You begin clearing away [src].</span></span>")
-			spawn(rand(15,30))
-				if(get_dist(user,src) < 2)
-					to_chat(user, "<span class='notice'>You clear away [src].</span>")
-					new /obj/item/stack/sheet/wood(src.loc, rand(3,15))
-					if(prob(50))
-						add_fingerprint(user)
-						icon_state = "stump[rand(1,2)]"
-						name = "cleared foliage"
-						desc = "There used to be dense undergrowth here."
-						density = 0
-						stump = 1
-						pixel_x = rand(-6,6)
-						pixel_y = rand(-6,6)
-					else
-						qdel(src)
-	else
-		return ..()
+			to_chat(user, span_warning("You flail away at the undergrowth, but it's too thick here."))
+			return ATTACK_CHAIN_BLOCKED_ALL
+		if(stump)
+			to_chat(user, span_warning("All the foliage has been already cleared."))
+			return ATTACK_CHAIN_PROCEED
+		I.play_tool_sound(src)
+		user.visible_message(
+			span_danger("[user] starts clearing away [src]."),
+			span_warning("You start clearing away [src]."),
+		)
+		if(!do_after(user, rand(3 SECONDS, 5 SECONDS) * I.toolspeed, src, category = DA_CAT_TOOL) || stump)
+			return ATTACK_CHAIN_PROCEED
+		to_chat(user,span_notice("You clear away [src]."))
+		var/obj/item/stack/sheet/wood/wood = new(loc, rand(3, 15))
+		transfer_fingerprints_to(wood)
+		wood.add_fingerprint(user)
+		if(prob(50))
+			qdel(src)
+			return ATTACK_CHAIN_BLOCKED_ALL
+		stump = rand(1, 2)
+		set_density(FALSE)
+		set_opacity(FALSE)
+		update_appearance(UPDATE_ICON_STATE|UPDATE_NAME|UPDATE_DESC)
+		set_base_pixel_x(rand(-6, 6))
+		set_base_pixel_y(rand(-6, 6))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 //Jungle grass
 

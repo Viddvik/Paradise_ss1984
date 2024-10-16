@@ -15,7 +15,12 @@
 	icon = 'icons/obj/ninjaobjects.dmi'
 	icon_state = "injector"
 	attack_verb = list("poked", "prodded")
-	var/used = 0
+	var/used = FALSE
+
+
+/obj/item/creeping_widow_injector/update_icon_state()
+	icon_state = "injector[used ? "-used" : ""]"
+
 
 /obj/item/creeping_widow_injector/attack_self(mob/living/carbon/human/user as mob)
 	if(!used)
@@ -26,24 +31,31 @@
 		var/datum/martial_art/ninja_martial_art/N = new/datum/martial_art/ninja_martial_art(null)
 		N.teach(user)
 
-		used = 1
-		icon_state = "injector-used"
+		used = TRUE
+		update_icon(UPDATE_ICON_STATE)
 		desc = "A strange autoinjector made of a black metal.<br>It appears to be used up and empty."
-		return 0
-	else
-		to_chat(user, "<span class='warning'>The [src] has been used already!</span>")
-		return 1
+		return FALSE
+
+	to_chat(user, "<span class='warning'>The [src] has been used already!</span>")
+	return TRUE
 
 // Ninja martial art datum
 
 /datum/martial_art/ninja_martial_art
 	name = "Creeping Widow"
+	weight = 10
 	combos = list(	/datum/martial_combo/ninja_martial_art/energy_tornado,
 					/datum/martial_combo/ninja_martial_art/palm_strike,
 					/datum/martial_combo/ninja_martial_art/wrench_wrist,
 					/datum/martial_combo/ninja_martial_art/neck_slice)
 	has_explaination_verb = TRUE
 	reflection_chance = 50
+	grab_speed = 2 SECONDS
+	grab_resist_chances = list(
+		MARTIAL_GRAB_AGGRESSIVE = 40,
+		MARTIAL_GRAB_NECK = 10,
+		MARTIAL_GRAB_KILL = 5,
+	)
 	var/obj/item/clothing/suit/space/space_ninja/my_suit
 	var/obj/item/melee/energy_katana/my_energy_katana
 
@@ -68,11 +80,12 @@
 
 /datum/martial_art/ninja_martial_art/grab_act(var/mob/living/carbon/human/attacker, var/mob/living/carbon/human/defender)
 	MARTIAL_ARTS_ACT_CHECK
-	var/obj/item/grab/grab_item = defender.grabbedby(attacker, 1)
-	if(grab_item)
-		grab_item.state = GRAB_AGGRESSIVE //Instant aggressive grab
+	var/old_grab_state = attacker.grab_state
+	var/grab_success = defender.grabbedby(attacker, supress_message = TRUE)
+	if(grab_success && old_grab_state == GRAB_PASSIVE)
+		defender.grippedby(attacker) //Instant aggressive grab
 		add_attack_logs(attacker, defender, "Melee attacked with martial-art [src] : aggressively grabbed")
-	if(!defender.stat && !defender.IsWeakened())
+	if(!defender.stat && defender.body_position != LYING_DOWN)
 		if(attacker.dir == defender.dir && has_focus)
 			has_focus = FALSE
 			var/hold_name = "[pick(attack_names)] [pick("grip", "hold", "vise", "press")]"
@@ -81,8 +94,8 @@
 			defender.visible_message("<span class='warning'>[attacker] comes from behind, punches the [defender] in their neck and puts [defender] in a [hold_name]!</span>", \
 							"<span class='userdanger'>[attacker]\ punches you in the neck and puts you in a [hold_name]! You are unable to speak!</span>")
 			defender.AdjustSilence(40 SECONDS)
-			defender.adjustOxyLoss(20)
-			defender.apply_damage(5, BRUTE, pick("head", "mouth"))
+			defender.apply_damage(20, OXY)
+			defender.apply_damage(5, BRUTE, pick(BODY_ZONE_HEAD, BODY_ZONE_PRECISE_MOUTH))
 			addtimer(CALLBACK(src, PROC_REF(regain_focus), attacker), 300)
 	return TRUE
 

@@ -33,8 +33,8 @@
 	health = 40
 
 /mob/living/simple_animal/goose/Scientist
-	name = "Гуськор"
-	desc = "Учёный Гусь. Везде учусь. Крайне умная птица. Обожает генетику. Надеемся это не бывший пропавший генетик..."
+	name = "Гусар"
+	desc = "И учёный, и жнец, и на дуде игрец."
 	icon_state = "goose_labcoat"
 	icon_living = "goose_labcoat"
 	icon_dead = "goose_labcoat_dead"
@@ -105,7 +105,7 @@
 	desc = "Когда-то это был напарник самой сообразительной крысы в мире. К сожалению он таковым не являлся..."
 	anchored = TRUE
 
-/mob/living/simple_animal/mouse/rat/gray/Ratatui
+/mob/living/simple_animal/mouse/rat/Ratatui
 	name = "Рататуй"
 	real_name = "Рататуй"
 	desc = "Личная крыса шеф повара, помогающая ему при готовке наиболее изысканных блюд. До момента пока он не пропадет и повар не начнет готовить что-то новенькое..."

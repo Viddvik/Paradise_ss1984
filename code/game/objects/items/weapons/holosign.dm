@@ -3,21 +3,25 @@
 	desc = "This shouldnt exist, if it does, tell a coder"
 	icon = 'icons/obj/device.dmi'
 	icon_state = "signmaker"
-	item_state = "electronic"
+	item_state = "signmaker"
 	force = 0
 	w_class = WEIGHT_CLASS_SMALL
 	throwforce = 0
 	throw_speed = 3
 	throw_range = 7
 	origin_tech = "magnets=1;programming=3"
-	flags = NOBLUDGEON
+	item_flags = NOBLUDGEON
 	var/list/signs = list()
 	var/max_signs = 10
 	var/creation_time = 0 //time to create a holosign in deciseconds.
-	var/holosign_type = null
+	var/holosign_type = /obj/structure/holosign/wetsign // because runtime if type == null
 	var/holocreator_busy = FALSE //to prevent placing multiple holo barriers at once
 
-/obj/item/holosign_creator/afterattack(atom/target, mob/user, flag)
+/obj/item/holosign_creator/Initialize(mapload)
+	. = ..()
+	AddElement(/datum/element/openspace_item_click_handler)
+
+/obj/item/holosign_creator/afterattack(atom/target, mob/user, flag, params)
 	if(flag)
 		if(!check_allowed_items(target, 1))
 			return
@@ -27,7 +31,7 @@
 			to_chat(user, "<span class='notice'>You use [src] to deactivate [H].</span>")
 			qdel(H)
 		else
-			if(!is_blocked_turf(T, TRUE)) //can't put holograms on a tile that has dense stuff
+			if(!T.is_blocked_turf(exclude_mobs = TRUE)) //can't put holograms on a tile that has dense stuff
 				if(holocreator_busy)
 					to_chat(user, "<span class='notice'>[src] is busy creating a hologram.</span>")
 					return
@@ -35,13 +39,13 @@
 					playsound(src.loc, 'sound/machines/click.ogg', 20, 1)
 					if(creation_time)
 						holocreator_busy = TRUE
-						if(!do_after(user, creation_time, target = target))
+						if(!do_after(user, creation_time, target))
 							holocreator_busy = FALSE
 							return
 						holocreator_busy = FALSE
 						if(signs.len >= max_signs)
 							return
-						if(is_blocked_turf(T, TRUE)) //don't try to sneak dense stuff on our tile during the wait.
+						if(T.is_blocked_turf(exclude_mobs = TRUE)) //don't try to sneak dense stuff on our tile during the wait.
 							return
 					H = new holosign_type(get_turf(target), src)
 					to_chat(user, "<span class='notice'>You create [H] with [src].</span>")
@@ -49,8 +53,10 @@
 				else
 					to_chat(user, "<span class='notice'>[src] is projecting at max capacity!</span>")
 
-/obj/item/holosign_creator/attack(mob/living/carbon/human/M, mob/user)
-	return
+
+/obj/item/holosign_creator/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
 
 /obj/item/holosign_creator/attack_self(mob/user)
 	if(signs.len)
@@ -58,15 +64,20 @@
 			qdel(H)
 		to_chat(user, "<span class='notice'>You clear all active holograms.</span>")
 
+/obj/item/holosign_creator/handle_openspace_click(turf/target, mob/user, proximity_flag, click_parameters)
+	afterattack(target, user, proximity_flag, click_parameters)
+
 /obj/item/holosign_creator/janitor
 	name = "Janitorial Holosign projector"
 	desc = "A handy-dandy holographic projector that displays a janitorial sign."
 	belt_icon = "sign_projector"
 	holosign_type = /obj/structure/holosign/wetsign
-	var/wet_enabled = FALSE
+	var/wet_enabled = TRUE
 
 /obj/item/holosign_creator/janitor/AltClick(mob/living/user)
-	if(!istype(user) || user.incapacitated())
+	if(!istype(user) || !Adjacent(user))
+		return
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		to_chat(user, "<span class='warning'>You can't do that right now!</span>")
 		return
 	wet_enabled = !wet_enabled
@@ -80,7 +91,7 @@
 	. = ..()
 	. += "<span class='info'>Alt-Click to [wet_enabled ? "deactivate" : "activate"] its built-in wet evaporation timer.</span>"
 
-/obj/item/holosign_creator/janitor/afterattack(atom/target, mob/user, flag)
+/obj/item/holosign_creator/janitor/afterattack(atom/target, mob/user, flag, params)
 	var/obj/structure/holosign/wetsign/WS = ..()
 	if(WS && wet_enabled)
 		WS.wet_timer_start(src)
@@ -89,11 +100,13 @@
 	holosign_type = /obj/structure/holosign/wetsign/mine
 	creation_time = 5
 	max_signs = 5
+	wet_enabled = FALSE
 
 /obj/item/holosign_creator/security
 	name = "security holobarrier projector"
 	desc = "A holographic projector that creates holographic security barriers."
 	icon_state = "signmaker_sec"
+	item_state = "signmaker_sec"
 	belt_icon = "security_sign_projector"
 	holosign_type = /obj/structure/holosign/barrier
 	creation_time = 30
@@ -103,6 +116,7 @@
 	name = "engineering holobarrier projector"
 	desc = "A holographic projector that creates holographic engineering barriers."
 	icon_state = "signmaker_engi"
+	item_state = "signmaker_engi"
 	holosign_type = /obj/structure/holosign/barrier/engineering
 	creation_time = 30
 	max_signs = 6
@@ -111,6 +125,7 @@
 	name = "ATMOS holofan projector"
 	desc = "A holographic projector that creates holographic barriers that prevent changes in atmosphere conditions."
 	icon_state = "signmaker_engi"
+	item_state = "signmaker_engi"
 	holosign_type = /obj/structure/holosign/barrier/atmos
 	creation_time = 0
 	max_signs = 3

@@ -4,10 +4,11 @@
 	icon = 'icons/turf/walls/cult_wall.dmi'
 	icon_state = "cult"
 	canSmoothWith = null
-	smooth = SMOOTH_FALSE
+	smooth = NONE
 	sheet_type = /obj/item/stack/sheet/runed_metal
 	sheet_amount = 1
 	girder_type = /obj/structure/girder/cult
+	var/holy = FALSE
 
 /turf/simulated/wall/cult_fake
 	name = "runed metal wall"
@@ -15,17 +16,23 @@
 	icon = 'icons/turf/walls/cult_wall.dmi'
 	icon_state = "cult"
 	canSmoothWith = null
-	smooth = SMOOTH_FALSE
+	smooth = NONE
 	sheet_type = /obj/item/stack/sheet/runed_metal_fake
 	sheet_amount = 1
 	girder_type = /obj/structure/girder/cult_fake
 
+
 /turf/simulated/wall/cult/Initialize(mapload)
 	. = ..()
-	if(SSticker.mode)//game hasn't started offically don't do shit..
-		new /obj/effect/temp_visual/cult/turf(src)
-		if(!icon_state == "holy")
-			icon_state = SSticker.cultdat.cult_wall_icon_state
+	update_icon(UPDATE_ICON_STATE)
+
+
+/turf/simulated/wall/cult/update_icon_state()
+	if(SSticker?.cultdat && !holy)
+		icon_state = SSticker.cultdat.cult_wall_icon_state
+		return
+	icon_state = initial(icon_state)
+
 
 /turf/simulated/wall/cult_fake/Initialize(mapload)
 	. = ..()
@@ -42,6 +49,7 @@
 	icon_state = "holy"
 	sheet_type = /obj/item/stack/sheet/metal
 	girder_type = /obj/structure/girder
+	holy = TRUE
 
 /turf/simulated/wall/cult/artificer/break_wall()
 	new /obj/effect/temp_visual/cult/turf(get_turf(src))
@@ -60,24 +68,35 @@
 	name = "rusted wall"
 	desc = "A rusted metal wall."
 	icon = 'icons/turf/walls/rusty_wall.dmi'
-	icon_state = "arust"
+	icon_state = "rusty_wall-0"
+	base_icon_state = "rusty_wall"
 
 /turf/simulated/wall/r_wall/rust
 	name = "rusted reinforced wall"
 	desc = "A huge chunk of rusted reinforced metal."
 	icon = 'icons/turf/walls/rusty_reinforced_wall.dmi'
-	icon_state = "rrust"
+	icon_state = "rusty_reinforced_wall-0"
+	base_icon_state = "rusty_reinforced_wall"
 
 /turf/simulated/wall/r_wall/coated			//Coated for heat resistance
 	name = "coated reinforced wall"
 	desc = "A huge chunk of reinforced metal used to seperate rooms. It seems to have additional plating to protect against heat."
 	icon = 'icons/turf/walls/coated_reinforced_wall.dmi'
 	max_temperature = INFINITY
+	smooth = SMOOTH_BITMASK
+	icon_state = "coated_reinforced_wall-0"
+	base_icon_state = "coated_reinforced_wall"
 
 //Clockwork walls
 /turf/simulated/wall/clockwork
 	name = "clockwork wall"
 	desc = "A huge chunk of warm metal. The clanging of machinery emanates from within."
+	icon_state = "clockwork_wall-0"
+	base_icon_state = "clockwork_wall"
+	icon = 'icons/turf/walls/clockwork_wall.dmi'
+	canSmoothWith = SMOOTH_GROUP_CLOCKWORK_WALLS
+	smoothing_groups = SMOOTH_GROUP_CLOCKWORK_WALLS
+	smooth = SMOOTH_BITMASK
 	explosion_block = 2
 	hardness = 10
 	slicing_duration = 80
@@ -128,13 +147,6 @@
 		var/newgirder = break_wall()
 		if(newgirder) //maybe we want a gear!
 			transfer_fingerprints_to(newgirder)
-
-	for(var/obj/O in src.contents) //Eject contents!
-		if(istype(O, /obj/structure/sign/poster))
-			var/obj/structure/sign/poster/P = O
-			P.roll_and_drop(src)
-		else
-			O.forceMove(src)
 
 	ChangeTurf(/turf/simulated/floor/clockwork)
 	return TRUE

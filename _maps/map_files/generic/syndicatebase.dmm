@@ -13,7 +13,7 @@
 /area/ruin/unpowered)
 "abT" = (
 /obj/item/stack/ore/uranium,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "aeB" = (
 /obj/item/stack/ore/diamond,
@@ -21,11 +21,11 @@
 /area/ruin/unpowered)
 "afh" = (
 /obj/item/stack/ore/diamond,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "afl" = (
 /obj/item/stack/ore/bananium,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "agd" = (
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
@@ -53,7 +53,7 @@
 /area/ruin/unpowered)
 "aiK" = (
 /obj/item/stack/ore/tranquillite,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "ajs" = (
 /obj/machinery/door/airlock/syndicate/extmai,
@@ -71,7 +71,7 @@
 /area/ruin/unpowered)
 "ajL" = (
 /obj/structure/table/abductor,
-/obj/item/toy/cards/deck/syndicate/black,
+/obj/item/deck/cards/syndicate/black,
 /obj/item/flashlight/lamp/green{
 	pixel_x = -6;
 	pixel_y = 9
@@ -133,7 +133,7 @@
 "aoH" = (
 /obj/item/stack/ore/uranium,
 /obj/item/stack/ore/bananium,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "apa" = (
 /obj/effect/turf_decal/stripes/line{
@@ -153,7 +153,7 @@
 "apy" = (
 /obj/item/stack/ore/uranium,
 /obj/item/stack/ore/tranquillite,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "aqi" = (
 /obj/item/stack/sheet/metal,
@@ -191,8 +191,7 @@
 /obj/item/stack/sheet/mineral/gold{
 	amount = 50
 	},
-/obj/item/stack/telecrystal/fifty{
-	amount = 20;
+/obj/item/stack/telecrystal/hundred{
 	desc = null
 	},
 /obj/machinery/door/poddoor{
@@ -221,8 +220,7 @@
 	dir = 6
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -267,7 +265,7 @@
 /mob/living/simple_animal/mouse/brown{
 	faction = list("neutral","syndicate")
 	},
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "avh" = (
 /obj/effect/spawner/random_spawners/syndicate/turret/external{
@@ -719,8 +717,7 @@
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "aLK" = (
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
 	dir = 10
@@ -861,8 +858,7 @@
 	tag = ""
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /obj/structure/cable{
 	icon_state = "1-2"
@@ -1257,14 +1253,6 @@
 	id_tag = "Full_Lockdown";
 	name = "Station Lockdown"
 	},
-/obj/machinery/door/airlock/external{
-	frequency = 1379;
-	icon_state = "door_locked";
-	id_tag = "taipan_exit_outer";
-	locked = 1;
-	name = "Secret Enter";
-	req_access = list(150)
-	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "bcw" = (
@@ -1404,8 +1392,7 @@
 	dir = 1
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
 	dir = 4
@@ -1453,8 +1440,7 @@
 	dir = 6
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/north)
@@ -1500,9 +1486,7 @@
 	tag = "icon-bulb1 (WEST)";
 	throw_range = 2
 	},
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/north)
 "bmH" = (
@@ -1634,9 +1618,8 @@
 /obj/machinery/atmospherics/unary/vent_pump/on{
 	dir = 4
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -1747,7 +1730,7 @@
 /obj/effect/turf_decal/tile/blue{
 	dir = 8
 	},
-/obj/item/cardboard_cutout/adaptive,
+/obj/item/twohanded/cardboard_cutout/adaptive,
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
 	dir = 10
 	},
@@ -2898,7 +2881,7 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "cCi" = (
-/mob/living/simple_animal/mouse/gray{
+/mob/living/simple_animal/mouse{
 	faction = list("neutral","syndicate")
 	},
 /turf/simulated/floor/engine/air,
@@ -2930,26 +2913,6 @@
 	pixel_x = 32
 	},
 /obj/effect/decal/cleanable/dirt,
-/obj/machinery/atmospherics/unary/vent_pump/high_volume{
-	frequency = 1379;
-	id_tag = "taipan_exit_pump"
-	},
-/obj/machinery/embedded_controller/radio/airlock/airlock_controller{
-	id_tag = "taipan_exit_airlock";
-	pixel_x = -25;
-	pixel_y = null;
-	req_access = list(150);
-	tag_airpump = "taipan_exit_pump";
-	tag_chamber_sensor = "taipan_exit_sensor";
-	tag_exterior_door = "taipan_exit_outer";
-	tag_interior_door = "taipan_exit_inner"
-	},
-/obj/machinery/airlock_sensor{
-	id_tag = "taipan_exit_sensor";
-	pixel_x = -24;
-	pixel_y = 9;
-	req_access = list(150)
-	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "cGj" = (
@@ -3479,13 +3442,14 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/air,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "dfx" = (
-/obj/machinery/air_sensor{
-	id_tag = "syndie_base_air_sensor"
+/obj/machinery/atmospherics/air_sensor{
+	id_tag = "syndie_base_air_sensor";
+	output = 23
 	},
 /turf/simulated/floor/engine/air,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -3556,12 +3520,12 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/o2,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "diC" = (
-/obj/machinery/air_sensor{
+/obj/machinery/atmospherics/air_sensor{
 	id_tag = "syndie_base_o2_sensor"
 	},
 /turf/simulated/floor/engine/o2,
@@ -3585,20 +3549,19 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/n2,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "dlO" = (
-/obj/machinery/air_sensor{
+/obj/machinery/atmospherics/air_sensor{
 	id_tag = "syndie_base_n2_sensor"
 	},
 /turf/simulated/floor/engine/n2,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "dms" = (
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/machinery/light/small{
 	dir = 8
@@ -3635,15 +3598,6 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
 "dol" = (
-/obj/machinery/atmospherics/pipe/simple/visible,
-/obj/machinery/door/airlock/external{
-	frequency = 1379;
-	icon_state = "door_locked";
-	id_tag = "taipan_exit_inner";
-	locked = 1;
-	name = "Secret Exit";
-	req_access = list(150)
-	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "dou" = (
@@ -3861,8 +3815,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/wood,
 /area/syndicate/unpowered/syndicate_space_base/bar/storage)
@@ -3932,8 +3885,7 @@
 	icon_state = "2-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -4175,8 +4127,7 @@
 	dir = 8
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /obj/structure/closet/crate/syndicate,
 /turf/simulated/floor/plasteel{
@@ -4426,15 +4377,6 @@
 "ebx" = (
 /obj/machinery/atmospherics/pipe/simple/visible{
 	dir = 5
-	},
-/obj/machinery/access_button{
-	command = "cycle_interior";
-	frequency = 1379;
-	master_tag = "taipan_exit_airlock";
-	name = "interior access button";
-	pixel_x = -24;
-	pixel_y = 24;
-	req_access = list(150)
 	},
 /obj/structure/falsewall/plastitanium,
 /turf/simulated/floor/plating,
@@ -4821,7 +4763,7 @@
 /turf/simulated/floor/engine,
 /area/syndicate/unpowered/syndicate_space_base/rnd/chemistry)
 "eCj" = (
-/obj/structure/closet/secure_closet/bar{
+/obj/structure/closet/secure_closet/cabinet/bar{
 	req_access = list(158)
 	},
 /obj/item/ammo_box/shotgun/buck,
@@ -4982,10 +4924,8 @@
 /obj/structure/cable{
 	icon_state = "4-8"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2 (EAST)"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -5178,8 +5118,7 @@
 	dir = 4
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /obj/structure/cable{
 	icon_state = "1-2"
@@ -5876,8 +5815,7 @@
 	dir = 8
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
 	dir = 5
@@ -5940,8 +5878,7 @@
 	dir = 1
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -6019,7 +5956,7 @@
 /area/syndicate/unpowered/syndicate_space_base/vault)
 "fGx" = (
 /obj/structure/table/wood/fancy/black,
-/obj/item/toy/cards/deck/syndicate{
+/obj/item/deck/cards/syndicate{
 	pixel_x = -6;
 	pixel_y = 6
 	},
@@ -6093,9 +6030,7 @@
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/rack,
 /obj/effect/spawner/lootdrop/maintenance/double,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /obj/random/tool,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
@@ -6112,8 +6047,9 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/medbay)
 "fLc" = (
-/obj/machinery/air_sensor{
-	id_tag = "syndie_base_mix_sensor"
+/obj/machinery/atmospherics/air_sensor{
+	id_tag = "syndie_base_mix_sensor";
+	output = 127
 	},
 /turf/simulated/floor/engine/insulated/vacuum,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -6168,9 +6104,6 @@
 	dir = 8
 	},
 /obj/effect/turf_decal/tile/brown,
-/obj/machinery/conveyor/east{
-	id = "bruh"
-	},
 /obj/structure/window/reinforced{
 	color = "red";
 	dir = 1;
@@ -6182,6 +6115,10 @@
 	icon_state = "left";
 	name = "Danger: Conveyor Access";
 	req_access = list(150)
+	},
+/obj/machinery/conveyor{
+	dir = 4;
+	id = "bruh"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -6421,11 +6358,21 @@
 	dir = 8
 	},
 /obj/item/paper_bin{
-	pixel_x = -2;
-	pixel_y = 7
+	pixel_x = -3;
+	pixel_y = 25
 	},
-/obj/item/pen,
-/obj/item/hand_labeler,
+/obj/item/pen{
+	pixel_x = 1;
+	pixel_y = 24
+	},
+/obj/item/hand_labeler{
+	pixel_x = 2;
+	pixel_y = 11
+	},
+/obj/random/toolbox{
+	pixel_x = -1;
+	pixel_y = -1
+	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -6607,9 +6554,7 @@
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/rack,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /obj/random/tool,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/north)
@@ -6755,17 +6700,12 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/botany)
 "grh" = (
-/obj/structure/falsewall/plastitanium,
-/obj/machinery/access_button{
-	command = "cycle_exterior";
-	frequency = 1379;
-	master_tag = "taipan_exit_airlock";
-	name = "exterior access button";
-	pixel_x = -24;
-	pixel_y = -24;
-	req_access = list(150)
+/obj/effect/spawner/airlock/s_to_n/long{
+	id_to_link = "taipan_exit";
+	required_access = list(150);
+	door_type = /obj/machinery/door/airlock/external
 	},
-/turf/simulated/floor/plating,
+/turf/simulated/wall/mineral/plastitanium/nodiagonal,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "grA" = (
 /obj/structure/window/reinforced{
@@ -7199,7 +7139,7 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/insulated/vacuum,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -7440,7 +7380,6 @@
 /area/syndicate/unpowered/syndicate_space_base/rnd)
 "gPn" = (
 /obj/machinery/atmospherics/trinary/mixer{
-	desc = null;
 	dir = 8;
 	node1_concentration = 0.8;
 	node2_concentration = 0.2;
@@ -7567,7 +7506,7 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/n20,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -7581,9 +7520,7 @@
 /obj/effect/turf_decal/tile/brown{
 	dir = 8
 	},
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -7932,8 +7869,7 @@
 	dir = 4
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/effect/turf_decal{
 	icon = 'icons/obj/lavaland/survival_pod.dmi';
@@ -8108,12 +8044,10 @@
 	icon_state = "1-2"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -8351,8 +8285,7 @@
 	dir = 1
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -8388,7 +8321,7 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/rnd)
 "hLa" = (
-/obj/machinery/air_sensor{
+/obj/machinery/atmospherics/air_sensor{
 	id_tag = "syndie_base_n2o_sensor"
 	},
 /turf/simulated/floor/engine/n20,
@@ -8618,7 +8551,7 @@
 	tag = "icon-bulb1 (WEST)";
 	throw_range = 2
 	},
-/obj/effect/spawner/random_spawners/dirt_frequent,
+/obj/effect/spawner/random_spawners/dirt_50,
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/rack,
@@ -8646,8 +8579,7 @@
 /area/syndicate/unpowered/syndicate_space_base/rnd/chemistry)
 "hZj" = (
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /obj/item/radio/intercom/syndicate{
 	pixel_x = 30
@@ -9099,8 +9031,7 @@
 /area/space/nearstation)
 "iql" = (
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
 	dir = 4
@@ -9681,10 +9612,8 @@
 /obj/structure/cable{
 	icon_state = "1-2"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 2;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 2
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -9916,7 +9845,7 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "jbN" = (
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "jcc" = (
 /obj/structure/disposalpipe/segment{
@@ -10082,9 +10011,7 @@
 /obj/structure/rack,
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/random/toolbox,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "jkz" = (
@@ -10347,8 +10274,7 @@
 	dir = 4
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /obj/machinery/biogenerator,
 /turf/simulated/floor/plasteel{
@@ -10394,8 +10320,7 @@
 	dir = 10
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /obj/structure/closet/secure_closet/syndicate/hydro,
 /turf/simulated/floor/plasteel{
@@ -10970,7 +10895,8 @@
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "jZL" = (
 /obj/structure/closet/crate,
-/obj/machinery/conveyor/east{
+/obj/machinery/conveyor{
+	dir = 4;
 	id = "SQMLoad"
 	},
 /turf/simulated/floor/plating,
@@ -11062,7 +10988,7 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/plasma,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -11229,10 +11155,6 @@
 	icon_state = "dark"
 	},
 /area/syndicate/unpowered/syndicate_space_base/medbay/virology)
-"ksR" = (
-/obj/effect/spawner/random_spawners/syndicate/turret/grenade,
-/turf/simulated/wall/mineral/plastitanium/nodiagonal,
-/area/syndicate/unpowered/syndicate_space_base/turrets)
 "kva" = (
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
 /turf/simulated/floor/plating,
@@ -11420,8 +11342,7 @@
 	tag = "90Curve"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -11627,8 +11548,7 @@
 	icon_state = "2-8"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 2;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 2
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -11661,8 +11581,7 @@
 	pixel_x = -24
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -11996,8 +11915,7 @@
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "laU" = (
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /obj/effect/turf_decal/tile/brown,
 /obj/effect/turf_decal/tile/brown{
@@ -12029,8 +11947,7 @@
 	dir = 10
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /obj/machinery/atmospherics/pipe/simple/visible/yellow{
 	desc = "Труба хранит в себе набор газов для смешивания";
@@ -12062,7 +11979,7 @@
 	dir = 4;
 	layer = 2.9
 	},
-/obj/machinery/vending/crittercare/free,
+/obj/structure/chair/stool,
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "led" = (
@@ -12113,9 +12030,7 @@
 /obj/structure/rack,
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/effect/decal/cleanable/dirt,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "lho" = (
@@ -12207,7 +12122,7 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "lkI" = (
-/obj/machinery/air_sensor{
+/obj/machinery/atmospherics/air_sensor{
 	id_tag = "syndie_base_tox_sensor"
 	},
 /turf/simulated/floor/engine/plasma,
@@ -12365,9 +12280,8 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "lrP" = (
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -12944,8 +12858,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/effect/turf_decal/tile/yellow,
 /turf/simulated/floor/plasteel{
@@ -13260,13 +13173,15 @@
 /area/syndicate/unpowered/syndicate_space_base/torture_room)
 "mbl" = (
 /obj/structure/table/reinforced,
-/obj/item/taperecorder,
+/obj/item/taperecorder{
+	pixel_y = 1
+	},
 /obj/item/bikehorn{
-	pixel_x = -1;
-	pixel_y = 13
+	pixel_x = 1;
+	pixel_y = 15
 	},
 /obj/item/instrument/bikehorn{
-	pixel_y = -2
+	pixel_y = -7
 	},
 /obj/structure/sign/poster/contraband/random{
 	pixel_x = 32
@@ -13275,10 +13190,10 @@
 	desc = "Уточка говорит, зря зря";
 	name = "Злобер Дакки";
 	pixel_x = -7;
-	pixel_y = 12
+	pixel_y = 8
 	},
 /obj/item/clothing/mask/muzzle{
-	pixel_y = -16
+	pixel_y = -12
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -13642,24 +13557,30 @@
 /area/syndicate/unpowered/syndicate_space_base/main/central_w)
 "mnw" = (
 /obj/structure/table/reinforced,
-/obj/item/wirecutters{
-	pixel_y = 5
-	},
 /obj/item/reagent_containers/spray/cleaner{
-	pixel_x = 8;
-	pixel_y = 7
+	pixel_x = 10;
+	pixel_y = 14
+	},
+/obj/item/radio/electropack{
+	pixel_x = -3
 	},
 /obj/item/razor{
-	pixel_x = -9;
-	pixel_y = 6
+	pixel_x = 10
 	},
-/obj/item/radio/electropack,
-/obj/item/assembly/signaler,
+/obj/item/assembly/signaler{
+	pixel_x = -4
+	},
 /obj/structure/sign/poster/contraband/random{
 	pixel_x = -32
 	},
 /obj/machinery/light/small{
 	dir = 8
+	},
+/obj/item/stack/tape_roll/thick{
+	amount = 120;
+	max_amount = 120;
+	pixel_x = -4;
+	pixel_y = 14
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -13756,13 +13677,17 @@
 /area/syndicate/unpowered/syndicate_space_base/torture_room)
 "mtG" = (
 /obj/structure/table/reinforced,
-/obj/item/storage/box/handcuffs,
+/obj/item/storage/box/handcuffs{
+	pixel_x = -3;
+	pixel_y = 9
+	},
 /obj/item/flash{
-	pixel_x = 1;
-	pixel_y = 6
+	pixel_x = 11;
+	pixel_y = 10
 	},
 /obj/item/storage/toolbox/surgery{
-	pixel_y = -6
+	pixel_y = -3;
+	pixel_x = -1
 	},
 /obj/machinery/light/small{
 	dir = 4
@@ -14227,8 +14152,7 @@
 	dir = 4
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -14253,8 +14177,7 @@
 	tag = ""
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/grille,
 /obj/structure/window/plastitanium,
@@ -14320,10 +14243,11 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "mSw" = (
-/obj/machinery/conveyor/north{
+/obj/machinery/syndiepad/loadpad,
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad"
 	},
-/obj/machinery/syndiepad/loadpad,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "mTg" = (
@@ -14538,7 +14462,7 @@
 	on = 1;
 	pressure_checks = 2;
 	pressure_checks_default = 2;
-	pump_direction = 0
+	releasing = 0
 	},
 /turf/simulated/floor/engine/co2,
 /area/syndicate/unpowered/syndicate_space_base/engineering)
@@ -14577,6 +14501,10 @@
 /area/syndicate/unpowered/syndicate_space_base/torture_room)
 "nhY" = (
 /obj/effect/decal/cleanable/blood/slime,
+/obj/item/wirecutters{
+	pixel_y = 8;
+	pixel_x = -11
+	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -14637,12 +14565,10 @@
 	initialize_directions = 11
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 4;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -14861,10 +14787,8 @@
 	icon_state = "1-8";
 	tag = ""
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2 (EAST)"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 4
 	},
 /obj/machinery/firealarm/syndicate/taipan{
 	dir = 1;
@@ -14995,10 +14919,8 @@
 /obj/structure/cable{
 	icon_state = "1-4"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2 (EAST)"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 4
 	},
 /obj/machinery/atmospherics/pipe/manifold4w/hidden/scrubbers,
 /turf/simulated/floor/plasteel{
@@ -15181,12 +15103,10 @@
 	tag = ""
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 2;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 2
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -15257,8 +15177,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -15308,8 +15227,7 @@
 	tag = ""
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -15458,8 +15376,7 @@
 	tag = ""
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment,
 /turf/simulated/floor/plasteel{
@@ -15477,8 +15394,7 @@
 	},
 /obj/effect/turf_decal/tile/neutral,
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -15735,7 +15651,7 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "nSR" = (
-/obj/machinery/air_sensor{
+/obj/machinery/atmospherics/air_sensor{
 	id_tag = "syndie_base_co2_sensor"
 	},
 /turf/simulated/floor/engine/co2,
@@ -15827,8 +15743,7 @@
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -16093,7 +16008,6 @@
 /obj/structure/cable{
 	icon_state = "1-2"
 	},
-/mob/living/simple_animal/bot/secbot/griefsky/syndicate,
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/main/north)
 "okK" = (
@@ -16238,7 +16152,9 @@
 /turf/simulated/floor/engine,
 /area/syndicate/unpowered/syndicate_space_base/rnd/testlab)
 "oqp" = (
-/obj/structure/disposalpipe/junction,
+/obj/structure/disposalpipe/junction{
+	dir = 2
+	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -16288,7 +16204,6 @@
 "osV" = (
 /obj/effect/turf_decal/tile/yellow,
 /obj/machinery/atmospherics/trinary/filter{
-	desc = null;
 	dir = 1;
 	filter_type = 3;
 	on = 1
@@ -16624,8 +16539,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -16679,7 +16593,7 @@
 /obj/effect/turf_decal/tile/blue{
 	dir = 8
 	},
-/obj/item/cardboard_cutout/adaptive,
+/obj/item/twohanded/cardboard_cutout/adaptive,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -16747,7 +16661,7 @@
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin1)
 "oIK" = (
 /obj/structure/table/wood,
-/obj/item/toy/plushie/orange_fox/grump,
+/obj/item/toy/plushie/black_fox,
 /turf/simulated/floor/wood,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin1)
 "oJk" = (
@@ -16988,9 +16902,7 @@
 /area/syndicate/unpowered/syndicate_space_base/engineering)
 "oTI" = (
 /obj/effect/decal/cleanable/dirt,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "oTR" = (
@@ -17551,9 +17463,7 @@
 	},
 /obj/item/stack/tape_roll,
 /obj/effect/spawner/lootdrop/maintenance/double,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/central)
 "ppf" = (
@@ -17625,8 +17535,7 @@
 	dir = 4
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/wood,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin1)
@@ -17657,8 +17566,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/wood,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin1)
@@ -17770,7 +17678,9 @@
 	icon_state = "1-8";
 	tag = ""
 	},
-/obj/structure/disposalpipe/junction,
+/obj/structure/disposalpipe/junction{
+	dir = 2
+	},
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/main/north)
 "pwo" = (
@@ -17921,10 +17831,8 @@
 /obj/structure/cable{
 	icon_state = "1-2"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 2;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 2
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -18063,8 +17971,7 @@
 	name = "Труба на фильтрацию"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -18313,8 +18220,7 @@
 	dir = 1
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -18431,8 +18337,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/trunk{
 	dir = 4
@@ -18468,9 +18373,8 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/torture_room)
 "pWH" = (
-/obj/structure/disposalpipe/junction{
-	dir = 2;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 2
 	},
 /obj/machinery/atmospherics/pipe/manifold/hidden/supply{
 	dir = 1;
@@ -18483,8 +18387,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -18588,8 +18491,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/redgrid,
 /area/syndicate/unpowered/syndicate_space_base/telecomms)
@@ -18679,7 +18581,8 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/central)
 "qeh" = (
-/obj/machinery/conveyor/east{
+/obj/machinery/conveyor{
+	dir = 4;
 	id = "SQMLoad"
 	},
 /turf/simulated/floor/plating,
@@ -18745,7 +18648,7 @@
 "qgV" = (
 /obj/structure/closet/secure_closet/personal/cabinet,
 /obj/item/clothing/head/kitty,
-/obj/item/clothing/suit/browntrenchcoat,
+/obj/item/clothing/suit/storage/browntrenchcoat,
 /obj/item/clothing/accessory/corset/red,
 /turf/simulated/floor/wood,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin1)
@@ -18861,8 +18764,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 4;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -19469,8 +19371,7 @@
 	initialize_directions = 11
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
 /turf/simulated/floor/plasteel{
@@ -19528,8 +19429,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -19766,6 +19666,9 @@
 "qQJ" = (
 /obj/effect/decal/syndie_logo{
 	icon_state = "logo11"
+	},
+/mob/living/simple_animal/bot/secbot/griefsky/syndicate{
+	auto_patrol = 0
 	},
 /turf/simulated/floor/mineral/plastitanium/red,
 /area/syndicate/unpowered/syndicate_space_base/main/north)
@@ -20198,7 +20101,7 @@
 /obj/structure/closet/secure_closet/personal/cabinet,
 /obj/item/coin/iron,
 /obj/item/clothing/head/kitty/mouse,
-/obj/item/clothing/suit/blacktrenchcoat,
+/obj/item/clothing/suit/storage/blacktrenchcoat,
 /obj/item/clothing/accessory/corset,
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin2)
@@ -20277,7 +20180,7 @@
 /obj/item/stack/spacecash/c1000{
 	amount = 50000
 	},
-/obj/item/toy/cards/deck/syndicate/black,
+/obj/item/deck/cards/syndicate/black,
 /obj/item/storage/fancy/cigarettes/cigpack_syndicate,
 /obj/item/pda/syndicate/no_cartridge,
 /turf/simulated/floor/mineral/plastitanium/red,
@@ -20758,8 +20661,7 @@
 	icon_state = "1-4"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -20919,14 +20821,6 @@
 	icon_state = "dark"
 	},
 /area/syndicate/unpowered/syndicate_space_base/rnd/genetics)
-"rRZ" = (
-/obj/effect/spawner/random_spawners/syndicate/turret/grenade{
-	active_power_usage = 1000;
-	idle_power_usage = 200;
-	use_power = 1
-	},
-/turf/simulated/wall/mineral/plastitanium/nodiagonal,
-/area/syndicate/unpowered/syndicate_space_base/turrets)
 "rSi" = (
 /obj/structure/rack{
 	dir = 8;
@@ -21002,8 +20896,7 @@
 	dir = 4
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin2)
@@ -21034,8 +20927,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/dormitories/cabin2)
@@ -21143,7 +21035,9 @@
 	icon_state = "1-8";
 	tag = ""
 	},
-/obj/structure/disposalpipe/junction,
+/obj/structure/disposalpipe/junction{
+	dir = 2
+	},
 /turf/simulated/floor/carpet/black,
 /area/syndicate/unpowered/syndicate_space_base/main/central_w)
 "sbM" = (
@@ -21310,8 +21204,7 @@
 "ska" = (
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
@@ -21394,9 +21287,7 @@
 /obj/structure/closet/crate,
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/item/storage/wallet/random,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
 "smz" = (
@@ -21781,9 +21672,7 @@
 "sJO" = (
 /obj/structure/closet/crate,
 /obj/effect/spawner/lootdrop/maintenance/double,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -21802,9 +21691,7 @@
 "sLk" = (
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/structure/closet/crate,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "sLL" = (
@@ -22185,8 +22072,8 @@
 	dir = 1;
 	pixel_y = -24
 	},
-/obj/item/toy/plushie/orange_fox/grump{
-	pixel_y = 10
+/obj/item/toy/plushie/coffee_fox{
+	desc = "Extremely soft toy, sewn by a truly professional artist who loves his job. There is a tag with the inscription \"Fur...\" hanging on the paw."
 	},
 /obj/item/storage/toolbox/syndicate,
 /turf/simulated/floor/carpet/black,
@@ -22706,8 +22593,7 @@
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "tuM" = (
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
 /area/syndicate/unpowered/syndicate_space_base/prison)
@@ -22773,10 +22659,8 @@
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
 /obj/machinery/atmospherics/pipe/simple/hidden/supply,
-/obj/structure/disposalpipe/junction{
-	dir = 1;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 1
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -22871,7 +22755,7 @@
 	dir = 1;
 	on = 1
 	},
-/obj/vehicle/motorcycle,
+/obj/vehicle/ridden/motorcycle,
 /turf/simulated/floor/plasteel{
 	dir = 8;
 	icon_state = "vault";
@@ -22879,7 +22763,7 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/main/central_w)
 "tAt" = (
-/obj/vehicle/motorcycle,
+/obj/vehicle/ridden/motorcycle,
 /turf/simulated/floor/plasteel{
 	dir = 8;
 	icon_state = "vault";
@@ -22906,8 +22790,7 @@
 	dir = 4
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers{
 	dir = 6
@@ -22916,8 +22799,7 @@
 	dir = 6
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -22979,10 +22861,8 @@
 	icon_state = "1-8";
 	tag = ""
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2 (EAST)"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -23106,9 +22986,8 @@
 /obj/structure/cable{
 	icon_state = "4-8"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	tag = "icon-pipe-j1 (EAST)"
+/obj/structure/disposalpipe/segment{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -23191,7 +23070,7 @@
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "tJo" = (
 /obj/item/stack/ore/silver,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "tJw" = (
 /obj/effect/turf_decal/tile/neutral{
@@ -23245,8 +23124,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 2;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 2
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -23288,8 +23166,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
@@ -23361,7 +23238,7 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
 "tOd" = (
-/obj/vehicle/snowmobile/blue,
+/obj/vehicle/ridden/snowmobile/blue,
 /turf/simulated/floor/plating/ice,
 /area/ruin/unpowered)
 "tOv" = (
@@ -23883,7 +23760,7 @@
 /area/syndicate/unpowered/syndicate_space_base/main/central_w)
 "udL" = (
 /obj/effect/mob_spawn/human/clown/corpse,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "udO" = (
 /obj/structure/window/plastitanium,
@@ -23911,13 +23788,6 @@
 	name = "Public airlock"
 	},
 /obj/machinery/door/firedoor,
-/turf/simulated/floor/plasteel{
-	dir = 1;
-	icon_state = "dark"
-	},
-/area/syndicate/unpowered/syndicate_space_base/main/central_s)
-"uhB" = (
-/obj/structure/disposalpipe/segment,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -23984,10 +23854,8 @@
 /area/syndicate/unpowered/syndicate_space_base/rnd/chemistry)
 "uiy" = (
 /obj/effect/turf_decal/plaque,
-/obj/structure/disposalpipe/junction{
-	dir = 1;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 1
 	},
 /obj/machinery/atmospherics/pipe/manifold/hidden/scrubbers{
 	dir = 4
@@ -24020,9 +23888,7 @@
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/rack,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
 "ujO" = (
@@ -24042,8 +23908,7 @@
 "ukI" = (
 /obj/effect/decal/cleanable/dirt,
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
@@ -24053,9 +23918,7 @@
 	dir = 4
 	},
 /obj/structure/rack,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/east)
 "ulz" = (
@@ -24128,9 +23991,7 @@
 /obj/effect/decal/cleanable/dirt,
 /obj/effect/spawner/lootdrop/maintenance/tripple,
 /obj/structure/rack,
-/obj/effect/spawner/random_spawners/syndicate/loot{
-	spawn_inside = null
-	},
+/obj/effect/spawner/random_spawners/syndicate/loot,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "umD" = (
@@ -24197,8 +24058,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 4;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -24246,8 +24106,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 2;
-	icon_state = "pipe-c"
+	dir = 10
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -24455,7 +24314,7 @@
 /area/syndicate/unpowered/syndicate_space_base/rnd/restroom)
 "uyx" = (
 /obj/item/stack/ore/plasma,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "uyM" = (
 /obj/structure/table/wood,
@@ -24469,28 +24328,6 @@
 	icon_state = "dark"
 	},
 /area/syndicate/unpowered/syndicate_space_base/rnd/restroom)
-"uyQ" = (
-/obj/machinery/disposal,
-/obj/structure/disposalpipe/trunk{
-	dir = 1
-	},
-/obj/structure/sign/directions/medical{
-	dir = 8;
-	pixel_x = -32;
-	pixel_y = 6
-	},
-/obj/structure/sign/directions/science{
-	pixel_x = -32
-	},
-/obj/structure/sign/directions/cargo{
-	pixel_x = -32;
-	pixel_y = -6
-	},
-/turf/simulated/floor/plasteel{
-	dir = 1;
-	icon_state = "dark"
-	},
-/area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "uyR" = (
 /obj/machinery/light,
 /obj/structure/reagent_dispensers/fueltank/chem{
@@ -24513,9 +24350,8 @@
 /obj/structure/cable{
 	icon_state = "1-4"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -24743,8 +24579,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /obj/effect/spawner/random_spawners/syndicate/loot/level4{
 	spawn_inside = /obj/structure/closet/crate/syndicate
@@ -24964,9 +24799,8 @@
 /obj/structure/cable{
 	icon_state = "4-8"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -25052,8 +24886,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
 	dir = 4
@@ -25095,8 +24928,7 @@
 	icon_state = "4-8"
 	},
 /obj/structure/disposalpipe/junction{
-	dir = 4;
-	tag = "icon-pipe-j1 (EAST)"
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 8;
@@ -25124,8 +24956,7 @@
 	tag = ""
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -25313,6 +25144,18 @@
 	dir = 1;
 	layer = 2.9
 	},
+/obj/structure/sign/directions/medical{
+	dir = 8;
+	pixel_x = -32;
+	pixel_y = 6
+	},
+/obj/structure/sign/directions/science{
+	pixel_x = -32
+	},
+/obj/structure/sign/directions/cargo{
+	pixel_x = -32;
+	pixel_y = -6
+	},
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "uUH" = (
@@ -25459,7 +25302,7 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/prison)
 "uZl" = (
-/obj/structure/chair/stool,
+/obj/machinery/vending/crittercare/free,
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "vab" = (
@@ -25549,8 +25392,7 @@
 	tag = "90Curve"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
 /area/syndicate/unpowered/syndicate_space_base/prison)
@@ -25883,12 +25725,10 @@
 	dir = 10
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -25936,7 +25776,7 @@
 /area/syndicate/unpowered/syndicate_space_base/rnd/chemistry)
 "vob" = (
 /obj/item/stack/ore/gold,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "vop" = (
 /obj/structure/table/wood,
@@ -25981,12 +25821,10 @@
 	dir = 10
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -26030,12 +25868,18 @@
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "vvk" = (
-/obj/structure/window/reinforced{
-	color = "red";
-	dir = 4;
-	layer = 2.9
+/obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
+/obj/structure/cable{
+	icon_state = "1-2"
 	},
-/turf/simulated/floor/carpet/arcade,
+/obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/manifold/hidden/supply{
+	dir = 4
+	},
+/turf/simulated/floor/plasteel{
+	dir = 1;
+	icon_state = "dark"
+	},
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "vvA" = (
 /obj/structure/table,
@@ -26363,10 +26207,6 @@
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
 "vHK" = (
 /obj/effect/decal/warning_stripes/yellow/hollow,
-/obj/machinery/conveyor/west{
-	id = "SQMLoad2";
-	level = 1
-	},
 /obj/effect/turf_decal/tile/brown{
 	dir = 4
 	},
@@ -26383,12 +26223,14 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
 "vIh" = (
-/obj/machinery/conveyor/north{
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad2"
 	},
-/obj/machinery/conveyor/west{
+/obj/machinery/conveyor{
+	dir = 8;
 	id = "SQMLoad2";
-	level = 1
+	layer = 2.494
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
@@ -26615,14 +26457,12 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "vXh" = (
-/obj/machinery/atmospherics/pipe/manifold/hidden/supply{
-	dir = 4
-	},
 /obj/machinery/atmospherics/pipe/simple/hidden/scrubbers,
 /obj/structure/cable{
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/segment,
+/obj/machinery/atmospherics/pipe/simple/hidden/supply,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -26770,8 +26610,7 @@
 	icon_state = "2-8"
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment,
 /turf/simulated/floor/plasteel{
@@ -26781,8 +26620,7 @@
 /area/syndicate/unpowered/syndicate_space_base/torture_room)
 "wcG" = (
 /obj/structure/disposalpipe/segment{
-	dir = 1;
-	icon_state = "pipe-c"
+	dir = 5
 	},
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
 /area/syndicate/unpowered/syndicate_space_base/prison)
@@ -26874,10 +26712,6 @@
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
 "wgk" = (
 /obj/effect/decal/warning_stripes/yellow/hollow,
-/obj/machinery/conveyor/west{
-	id = "SQMLoad2";
-	level = 1
-	},
 /obj/effect/turf_decal/tile/brown{
 	dir = 8
 	},
@@ -27128,15 +26962,6 @@
 /area/syndicate/unpowered/syndicate_space_base/vault)
 "wnD" = (
 /obj/structure/chair/comfy/black,
-/turf/simulated/floor/carpet/arcade,
-/area/syndicate/unpowered/syndicate_space_base/main/central_s)
-"wnJ" = (
-/obj/machinery/computer/arcade/battle,
-/obj/structure/window/reinforced{
-	color = "red";
-	dir = 4;
-	layer = 2.9
-	},
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "wnM" = (
@@ -27409,16 +27234,13 @@
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
 /area/syndicate/unpowered/syndicate_space_base/rnd/genetics)
 "wwr" = (
-/obj/effect/decal/warning_stripes/yellow/hollow,
-/obj/machinery/conveyor/west{
-	id = "SQMLoad2";
-	level = 1
+/obj/machinery/syndiepad/loadpad,
+/obj/machinery/conveyor/inverted{
+	dir = 10;
+	id = "SQMLoad"
 	},
-/turf/simulated/floor/plasteel{
-	dir = 1;
-	icon_state = "dark"
-	},
-/area/syndicate/unpowered/syndicate_space_base/cargo/storage)
+/turf/simulated/floor/plating,
+/area/syndicate/unpowered/syndicate_space_base/cargo)
 "wwu" = (
 /obj/structure/cable,
 /obj/structure/grille,
@@ -28152,17 +27974,16 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/prison)
 "wQh" = (
-/obj/structure/window/reinforced{
-	color = "red";
-	layer = 2.9
-	},
+/obj/machinery/arcade/minesweeper,
 /obj/structure/window/reinforced{
 	color = "red";
 	dir = 4;
 	layer = 2.9
 	},
-/obj/structure/table,
-/obj/item/toy/plushie/tabby_cat,
+/obj/structure/window/reinforced{
+	color = "red";
+	layer = 2.9
+	},
 /turf/simulated/floor/carpet/arcade,
 /area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "wRV" = (
@@ -28173,12 +27994,10 @@
 	dir = 6
 	},
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
+	dir = 6
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -28217,9 +28036,8 @@
 	icon_state = "1-8";
 	tag = ""
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 1;
-	icon_state = "pipe-y"
+/obj/structure/disposalpipe/junction/yjunction{
+	dir = 1
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -28291,7 +28109,7 @@
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "wTI" = (
 /obj/item/stack/ore/titanium,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "wTW" = (
 /turf/simulated/wall/mineral/plastitanium/nodiagonal,
@@ -28547,10 +28365,6 @@
 /area/ruin/unpowered)
 "xds" = (
 /obj/effect/decal/warning_stripes/yellow/hollow,
-/obj/machinery/conveyor/west{
-	id = "SQMLoad2";
-	level = 1
-	},
 /obj/effect/turf_decal/tile/brown{
 	dir = 8
 	},
@@ -28720,10 +28534,8 @@
 /obj/structure/cable{
 	icon_state = "1-2"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 1;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j1 (WEST)"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 1
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -28776,7 +28588,7 @@
 /area/syndicate/unpowered/syndicate_space_base/maintenance/south)
 "xmm" = (
 /obj/effect/decal/remains/human,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "xnu" = (
 /obj/effect/turf_decal/tile/brown,
@@ -28833,10 +28645,11 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
 "xpu" = (
-/obj/machinery/conveyor/north{
+/obj/structure/plasticflaps/mining,
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad2"
 	},
-/obj/structure/plasticflaps/mining,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo/storage)
 "xpH" = (
@@ -29121,20 +28934,23 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "xyw" = (
-/obj/machinery/conveyor/east{
+/obj/machinery/conveyor{
+	dir = 4;
 	id = "SQMLoad2"
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "xyz" = (
-/obj/machinery/conveyor/east{
+/obj/machinery/light/small,
+/obj/machinery/conveyor{
+	dir = 4;
 	id = "SQMLoad2"
 	},
-/obj/machinery/light/small,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "xyZ" = (
-/obj/machinery/conveyor/northeast/ccw{
+/obj/machinery/conveyor/inverted{
+	dir = 10;
 	id = "SQMLoad2"
 	},
 /turf/simulated/floor/plating,
@@ -29175,8 +28991,7 @@
 	icon_state = "1-2"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -29222,11 +29037,14 @@
 	},
 /obj/structure/table,
 /obj/item/phone{
-	pixel_x = -4;
+	pixel_x = -5;
+	pixel_y = 7
+	},
+/obj/item/storage/box/patch_packs{
+	pixel_x = 5;
 	pixel_y = 4
 	},
 /obj/item/coin/antagtoken/syndicate,
-/obj/random/toolbox,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -29359,8 +29177,7 @@
 	icon_state = "2-8"
 	},
 /obj/structure/disposalpipe/segment{
-	dir = 8;
-	icon_state = "pipe-c"
+	dir = 9
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -29439,18 +29256,22 @@
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/prison)
 "xHf" = (
-/obj/machinery/conveyor/north{
+/obj/structure/plasticflaps/mining,
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad2"
 	},
-/obj/structure/plasticflaps/mining,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "xHx" = (
-/obj/effect/spawner/random_spawners/syndicate/turret/external{
-	use_power = 1
+/obj/structure/window/reinforced{
+	color = "red";
+	dir = 4;
+	layer = 2.9
 	},
-/turf/simulated/wall/mineral/plastitanium/nodiagonal,
-/area/syndicate/unpowered/syndicate_space_base/turrets)
+/obj/machinery/computer/arcade/battle,
+/turf/simulated/floor/carpet/arcade,
+/area/syndicate/unpowered/syndicate_space_base/main/central_s)
 "xHM" = (
 /obj/structure/chair/comfy/shuttle{
 	dir = 4
@@ -29522,10 +29343,8 @@
 /obj/structure/cable{
 	icon_state = "1-4"
 	},
-/obj/structure/disposalpipe/junction{
-	dir = 4;
-	icon_state = "pipe-j2";
-	tag = "icon-pipe-j2"
+/obj/structure/disposalpipe/junction/reversed{
+	dir = 4
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -29533,11 +29352,12 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/armory/hall_middle)
 "xLQ" = (
-/obj/machinery/conveyor/east{
-	id = "SQMLoad"
-	},
 /obj/item/radio/intercom/syndicate{
 	pixel_y = -25
+	},
+/obj/machinery/conveyor{
+	dir = 4;
+	id = "SQMLoad"
 	},
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
@@ -29602,8 +29422,7 @@
 /area/syndicate/unpowered/syndicate_space_base/medbay)
 "xOB" = (
 /obj/structure/cable{
-	icon_state = "2-4";
-	tag = null
+	icon_state = "2-4"
 	},
 /turf/simulated/floor/plasteel{
 	dir = 1;
@@ -29722,7 +29541,10 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/rnd/chemistry)
 "xTi" = (
-/obj/structure/crematorium,
+/obj/machinery/crematorium{
+	id = "taipan";
+	req_access = list(150)
+	},
 /obj/effect/decal/warning_stripes/northeast,
 /turf/simulated/floor/plasteel{
 	dir = 5;
@@ -29804,10 +29626,11 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "xUq" = (
-/obj/machinery/conveyor/north{
+/obj/machinery/syndiepad/receivepad,
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad2"
 	},
-/obj/machinery/syndiepad/receivepad,
 /turf/simulated/floor/plasteel{
 	dir = 1;
 	icon_state = "dark"
@@ -29957,6 +29780,7 @@
 /area/syndicate/unpowered/syndicate_space_base/medbay/virology)
 "xZn" = (
 /obj/machinery/crema_switch{
+	id = "taipan";
 	pixel_x = 26;
 	req_access = list(150)
 	},
@@ -30033,7 +29857,7 @@
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "ybu" = (
 /obj/item/stack/ore/iron,
-/turf/simulated/floor/plating/asteroid/airless/cave,
+/turf/simulated/floor/plating/asteroid/airless,
 /area/ruin/unpowered)
 "ybF" = (
 /obj/effect/turf_decal/tile/brown{
@@ -30200,10 +30024,11 @@
 	},
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "yhV" = (
-/obj/machinery/conveyor/north{
+/obj/machinery/syndiepad/receivepad,
+/obj/machinery/conveyor{
+	dir = 1;
 	id = "SQMLoad2"
 	},
-/obj/machinery/syndiepad/receivepad,
 /turf/simulated/floor/plating,
 /area/syndicate/unpowered/syndicate_space_base/cargo)
 "yhY" = (
@@ -37600,7 +37425,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -38400,7 +38225,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 pdd
@@ -38930,7 +38755,7 @@ mEC
 mEC
 mEC
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -39115,7 +38940,7 @@ mEC
 mEC
 mEC
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -39459,7 +39284,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 aTW
@@ -39735,7 +39560,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -39754,7 +39579,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -40169,7 +39994,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -40199,7 +40024,7 @@ mEC
 pdd
 pdd
 pdd
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -40285,7 +40110,7 @@ mEC
 jbN
 aTW
 aTW
-rRZ
+jbN
 jbN
 mEC
 mEC
@@ -40653,7 +40478,7 @@ mEC
 mEC
 mEC
 jbN
-rRZ
+jbN
 aTW
 jbN
 jbN
@@ -40965,7 +40790,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 pdd
@@ -41497,7 +41322,7 @@ pdd
 pdd
 pdd
 pdd
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -41967,7 +41792,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 aTW
@@ -41983,7 +41808,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -42261,7 +42086,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 aTW
@@ -42699,7 +42524,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -42710,7 +42535,7 @@ mEC
 mEC
 pdd
 aTW
-rRZ
+jbN
 jbN
 jbN
 aTW
@@ -43051,7 +42876,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 xiM
 xiM
 xiM
@@ -43083,7 +42908,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -43112,7 +42937,7 @@ mEC
 mEC
 jbN
 jbN
-rRZ
+jbN
 jbN
 jbN
 jbN
@@ -43259,7 +43084,7 @@ pdd
 pdd
 jbN
 tJo
-rRZ
+jbN
 pdd
 pdd
 pdd
@@ -43777,8 +43602,8 @@ pdd
 jbN
 jbN
 jbN
+jbN
 pdd
-rRZ
 abT
 jbN
 jbN
@@ -43829,7 +43654,7 @@ pdd
 pdd
 xiM
 xiM
-rRZ
+jbN
 mEC
 mEC
 mEC
@@ -44154,7 +43979,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 mEC
@@ -44263,7 +44088,7 @@ jbN
 aTW
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -45049,7 +44874,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 pdd
 pdd
@@ -45084,7 +44909,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 aTW
@@ -45398,7 +45223,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 pdd
 pdd
@@ -45509,7 +45334,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 aTW
@@ -45782,7 +45607,7 @@ mEC
 jbN
 jbN
 jbN
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -45863,7 +45688,7 @@ aTW
 pdd
 pdd
 pdd
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -46092,7 +45917,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 pdd
 pdd
 pdd
@@ -46342,7 +46167,6 @@ pdd
 pdd
 aTW
 aTW
-xHx
 mEC
 mEC
 mEC
@@ -46390,7 +46214,8 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
+xiM
 pdd
 pdd
 pdd
@@ -46653,7 +46478,7 @@ pdd
 pdd
 pdd
 pdd
-xHx
+xiM
 jbN
 jbN
 mEC
@@ -46699,7 +46524,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -47083,7 +46908,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 jbN
 jbN
@@ -47136,7 +46961,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 mEC
@@ -47313,7 +47138,7 @@ jbN
 jbN
 jbN
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -48155,7 +47980,7 @@ mEC
 jbN
 jbN
 aTW
-rRZ
+jbN
 jbN
 mEC
 mEC
@@ -48268,7 +48093,7 @@ jbN
 jbN
 aTW
 aTW
-rRZ
+pdd
 jbN
 jbN
 mEC
@@ -48652,7 +48477,7 @@ mEC
 mEC
 jbN
 jbN
-rRZ
+jbN
 pdd
 pdd
 mEC
@@ -48666,8 +48491,8 @@ mEC
 mEC
 mEC
 aTW
-xHx
-aTW
+jbN
+jbN
 pdd
 pdd
 aTW
@@ -48716,7 +48541,7 @@ cOj
 pdd
 pdd
 pdd
-rRZ
+jbN
 jbN
 jbN
 mEC
@@ -48940,7 +48765,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 pdd
 aTW
@@ -49149,7 +48974,7 @@ mEC
 mEC
 jbN
 jbN
-rRZ
+jbN
 aTW
 aTW
 jbN
@@ -49208,7 +49033,7 @@ pdd
 pdd
 aTW
 aTW
-ksR
+mEC
 mEC
 mEC
 mEC
@@ -49473,7 +49298,7 @@ mEC
 mEC
 mEC
 jbN
-xHx
+jbN
 jbN
 jbN
 jbN
@@ -49799,7 +49624,7 @@ aTW
 aTW
 aTW
 aTW
-rRZ
+pdd
 jbN
 mEC
 mEC
@@ -49998,7 +49823,7 @@ jbN
 jbN
 jbN
 pdd
-xHx
+jbN
 jbN
 jbN
 mEC
@@ -50021,7 +49846,7 @@ jbN
 jbN
 aTW
 pdd
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -50189,7 +50014,6 @@ mEC
 mEC
 mEC
 mEC
-xHx
 mEC
 mEC
 mEC
@@ -50225,7 +50049,8 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
+mEC
 pdd
 pdd
 pdd
@@ -50668,7 +50493,7 @@ pdd
 pdd
 aTW
 aTW
-rRZ
+jbN
 jbN
 mEC
 mEC
@@ -50688,7 +50513,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 jbN
 jbN
 jbN
@@ -50951,7 +50776,7 @@ jbN
 jbN
 jbN
 aTW
-xHx
+jbN
 jbN
 mEC
 mEC
@@ -51253,7 +51078,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 aTW
@@ -51262,7 +51087,7 @@ pdd
 pdd
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -51280,7 +51105,7 @@ mEC
 mEC
 mEC
 jbN
-xHx
+jbN
 pdd
 pdd
 xiM
@@ -51333,7 +51158,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 pdd
 pdd
 pdd
@@ -51515,7 +51340,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 pdd
 pdd
 xKl
@@ -51602,7 +51427,7 @@ jbN
 jbN
 jbN
 aTW
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -51676,7 +51501,7 @@ jbN
 aTW
 aTW
 aTW
-rRZ
+jbN
 aTW
 aTW
 aTW
@@ -52740,7 +52565,7 @@ aTW
 pdd
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -53493,7 +53318,7 @@ mEC
 mEC
 mEC
 jbN
-rRZ
+jbN
 aTW
 pdd
 pdd
@@ -53599,7 +53424,7 @@ mEC
 mEC
 mEC
 aTW
-xHx
+aTW
 jbN
 jbN
 mEC
@@ -53623,7 +53448,7 @@ mEC
 aTW
 pdd
 pdd
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -53862,7 +53687,7 @@ jbN
 jbN
 jbN
 mEC
-xHx
+aTW
 pdd
 mEC
 mEC
@@ -53986,7 +53811,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 pdd
@@ -54277,7 +54102,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 pdd
 pdd
 jbN
@@ -54507,7 +54332,7 @@ pdd
 pdd
 pdd
 pdd
-jbN
+pdd
 jbN
 mEC
 mEC
@@ -54795,7 +54620,7 @@ mEC
 aTW
 pdd
 aTW
-xHx
+jbN
 jbN
 jbN
 mEC
@@ -54878,7 +54703,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 ygQ
 ygQ
 aTW
@@ -55017,28 +54842,28 @@ mEC
 mEC
 mEC
 mEC
+pdd
+pdd
+pdd
+pdd
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+aTW
 aTW
 pdd
 pdd
 pdd
-rRZ
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
 aTW
-aTW
-pdd
-pdd
-pdd
-aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -55062,7 +54887,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 aTW
@@ -55416,7 +55241,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+pdd
 aTW
 pdd
 aTW
@@ -55441,13 +55266,13 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 pdd
 aTW
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -55916,7 +55741,7 @@ jbN
 jbN
 jbN
 jbN
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -56342,7 +56167,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 jbN
@@ -56422,7 +56247,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 pdd
 aTW
 jbN
@@ -56610,7 +56435,7 @@ jbN
 jbN
 aTW
 pdd
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -56681,7 +56506,7 @@ mEC
 mEC
 mEC
 aTW
-xHx
+aTW
 jbN
 mEC
 mEC
@@ -57258,7 +57083,7 @@ mEC
 jbN
 aTW
 pdd
-rRZ
+pdd
 jbN
 mEC
 mEC
@@ -57627,7 +57452,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 pdd
 pdd
@@ -58151,7 +57976,7 @@ jbN
 aTW
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -58622,7 +58447,7 @@ jbN
 jbN
 aTW
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -59174,7 +58999,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 pdd
 aTW
@@ -59642,7 +59467,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 aTW
 mEC
 jbN
@@ -59777,7 +59602,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 jbN
 uyx
@@ -59786,7 +59611,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -59814,7 +59639,7 @@ jbN
 pdd
 aTW
 jbN
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -60544,7 +60369,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 pdd
 pdd
@@ -60863,7 +60688,7 @@ mEC
 mEC
 mEC
 aTW
-rRZ
+pdd
 jbN
 mEC
 mEC
@@ -60958,7 +60783,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+pdd
 mEC
 mEC
 mEC
@@ -61732,7 +61557,7 @@ pdd
 aTW
 jbN
 jbN
-xHx
+jbN
 mEC
 mEC
 mEC
@@ -61844,7 +61669,7 @@ pdd
 pdd
 pdd
 aTW
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -61982,7 +61807,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+pdd
 pdd
 pdd
 aTW
@@ -62219,7 +62044,7 @@ mEC
 aTW
 aTW
 aTW
-rRZ
+pdd
 jbN
 mEC
 mEC
@@ -62859,7 +62684,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 aTW
 pdd
@@ -62899,7 +62724,7 @@ pdd
 pdd
 aTW
 aTW
-rRZ
+pdd
 jbN
 jbN
 jbN
@@ -63782,7 +63607,7 @@ mEC
 mEC
 mEC
 aTW
-xHx
+pdd
 jbN
 jbN
 jbN
@@ -63897,7 +63722,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -64198,7 +64023,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+pdd
 jbN
 mEC
 mEC
@@ -64301,7 +64126,7 @@ aTW
 pdd
 pdd
 pdd
-xHx
+pdd
 mEC
 mEC
 mEC
@@ -64433,7 +64258,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 jbN
 aTW
 jbN
@@ -65124,10 +64949,10 @@ sfw
 sLQ
 okS
 tHo
-uhB
-uyQ
+oLs
 uUA
 vtz
+uZl
 vQV
 wnD
 wCh
@@ -65315,7 +65140,7 @@ jbN
 abT
 jbN
 aTW
-xHx
+pdd
 jbN
 mEC
 mEC
@@ -65382,11 +65207,11 @@ sMs
 okS
 tHJ
 oLs
-oLs
 uUH
 vvf
-uZl
-uZl
+vvf
+vvf
+vvf
 vvf
 wPz
 ybK
@@ -65639,11 +65464,11 @@ sNt
 okS
 tIT
 oLs
-oLs
 uVo
-vvk
+ldT
 vRL
-wnJ
+xHx
+ldT
 ldT
 wQh
 ybK
@@ -65820,7 +65645,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 jbN
 jbN
@@ -65897,9 +65722,9 @@ okS
 tIX
 oLs
 oLs
-oLs
 vvR
 vTr
+oLs
 wnM
 wCB
 wRV
@@ -66155,8 +65980,8 @@ tJw
 oLs
 oLs
 oLs
-oLs
 vUI
+oLs
 wnU
 oLs
 wSo
@@ -66368,7 +66193,7 @@ mEC
 mEC
 mEC
 aTW
-mEC
+pdd
 pdd
 aTW
 mEC
@@ -66412,7 +66237,7 @@ tJZ
 uhH
 uza
 uVq
-uVq
+vvk
 vXh
 wnX
 aOE
@@ -66629,7 +66454,7 @@ pdd
 pdd
 pdd
 aTW
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -66727,12 +66552,12 @@ mEC
 mEC
 jbN
 jbN
-xHx
+aTW
 pdd
 pdd
 pdd
 pdd
-xHx
+aTW
 jbN
 jbN
 mEC
@@ -66761,7 +66586,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -67368,37 +67193,37 @@ mEC
 mEC
 mEC
 mEC
-xHx
-jbN
-jbN
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
-mEC
 mEC
 jbN
-xHx
+jbN
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+mEC
+jbN
+pdd
 pdd
 pdd
 mEC
@@ -67755,7 +67580,7 @@ mEC
 mEC
 jbN
 jbN
-xHx
+aTW
 pdd
 pdd
 jbN
@@ -68398,7 +68223,7 @@ pdd
 pdd
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -69044,7 +68869,7 @@ jbN
 jbN
 pdd
 aTW
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -69454,10 +69279,10 @@ mEC
 mEC
 jbN
 jbN
-xHx
 pdd
 pdd
-xHx
+pdd
+mEC
 mEC
 mEC
 mEC
@@ -69600,7 +69425,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -69680,7 +69505,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 jbN
@@ -69769,7 +69594,7 @@ xkS
 mSw
 mSw
 mSw
-mSw
+wwr
 rXX
 xKQ
 daa
@@ -69812,7 +69637,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 pdd
 jbN
 jbN
@@ -70337,7 +70162,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 pdd
 pdd
@@ -70483,7 +70308,7 @@ mEC
 mEC
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -70526,8 +70351,8 @@ uEO
 phR
 vHK
 wgk
-wwr
-wwr
+wHY
+wHY
 xds
 vEL
 xyw
@@ -71206,7 +71031,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 pdd
@@ -71268,7 +71093,7 @@ aJC
 aJC
 cfM
 cfM
-aJC
+grh
 aJC
 fgj
 dRV
@@ -71346,7 +71171,7 @@ aTW
 aTW
 aTW
 aTW
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -71521,7 +71346,7 @@ obt
 obt
 mEC
 mEC
-grh
+aLr
 bci
 cgh
 cEY
@@ -71629,7 +71454,7 @@ ybu
 jbN
 jbN
 ybu
-rRZ
+pdd
 pdd
 pdd
 pdd
@@ -72112,10 +71937,10 @@ mEC
 mEC
 mEC
 mEC
-xHx
 aTW
 aTW
 aTW
+aTW
 jbN
 mEC
 mEC
@@ -72148,7 +71973,7 @@ pdd
 pdd
 pdd
 pdd
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -72677,7 +72502,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 pdd
 pdd
 pdd
@@ -72847,14 +72672,14 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 pdd
 pdd
 pdd
 jbN
 pdd
 pdd
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -72867,7 +72692,7 @@ mEC
 mEC
 mEC
 jbN
-xHx
+aTW
 pdd
 aTW
 jbN
@@ -73035,7 +72860,7 @@ aTW
 aTW
 pdd
 pdd
-rRZ
+aTW
 jbN
 mEC
 mEC
@@ -73385,7 +73210,7 @@ jbN
 pdd
 pdd
 pdd
-xHx
+aTW
 jbN
 jbN
 jbN
@@ -73618,7 +73443,7 @@ mEC
 aTW
 pdd
 pdd
-xHx
+aTW
 jbN
 jbN
 jbN
@@ -74196,7 +74021,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 pdd
@@ -74430,13 +74255,13 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 pdd
 pdd
 pdd
 pdd
 aTW
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -74585,7 +74410,7 @@ mEC
 mEC
 aTW
 aTW
-xHx
+aTW
 jbN
 mEC
 mEC
@@ -74626,9 +74451,9 @@ mEC
 mEC
 mEC
 jbN
-xHx
 aTW
 aTW
+aTW
 mEC
 mEC
 mEC
@@ -74673,7 +74498,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -75110,11 +74935,11 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 aTW
 aTW
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -75356,7 +75181,7 @@ mEC
 mEC
 mEC
 jbN
-xHx
+aTW
 aTW
 mEC
 mEC
@@ -75710,7 +75535,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 jbN
 jbN
 pdd
@@ -75913,7 +75738,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -76348,7 +76173,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 jbN
 aTW
@@ -76397,7 +76222,7 @@ mEC
 mEC
 jbN
 jbN
-xHx
+pdd
 aTW
 aTW
 jbN
@@ -76413,7 +76238,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 jbN
 jbN
 jbN
@@ -76625,7 +76450,7 @@ aTW
 pdd
 pdd
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -77225,7 +77050,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 pdd
 aTW
 aTW
@@ -77295,7 +77120,7 @@ pdd
 pdd
 pdd
 aTW
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -77522,8 +77347,8 @@ jbN
 aTW
 aTW
 aTW
-xHx
-mEC
+aTW
+aTW
 aTW
 mEC
 mEC
@@ -77640,7 +77465,7 @@ pdd
 pdd
 jbN
 afl
-rRZ
+pdd
 aTW
 pdd
 pdd
@@ -77696,12 +77521,12 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 pdd
 pdd
 aTW
-xHx
+aTW
 jbN
 jbN
 mEC
@@ -77745,7 +77570,7 @@ jbN
 aTW
 pdd
 pdd
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -78233,7 +78058,7 @@ jbN
 pdd
 pdd
 pdd
-xHx
+mEC
 mEC
 mEC
 mEC
@@ -78334,7 +78159,7 @@ mEC
 mEC
 aTW
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -78484,7 +78309,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+mEC
 aTW
 jbN
 tSA
@@ -79170,7 +78995,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 aTW
@@ -79278,7 +79103,7 @@ mEC
 mEC
 mEC
 mEC
-xHx
+aTW
 aTW
 pdd
 pdd
@@ -79289,7 +79114,7 @@ jbN
 jbN
 aTW
 pdd
-xHx
+aTW
 mEC
 mEC
 mEC
@@ -79349,7 +79174,7 @@ jbN
 aTW
 aTW
 aTW
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -79781,7 +79606,7 @@ mEC
 mEC
 aTW
 aTW
-xHx
+pdd
 jbN
 jbN
 mEC
@@ -80356,7 +80181,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 aTW
 aTW
 pdd
@@ -80597,7 +80422,7 @@ pdd
 aTW
 aTW
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -80729,7 +80554,7 @@ agd
 ajs
 agd
 agd
-rRZ
+pdd
 jbN
 afl
 jbN
@@ -81018,7 +80843,7 @@ mEC
 mEC
 mEC
 jbN
-rRZ
+pdd
 pdd
 pdd
 pdd
@@ -81080,7 +80905,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+aTW
 aTW
 aTW
 pdd
@@ -81770,7 +81595,7 @@ jbN
 jbN
 aTW
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC
@@ -83197,7 +83022,7 @@ aak
 aak
 pdd
 pdd
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -83283,7 +83108,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 jbN
@@ -83932,7 +83757,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 mEC
@@ -84324,7 +84149,7 @@ aTW
 pdd
 aTW
 aTW
-rRZ
+pdd
 jbN
 jbN
 jbN
@@ -84384,7 +84209,7 @@ aTW
 jbN
 jbN
 jbN
-rRZ
+pdd
 aTW
 pdd
 pdd
@@ -84415,7 +84240,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 mEC
@@ -84980,7 +84805,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+pdd
 pdd
 pdd
 aTW
@@ -85205,7 +85030,7 @@ mEC
 jbN
 jbN
 jbN
-rRZ
+pdd
 jbN
 jbN
 mEC
@@ -85655,7 +85480,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 pdd
 pdd
@@ -86272,7 +86097,7 @@ jbN
 jbN
 pdd
 pdd
-rRZ
+pdd
 mEC
 mEC
 mEC
@@ -86707,7 +86532,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 pdd
 jbN
 jbN
@@ -87229,7 +87054,6 @@ pdd
 pdd
 jbN
 pdd
-rRZ
 mEC
 mEC
 mEC
@@ -87255,7 +87079,8 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
+mEC
 aTW
 aTW
 pdd
@@ -87465,7 +87290,7 @@ mEC
 mEC
 mEC
 mEC
-rRZ
+mEC
 aTW
 aTW
 mEC
@@ -88549,7 +88374,7 @@ jbN
 jbN
 aTW
 aTW
-rRZ
+mEC
 mEC
 mEC
 mEC

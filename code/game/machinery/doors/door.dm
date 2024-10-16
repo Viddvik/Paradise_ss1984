@@ -4,7 +4,7 @@
 	icon = 'icons/obj/doors/doorint.dmi'
 	icon_state = "door1"
 	anchored = TRUE
-	opacity = 1
+	opacity = TRUE
 	density = TRUE
 	layer = OPEN_DOOR_LAYER
 	power_channel = ENVIRON
@@ -12,10 +12,11 @@
 	armor = list("melee" = 30, "bullet" = 30, "laser" = 20, "energy" = 20, "bomb" = 10, "bio" = 100, "rad" = 100, "fire" = 80, "acid" = 70)
 	flags = PREVENT_CLICK_UNDER
 	damage_deflection = 10
+	pass_flags_self = PASSDOOR
 	var/closingLayer = CLOSED_DOOR_LAYER
 	var/visible = 1
 	/// Is it currently in the process of opening or closing.
-	var/operating = FALSE
+	var/operating = NONE
 	var/autoclose = 0
 	/// Whether the door detects things and mobs in its way and reopen or crushes them.
 	var/safe = TRUE
@@ -41,6 +42,8 @@
 	var/sound_cooldown = 1 SECONDS
 	//Emag vulnerability.
 	var/hackable = TRUE
+	/// Whether or not the door can be opened by hand (used for blast doors and shutters)
+	var/can_open_with_hands = TRUE
 
 /obj/machinery/door/New()
 	..()
@@ -62,12 +65,15 @@
 		layer = initial(layer)
 
 /obj/machinery/door/setDir(newdir)
-	..()
+	. = ..()
 	update_dir()
 
-/obj/machinery/door/power_change()
-	..()
-	update_icon()
+
+/obj/machinery/door/power_change(forced = FALSE)
+	. = ..()
+	if(.)
+		update_icon()
+
 
 /obj/machinery/door/proc/update_dir()
 	if(width > 1)
@@ -80,21 +86,21 @@
 
 /obj/machinery/door/Initialize()
 	air_update_turf(1)
-	..()
+	. = ..()
 
 /obj/machinery/door/Destroy()
-	density = 0
+	set_density(FALSE)
 	air_update_turf(1)
 	update_freelook_sight()
 	GLOB.airlocks -= src
 	QDEL_NULL(spark_system)
 	return ..()
 
-/obj/machinery/door/Bumped(atom/movable/moving_atom)
-	..()
+/obj/machinery/door/Bumped(atom/movable/moving_atom, skip_effects = FALSE)
+	. = ..()
 
-	if(operating || emagged)
-		return
+	if(skip_effects || operating || emagged || (!can_open_with_hands && density) )
+		return .
 	if(ismob(moving_atom))
 		var/mob/B = moving_atom
 		if((isrobot(B)) && B.stat)
@@ -104,7 +110,7 @@
 			if(world.time - M.last_bumped <= 10)
 				return	//Can bump-open one airlock per second. This is to prevent shock spam.
 			M.last_bumped = world.time
-			if(M.restrained() && !check_access(null))
+			if(HAS_TRAIT(M, TRAIT_HANDS_BLOCKED) && !check_access(null))
 				return
 			if(M.mob_size > MOB_SIZE_TINY)
 				bumpopen(M)
@@ -120,15 +126,15 @@
 				if(HAS_TRAIT(src, TRAIT_CMAGGED))
 					cmag_switch(FALSE, mecha.occupant)
 					return
-				open()
+				INVOKE_ASYNC(src, PROC_REF(open))
 			else
 				if(HAS_TRAIT(src, TRAIT_CMAGGED))
 					cmag_switch(TRUE, mecha.occupant)
 					return
-				do_animate("deny")
-		return
+				INVOKE_ASYNC(src, PROC_REF(do_animate), "deny")
 
-/obj/machinery/door/Move(new_loc, new_dir)
+
+/obj/machinery/door/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/turf/T = loc
 	. = ..()
 	move_update_air(T)
@@ -141,45 +147,50 @@
 			bound_width = world.icon_size
 			bound_height = width * world.icon_size
 
-/obj/machinery/door/CanPass(atom/movable/mover, turf/target, height=0)
-	if(istype(mover) && mover.checkpass(PASS_OTHER_THINGS))
+
+/obj/machinery/door/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	if(.)
 		return TRUE
-	if(istype(mover) && mover.checkpass(PASSDOOR) && !locked)
-		return TRUE
-	if(istype(mover) && mover.checkpass(PASSGLASS))
+	// Snowflake handling for PASSGLASS.
+	if(checkpass(mover, PASSGLASS))
 		return !opacity
+
+
+/obj/machinery/door/CanAtmosPass(turf/T, vertical)
 	return !density
 
-/obj/machinery/door/CanAtmosPass()
-	return !density
 
 /obj/machinery/door/proc/bumpopen(mob/user)
-	if(operating)
+	if(operating || !can_open_with_hands)
 		return
 	add_fingerprint(user)
 
-	if(density && !emagged)
-		if(allowed(user))
-			if(HAS_TRAIT(src, TRAIT_CMAGGED))
-				cmag_switch(FALSE, user)
-				return
-			open()
-			if(isbot(user))
-				var/mob/living/simple_animal/bot/B = user
-				B.door_opened(src)
-		else
-			if(pry_open_check(user))
-				return
-			if(HAS_TRAIT(src, TRAIT_CMAGGED))
-				cmag_switch(TRUE, user)
-				return
-			do_animate("deny")
+	if(!density || emagged)
+		return
+
+	if(allowed(user))
+		if(HAS_TRAIT(src, TRAIT_CMAGGED))
+			cmag_switch(FALSE, user)
+			return
+		INVOKE_ASYNC(src, PROC_REF(open))
+		if(isbot(user))
+			var/mob/living/simple_animal/bot/bot = user
+			bot.door_opened(src)
+		return
+
+	if(pry_open_check(user))
+		return
+	if(HAS_TRAIT(src, TRAIT_CMAGGED))
+		cmag_switch(TRUE, user)
+		return
+	INVOKE_ASYNC(src, PROC_REF(do_animate), "deny")
 
 
 /obj/machinery/door/proc/pry_open_check(mob/user)
 	. = TRUE
 	if(isterrorspider(user))
-		return
+		return .
 
 	if(!HAS_TRAIT(user, TRAIT_FORCE_DOORS))
 		return FALSE
@@ -224,11 +235,11 @@
 
 /obj/machinery/door/proc/try_to_activate_door(mob/user)
 	add_fingerprint(user)
-	if(operating || emagged)
+	if(operating || emagged || !can_open_with_hands)
 		return
 	if(requiresID() && (allowed(user) || user.can_advanced_admin_interact()))
 		if(density)
-			if(HAS_TRAIT(src, TRAIT_CMAGGED) && !user.can_advanced_admin_interact())
+			if(HAS_TRAIT(src, TRAIT_CMAGGED) && !user.can_advanced_admin_interact()) //cmag should not prevent admin intervention
 				cmag_switch(FALSE, user)
 				return
 			open()
@@ -236,12 +247,12 @@
 			if(HAS_TRAIT(src, TRAIT_CMAGGED) && !user.can_advanced_admin_interact())
 				return
 			close()
-		return
+		return TRUE
 	if(HAS_TRAIT(src, TRAIT_CMAGGED))
 		cmag_switch(TRUE, user)
 		return
 	if(density)
-		do_animate("deny")
+		INVOKE_ASYNC(src, PROC_REF(do_animate), "deny")
 
 /obj/machinery/door/allowed(mob/M)
 	if(emergency)
@@ -272,20 +283,26 @@
 	if(!cleaning)
 		return
 	user.visible_message(span_notice("[user] starts to clean the ooze off the access panel."), span_notice("You start to clean the ooze off the access panel."))
-	if(do_after(user, 50, target = src))
+	if(do_after(user, 5 SECONDS, src))
 		user.visible_message(span_notice("[user] cleans the ooze off [src]."), span_notice("You clean the ooze off [src]."))
 		REMOVE_TRAIT(src, TRAIT_CMAGGED, CMAGGED)
+
 
 /obj/machinery/door/attackby(obj/item/I, mob/user, params)
 	if(HAS_TRAIT(src, TRAIT_CMAGGED))
 		clean_cmag_ooze(I, user)
-	if(user.a_intent != INTENT_HARM && istype(I, /obj/item/twohanded/fireaxe))
-		add_fingerprint(user)
-		try_to_crowbar(user, I)
-		return 1
-	else if(!(I.flags & NOBLUDGEON) && user.a_intent != INTENT_HARM)
-		try_to_activate_door(user)
-		return 1
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	if(user.a_intent != INTENT_HARM)
+		if(istype(I, /obj/item/twohanded/fireaxe))
+			add_fingerprint(user)
+			try_to_crowbar(user, I)
+			return ATTACK_CHAIN_BLOCKED_ALL
+
+		if(!(I.item_flags & NOBLUDGEON))
+			try_to_activate_door(user)
+			return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
 
 
@@ -319,7 +336,8 @@
 
 /obj/machinery/door/emag_act(mob/user)
 	if(!hackable)
-		to_chat(user, span_notice("The electronic systems in this door are far too advanced for your primitive hacking peripherals."))
+		if(user)
+			to_chat(user, span_notice("The electronic systems in this door are far too advanced for your primitive hacking peripherals."))
 		return
 	if(density)
 		add_attack_logs(user, src, "emagged ([locked ? "bolted" : "not bolted"])")
@@ -341,7 +359,7 @@
 /obj/machinery/door/proc/cmag_switch(canopen, mob/living/user)
 	if(!canopen || locked || !hasPower())
 		if(density) //Windoors can still do their deny animation in unpowered environments, this bugs out if density isn't checked for
-			do_animate("deny")
+			INVOKE_ASYNC(src, PROC_REF(do_animate), "deny")
 		if(hasPower() && sound_ready)
 			playsound(loc, 'sound/machines/honkbot_evil_laugh.ogg', 25, TRUE, ignore_walls = FALSE)
 			soundcooldown()
@@ -351,16 +369,16 @@
 		if(!H.get_assignment(0, 0)) //Humans can't game inverted access by taking their ID off or using spare IDs.
 			if(!density)
 				return
-			do_animate("deny")
+			INVOKE_ASYNC(src, PROC_REF(do_animate), "deny")
 			to_chat(H, span_warning("The airlock speaker chuckles: 'What's wrong, pal? Lost your ID? Nyuk nyuk nyuk!'"))
 			if(sound_ready)
 				playsound(loc, 'sound/machines/honkbot_evil_laugh.ogg', 25, TRUE, ignore_walls = FALSE)
 				soundcooldown() //Thanks, mechs
 			return
 	if(density)
-		open()
+		INVOKE_ASYNC(src, PROC_REF(open))
 	else
-		close()
+		INVOKE_ASYNC(src, PROC_REF(close))
 
 /obj/machinery/door/proc/soundcooldown()
 	if(!sound_ready)
@@ -368,11 +386,10 @@
 	sound_ready = FALSE
 	addtimer(VARSET_CALLBACK(src, sound_ready, TRUE), sound_cooldown)
 
-/obj/machinery/door/update_icon()
-	if(density)
-		icon_state = "door1"
-	else
-		icon_state = "door0"
+
+/obj/machinery/door/update_icon_state()
+	icon_state = "door[density]"
+
 
 /obj/machinery/door/proc/do_animate(animation)
 	switch(animation)
@@ -394,54 +411,55 @@
 	if(!density)
 		return TRUE
 	if(operating)
-		return
-	operating = TRUE
-	do_animate("opening")
-	set_opacity(0)
-	sleep(5)
-	density = FALSE
-	sleep(5)
+		return FALSE
+	operating = DOOR_OPENING
+	INVOKE_ASYNC(src, PROC_REF(do_animate), "opening")
+	set_opacity(FALSE)
+	sleep(0.5 SECONDS)
+	set_density(FALSE)
+	sleep(0.5 SECONDS)
 	layer = initial(layer)
 	update_icon()
-	set_opacity(0)
-	operating = FALSE
-	air_update_turf(1)
+	operating = NONE
+	air_update_turf(TRUE)
 	update_freelook_sight()
 	if(autoclose)
 		autoclose_in(normalspeed ? auto_close_time : auto_close_time_dangerous)
 	return TRUE
 
+
 /obj/machinery/door/proc/close()
 	if(density)
 		return TRUE
 	if(operating || welded)
-		return
+		return FALSE
 	if(safe)
 		for(var/turf/turf in locs)
 			for(var/atom/movable/M in turf)
 				if(M.density && M != src) //something is blocking the door
 					if(autoclose)
-						autoclose_in(60)
-					return
+						autoclose_in(6 SECONDS)
+					return FALSE
 
-	operating = TRUE
+	operating = DOOR_CLOSING
 
-	do_animate("closing")
+	INVOKE_ASYNC(src, PROC_REF(do_animate), "closing")
 	layer = closingLayer
-	sleep(5)
-	density = TRUE
-	sleep(5)
+	sleep(0.5 SECONDS)
+	set_density(TRUE)
+	sleep(0.5 SECONDS)
 	update_icon()
 	if(visible && !glass)
-		set_opacity(1)
-	operating = FALSE
-	air_update_turf(1)
+		set_opacity(TRUE)
+	operating = NONE
+	air_update_turf(TRUE)
 	update_freelook_sight()
 	if(safe)
 		CheckForMobs()
 	else
 		crush()
 	return TRUE
+
 
 /obj/machinery/door/proc/CheckForMobs()
 	if(locate(/mob/living) in get_turf(src))
@@ -481,12 +499,12 @@
 
 /obj/machinery/door/proc/update_freelook_sight()
 	if(!glass && GLOB.cameranet)
-		GLOB.cameranet.updateVisibility(src, 0)
+		GLOB.cameranet.updateVisibility(src, opacity_check = FALSE)
 
 /obj/machinery/door/BlockSuperconductivity() // All non-glass airlocks block heat, this is intended.
 	if(opacity || heat_proof)
-		return 1
-	return 0
+		return TRUE
+	return FALSE
 
 /obj/machinery/door/morgue
 	icon = 'icons/obj/doors/doormorgue.dmi'

@@ -15,7 +15,7 @@
 
 /obj/structure/clockwork/functional/workshop
 	name = "ratvar's workshop"
-	desc = "An imposing spire formed of brass. It somewhat pulsates."
+	desc = "A workshop of elder god. Has unique brass tools to manipulate both power and metal to make fine clockwork pieces."
 	icon_state = "workshop"
 	max_integrity = 400
 	death_message = "<span class='danger'>The workshop begins to crumble in pieces as the tools and the gears on table starts to dust!</span>"
@@ -25,6 +25,7 @@
 	var/brass_amount = 0
 	var/build_start = 0
 	var/build_end = 0
+	canbehidden = TRUE
 
 
 // CLOCK_DESIGN(NAME, PATH, BRASS_AMOUNT, POWER_AMOUNT, TIME),
@@ -48,10 +49,10 @@
 		CLOCK_DESIGN("Judical Visors", /obj/item/clothing/glasses/clockwork, 400, 200, 5),
 	)
 	item_list["Consumables"] = list(
+		CLOCK_DESIGN("Brass sheet", /obj/item/stack/sheet/brass, 0, 200, 3),
 		CLOCK_DESIGN("Integration Cog", /obj/item/clockwork/integration_cog, 100, 0, 3),
 		CLOCK_DESIGN("Soul Vessel", /obj/item/mmi/robotic_brain/clockwork, 500, 100, 5),
 		CLOCK_DESIGN("Clocked Upgrade", /obj/item/borg/upgrade/clockwork, 1000, 200, 5),
-		CLOCK_DESIGN("Cogscarab", /obj/item/clockwork/cogscarab, 1800, 450, 20),
 		CLOCK_DESIGN("Marauder", /obj/item/clockwork/marauder, 1200, 300, 10),
 		CLOCK_DESIGN("Strange Shard", /obj/item/clockwork/shard, 2000, 500, 15),
 	)
@@ -71,6 +72,10 @@
 	return ..()
 
 /obj/structure/clockwork/functional/workshop/attack_hand(mob/user)
+	if(hidden)
+		if(isclocker(user))
+			to_chat(user,"<span class='warning'>This workshop is hidden. You need clockwork slab to reveal it!</span>")
+		return
 	if(!isclocker(user))
 		to_chat(user,"<span class='warning'>You are trying to understand how this table works, but to no avail.</span>")
 		return
@@ -81,22 +86,25 @@
 /obj/structure/clockwork/functional/workshop/attack_ghost(mob/user)
 	ui_interact(user)
 
-/obj/structure/clockwork/functional/workshop/attackby(obj/item/O, mob/user, params)
-	if(istype(O, /obj/item/stack/sheet/brass) && isclocker(user))
-		var/obj/item/stack/sheet/brass/B = O
-		if(user.temporarily_remove_item_from_inventory(B))
-			add_fingerprint(user)
-			to_chat(user, "<span class='notice'>You reconstruct [B] for workshop to work with.")
-			brass_amount += MINERAL_MATERIAL_AMOUNT*B.amount
-			qdel(B)
-			flick("workshop_b", src)
-			return
+
+/obj/structure/clockwork/functional/workshop/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/stack/sheet/brass) && isclocker(user))
+		add_fingerprint(user)
+		var/obj/item/stack/sheet/brass/brass = I
+		if(!user.drop_transfer_item_to_loc(brass, src))
+			return ..()
+		to_chat(user, span_notice("You reconstruct [brass] for workshop to work with."))
+		brass_amount += MINERAL_MATERIAL_AMOUNT*brass.amount
+		qdel(brass)
+		flick("workshop_b", src)
+		return ATTACK_CHAIN_BLOCKED_ALL
 	return ..()
 
-/obj/structure/clockwork/functional/workshop/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+
+/obj/structure/clockwork/functional/workshop/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "Workshop", name, 400, 500, master_ui, state)
+		ui = new(user, src, "Workshop", name)
 		ui.open()
 
 /obj/structure/clockwork/functional/workshop/ui_static_data(mob/user)
@@ -153,6 +161,8 @@
 		return
 
 	. = TRUE
+	if(hidden || !anchored)
+		return
 	switch(action)
 		if("make")
 			var/category = params["cat"] // meow

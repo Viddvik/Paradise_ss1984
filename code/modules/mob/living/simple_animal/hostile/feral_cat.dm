@@ -18,7 +18,7 @@
 	tts_seed = "Mannoroth"
 	speak_chance = 1
 	turns_per_move = 5
-	see_in_dark = 6
+	nightvision = 6
 	butcher_results = list(/obj/item/reagent_containers/food/snacks/meat/slab = 2)
 	response_help  = "pets"
 	response_disarm = "gently pushes aside"
@@ -28,3 +28,4 @@
 	atmos_requirements = list("min_oxy" = 5, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 1, "min_co2" = 0, "max_co2" = 5, "min_n2" = 0, "max_n2" = 0)
 	unsuitable_atmos_damage = 5
 	pass_flags = PASSTABLE
+	AI_delay_max = 0 SECONDS

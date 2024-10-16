@@ -4,6 +4,8 @@
 	icon = 'icons/obj/paintkit.dmi'
 	icon_state = "paintkit" //What sprite will your paintkit use?
 
+	/// if there it is, instead of replacing initial_icon, will just add this before icon_state
+	var/new_prefix = FALSE
 	var/new_name = "mech"    //What is the variant called?
 	var/new_desc = "A mech." //How is the new mech described?
 	var/new_icon = "ripley"  //What base icon will the new mech use?
@@ -265,7 +267,7 @@
 	allowed_types = list("gygax")
 
 /obj/item/paintkit/lockermech_syndie
-	name = "Locker Mech customisation kit"
+	name = "Syndie Locker Mech customisation kit"
 	icon_state = "paintkit_syndie"
 	desc = "A kit containing all the needed tools and parts to turn a Locker Mech into a Syndie Locker Mech!."
 
@@ -273,3 +275,84 @@
 	new_desc = "Dark-red painted locker mech. The paint is still wet."
 	new_icon = "syndielockermech"
 	allowed_types = list("lockermech")
+
+/obj/item/paintkit/gygax_pirate
+	name = "Pirate Gygax customisation kit"
+	icon_state = "paintkit_pirate"
+	desc = "A kit containing all the needed tools and parts to paint a Gygax Pirate"
+
+	new_name = "Pirate Gygax"
+	new_icon = "piratgygax"
+	allowed_types = list("gygax")
+
+/obj/item/paintkit/lockermech_pirate
+	name = "Pirate Locker Mech customisation kit"
+	icon_state = "paintkit_pirate1"
+	desc = "A kit containing all the needed tools and parts to turn a Locker Mech into a Pirate!."
+
+	new_name = "Pirate Locker Mech"
+	new_icon = "piratlockermech"
+	allowed_types = list("lockermech")
+
+/obj/item/paintkit/durand_pirate
+	name = "Pirate Durand customisation kit"
+	icon_state = "paintkit_pirate"
+	desc = "A kit containing all the needed tools and parts to turn a Durand into a Pirate"
+
+	new_name = "Pirate Durand"
+	new_icon = "piratdurand"
+	allowed_types = list("durand")
+
+/obj/item/paintkit/mauler_pirate
+	name = "Pirate Mauler customisation kit"
+	icon_state = "paintkit_pirate"
+	desc = "A kit containing all the needed tools and parts to turn a Mauler into a Pirate"
+
+	new_name = "Pirate Mauler"
+	new_icon = "piratmauler"
+	allowed_types = list("mauler")
+
+/obj/item/paintkit/lockermech_nt
+	name = "NT Special Locker Mech customisation kit"
+	icon_state = "paintkit_nt1"
+	desc = "A kit containing all the needed tools and parts to show that Locker Mech it is the property of NT."
+
+	new_name = "NT Special Locker Mech"
+	new_icon = "ntlockermech"
+	allowed_types = list("lockermech")
+
+/obj/item/paintkit/durand_nt
+	name = "NT Special Durand customisation kit"
+	icon_state = "paintkit_nt"
+	desc = "A kit containing all the needed tools and parts to show that Durand it is the property of NT"
+
+	new_name = "NT Special Durand"
+	new_icon = "ntdurand"
+	allowed_types = list("durand")
+
+/obj/item/paintkit/ripley_nt
+	name = "NT Special APLU customisation kit"
+	icon_state = "paintkit_nt"
+	desc = "A kit containing all the needed tools and parts to show that APLU it is the property of NT"
+
+	new_name = "NT Special APLU"
+	new_icon = "ntripley"
+	allowed_types = list("ripley", "firefighter")
+
+/obj/item/paintkit/phazon_nt
+	name = "NT Special Phazon customisation kit"
+	icon_state = "paintkit_nt"
+	desc = "A kit containing all the needed tools and parts to show that Phazon it is the property of NT"
+
+	new_name = "NT Special Phazon"
+	new_icon = "ntphazon"
+	allowed_types = list("phazon")
+
+/obj/item/paintkit/ashed
+	name = "Ashed customisation kit"
+	icon_state = "paintkit_ash"
+	desc = "Набор, позволяющий вам переделать многие экзокостюмы в их более шахтерский аналог! По крайней мере, расцветкой."
+
+	new_name = "Ashed Mech"
+	new_prefix = "ashed"
+	allowed_types = list("durand", "ripley", "gygax", "phazon", "lockermech")

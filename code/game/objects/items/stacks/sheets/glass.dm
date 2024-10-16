@@ -15,8 +15,8 @@
  */
 
 GLOBAL_LIST_INIT(glass_recipes, list(
-	new /datum/stack_recipe/window("directional window", /obj/structure/window/basic, on_floor = TRUE, window_checks = TRUE),
-	new /datum/stack_recipe/window("fulltile window", /obj/structure/window/full/basic, 2, on_floor = TRUE, window_checks = TRUE),
+	new /datum/stack_recipe/window("directional window", /obj/structure/window/basic, on_floor = TRUE, check_direction = TRUE),
+	new /datum/stack_recipe/window("fulltile window", /obj/structure/window/full/basic, 2, on_floor = TRUE, is_fulltile = TRUE),
 	null,
 	new /datum/stack_recipe("fishbowl", /obj/machinery/fishtank/bowl, time = 10),
 	new /datum/stack_recipe("fish tank", /obj/machinery/fishtank/tank, 3, time = 20, on_floor = TRUE),
@@ -51,29 +51,43 @@ GLOBAL_LIST_INIT(glass_recipes, list(
 	. = ..()
 	recipes = GLOB.glass_recipes
 
-/obj/item/stack/sheet/glass/attackby(obj/item/W, mob/user, params)
-	if(istype(W,/obj/item/stack/cable_coil))
-		var/obj/item/stack/cable_coil/CC = W
-		if(CC.get_amount() < 5)
-			to_chat(user, "<b>There is not enough wire in this coil. You need 5 lengths.</b>")
-			return
-		CC.use(5)
-		to_chat(user, "<span class='notice'>You attach wire to the [name].</span>")
-		new /obj/item/stack/light_w(user.loc)
-		src.use(1)
-	else if(istype(W, /obj/item/stack/rods))
-		var/obj/item/stack/rods/V  = W
-		var/obj/item/stack/sheet/rglass/RG = new (user.loc)
-		RG.add_fingerprint(user)
-		V.use(1)
-		var/obj/item/stack/sheet/glass/G = src
-		src = null
-		var/replace = (user.get_inactive_hand()==G)
-		G.use(1)
-		if(!G && !RG && replace)
-			user.put_in_hands(RG)
-	else
-		return ..()
+
+/obj/item/stack/sheet/glass/attackby(obj/item/I, mob/user, params)
+	if(iscoil(I))
+		add_fingerprint(user)
+		var/obj/item/stack/cable_coil/coil = I
+		if(coil.get_amount() < 5)
+			to_chat(user, span_warning("There is not enough wire in this coil. You need five lengths."))
+			return ATTACK_CHAIN_PROCEED
+		if(get_amount() < 1)
+			to_chat(user, span_warning("There is not enough [name] sheets."))
+			return ATTACK_CHAIN_PROCEED
+		coil.use(5)
+		to_chat(user, span_notice("You attach wire to [src]."))
+		var/obj/item/stack/light_w/light = new(drop_location())
+		light.add_fingerprint(user)
+		use(1)
+		user.put_in_hands(light, ignore_anim = FALSE)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	if(istype(I, /obj/item/stack/rods))
+		add_fingerprint(user)
+		var/obj/item/stack/rods/rods = I
+		if(rods.get_amount() < 1)
+			to_chat(user, span_warning("There is not enough rods."))
+			return ATTACK_CHAIN_PROCEED
+		if(get_amount() < 1)
+			to_chat(user, span_warning("There is not enough glass sheets."))
+			return ATTACK_CHAIN_PROCEED
+		rods.use(1)
+		to_chat(user, span_notice("You attach rods to [src]."))
+		var/obj/item/stack/sheet/rglass/rglass = new(drop_location())
+		rglass.add_fingerprint(user)
+		use(1)
+		user.put_in_hands(rglass, ignore_anim = FALSE)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
 
 
 /*
@@ -81,10 +95,10 @@ GLOBAL_LIST_INIT(glass_recipes, list(
  */
 
 GLOBAL_LIST_INIT(reinforced_glass_recipes, list ( \
-	new/datum/stack_recipe/window("windoor frame", /obj/structure/windoor_assembly, 5, time = 0, on_floor = TRUE, window_checks = TRUE), \
+	new/datum/stack_recipe/window("windoor frame", /obj/structure/windoor_assembly, 5, time = 0, on_floor = TRUE, check_direction = TRUE), \
 	null, \
-	new/datum/stack_recipe/window("directional reinforced window", /obj/structure/window/reinforced, time = 0, on_floor = TRUE, window_checks = TRUE), \
-	new/datum/stack_recipe/window("fulltile reinforced window", /obj/structure/window/full/reinforced, 2, time = 0, on_floor = TRUE, window_checks = TRUE) \
+	new/datum/stack_recipe/window("directional reinforced window", /obj/structure/window/reinforced, time = 0, on_floor = TRUE, check_direction = TRUE), \
+	new/datum/stack_recipe/window("fulltile reinforced window", /obj/structure/window/full/reinforced, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE) \
 ))
 
 /obj/item/stack/sheet/rglass
@@ -127,8 +141,8 @@ GLOBAL_LIST_INIT(reinforced_glass_recipes, list ( \
 
 
 GLOBAL_LIST_INIT(pglass_recipes, list ( \
-	new/datum/stack_recipe/window("directional window", /obj/structure/window/plasmabasic, time = 0, on_floor = TRUE, window_checks = TRUE), \
-	new/datum/stack_recipe/window("fulltile window", /obj/structure/window/full/plasmabasic, 2, time = 0, on_floor = TRUE, window_checks = TRUE) \
+	new/datum/stack_recipe/window("directional window", /obj/structure/window/plasmabasic, time = 0, on_floor = TRUE, check_direction = TRUE), \
+	new/datum/stack_recipe/window("fulltile window", /obj/structure/window/full/plasmabasic, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE) \
 ))
 
 /obj/item/stack/sheet/plasmaglass
@@ -149,28 +163,35 @@ GLOBAL_LIST_INIT(pglass_recipes, list ( \
 	. = ..()
 	recipes = GLOB.pglass_recipes
 
-/obj/item/stack/sheet/plasmaglass/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/stack/rods))
-		var/obj/item/stack/rods/V  = W
-		var/obj/item/stack/sheet/plasmarglass/RG = new (user.loc)
-		RG.add_fingerprint(user)
-		V.use(1)
-		var/obj/item/stack/sheet/glass/G = src
-		src = null
-		var/replace = (user.get_inactive_hand()==G)
-		G.use(1)
-		if(!G && !RG && replace)
-			user.put_in_hands(RG)
-	else
-		return ..()
+
+/obj/item/stack/sheet/plasmaglass/attackby(obj/item/I, mob/user, params)
+	if(istype(I, /obj/item/stack/rods))
+		add_fingerprint(user)
+		var/obj/item/stack/rods/rods = I
+		if(rods.get_amount() < 1)
+			to_chat(user, span_warning("There is not enough rods."))
+			return ATTACK_CHAIN_PROCEED
+		if(get_amount() < 1)
+			to_chat(user, span_warning("There is not enough [name] sheets."))
+			return ATTACK_CHAIN_PROCEED
+		rods.use(1)
+		to_chat(user, span_notice("You attach rods to [src]."))
+		var/obj/item/stack/sheet/plasmarglass/rglass = new(drop_location())
+		rglass.add_fingerprint(user)
+		use(1)
+		user.put_in_hands(rglass, ignore_anim = FALSE)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /*
  * Reinforced plasma glass sheets
  */
 
 GLOBAL_LIST_INIT(prglass_recipes, list ( \
-	new/datum/stack_recipe/window("directional reinforced window", /obj/structure/window/plasmareinforced, time = 0, on_floor = TRUE, window_checks = TRUE), \
-	new/datum/stack_recipe/window("fulltile reinforced window", /obj/structure/window/full/plasmareinforced, 2, time = 0, on_floor = TRUE, window_checks = TRUE) \
+	new/datum/stack_recipe/window("directional reinforced window", /obj/structure/window/plasmareinforced, time = 0, on_floor = TRUE, check_direction = TRUE), \
+	new/datum/stack_recipe/window("fulltile reinforced window", /obj/structure/window/full/plasmareinforced, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE) \
 ))
 
 /obj/item/stack/sheet/plasmarglass
@@ -192,7 +213,7 @@ GLOBAL_LIST_INIT(prglass_recipes, list ( \
 	recipes = GLOB.prglass_recipes
 
 GLOBAL_LIST_INIT(titaniumglass_recipes, list(
-	new/datum/stack_recipe/window("shuttle window", /obj/structure/window/full/shuttle, 2, time = 0, on_floor = TRUE, window_checks = TRUE)
+	new/datum/stack_recipe/window("shuttle window", /obj/structure/window/full/shuttle, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE)
 	))
 
 /obj/item/stack/sheet/titaniumglass
@@ -212,7 +233,7 @@ GLOBAL_LIST_INIT(titaniumglass_recipes, list(
 	recipes = GLOB.titaniumglass_recipes
 
 GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
-	new/datum/stack_recipe/window("plastitanium window", /obj/structure/window/plastitanium, 2, time = 0, on_floor = TRUE, window_checks = TRUE)
+	new/datum/stack_recipe/window("plastitanium window", /obj/structure/window/plastitanium, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE)
 	))
 
 /obj/item/stack/sheet/plastitaniumglass
@@ -232,8 +253,8 @@ GLOBAL_LIST_INIT(plastitaniumglass_recipes, list(
 	recipes = GLOB.plastitaniumglass_recipes
 
 GLOBAL_LIST_INIT(alglass_recipes, list ( \
-	new/datum/stack_recipe/window("directional window", /obj/structure/window/abductor, time = 0, on_floor = TRUE, window_checks = TRUE), \
-	new/datum/stack_recipe/window("fulltile window", /obj/structure/window/full/abductor, 2, time = 0, on_floor = TRUE, window_checks = TRUE) \
+	new/datum/stack_recipe/window("directional window", /obj/structure/window/abductor, time = 0, on_floor = TRUE, check_direction = TRUE), \
+	new/datum/stack_recipe/window("fulltile window", /obj/structure/window/full/abductor, 2, time = 0, on_floor = TRUE, is_fulltile = TRUE) \
 ))
 
 /obj/item/stack/sheet/abductorglass

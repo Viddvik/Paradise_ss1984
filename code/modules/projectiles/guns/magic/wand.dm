@@ -1,4 +1,4 @@
-/obj/item/gun/magic/wand/
+/obj/item/gun/magic/wand
 	name = "wand of nothing"
 	belt_icon = "wand of nothing"
 	desc = "It's not just a stick, it's a MAGIC stick!"
@@ -10,28 +10,36 @@
 	max_charges = 100 //100, 50, 50, 34 (max charge distribution by 25%ths)
 	var/variable_charges = 1
 
-/obj/item/gun/magic/wand/New()
+/obj/item/gun/magic/wand/Initialize()
 	if(prob(75) && variable_charges) //25% chance of listed max charges, 50% chance of 1/2 max charges, 25% chance of 1/3 max charges
 		if(prob(33))
 			max_charges = CEILING(max_charges / 3, 1)
 		else
 			max_charges = CEILING(max_charges / 2, 1)
-	..()
+	. = ..()
+
 
 /obj/item/gun/magic/wand/examine(mob/user)
 	. = ..()
 	. += "<span class='notice'>Has [charges] charge\s remaining.</span>"
 
-/obj/item/gun/magic/wand/update_icon()
+
+/obj/item/gun/magic/wand/update_icon_state()
 	icon_state = "[initial(icon_state)][charges ? "" : "-drained"]"
 
 
-/obj/item/gun/magic/wand/attack(atom/target, mob/living/user)
+/obj/item/gun/magic/wand/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
 	if(target == user)
-		return
-	..()
+		return ATTACK_CHAIN_PROCEED
+	return ..()
 
-/obj/item/gun/magic/wand/afterattack(atom/target, mob/living/user)
+
+/obj/item/gun/magic/wand/magic_charge_act(mob/user)
+	. = ..()
+	update_appearance(UPDATE_ICON_STATE)
+
+
+/obj/item/gun/magic/wand/afterattack(atom/target, mob/living/user, proximity, params)
 	if(!charges)
 		shoot_with_empty_chamber(user)
 		return
@@ -190,7 +198,7 @@
 	charges--
 	..()
 
-/obj/item/gun/magic/wand/slipping/afterattack(atom/target, mob/living/user)
+/obj/item/gun/magic/wand/slipping/afterattack(atom/target, mob/living/user, proximity, params)
 	. = ..()
 	if(!charges && !charging)
 		to_chat(usr, "<span class='notice'>[src] has started to regain its charge.</span>")

@@ -5,7 +5,7 @@
 	icon_state = "cutters"
 	belt_icon = "wirecutters"
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	force = 6
 	throw_speed = 3
 	throw_range = 7
@@ -25,6 +25,10 @@
 	tool_behaviour = TOOL_WIRECUTTER
 	var/random_color = TRUE
 
+/obj/item/wirecutters/Initialize(mapload)
+	. = ..()
+	AddElement(/datum/element/falling_hazard, damage = force, hardhat_safety = TRUE, crushes = FALSE, impact_sound = hitsound)
+
 /obj/item/wirecutters/New(loc, param_color = null)
 	..()
 	if(random_color)
@@ -32,15 +36,20 @@
 			param_color = pick("yellow", "red")
 		icon_state = "cutters_[param_color]"
 
-/obj/item/wirecutters/attack(mob/living/carbon/C, mob/user)
-	if(istype(C) && C.handcuffed && istype(C.handcuffed, /obj/item/restraints/handcuffs/cable))
-		user.visible_message("<span class='notice'>[user] cuts [C]'s restraints with [src]!</span>")
-		var/obj/item/cuffs = C.handcuffed
-		C.temporarily_remove_item_from_inventory(cuffs, TRUE)
+
+/obj/item/wirecutters/attack(mob/living/carbon/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(istype(target) && istype(target.handcuffed, /obj/item/restraints/handcuffs/cable))
+		var/obj/item/cuffs = target.handcuffed
+		user.visible_message(
+			span_notice("[user] cuts [target]'s restraints with [src]!"),
+			span_notice("You have cut [target]'s restraints with [src]!"),
+		)
+		play_tool_sound(target, 100)
+		target.temporarily_remove_item_from_inventory(cuffs, force = TRUE)
 		qdel(cuffs)
-		return
-	else
-		..()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+	return ..()
+
 
 /obj/item/wirecutters/suicide_act(mob/user)
 	user.visible_message("<span class='suicide'>[user] is cutting at [user.p_their()] arteries with [src]! It looks like [user.p_theyre()] trying to commit suicide!</span>")
@@ -88,7 +97,7 @@
 	playsound(loc, 'sound/items/jaws_cut.ogg', 50, 1, -1)
 	if(ishuman(user))
 		var/mob/living/carbon/human/H = user
-		var/obj/item/organ/external/head/head = H.bodyparts_by_name["head"]
+		var/obj/item/organ/external/head/head = H.bodyparts_by_name[BODY_ZONE_HEAD]
 		if(head)
 			head.droplimb(0, DROPLIMB_BLUNT, FALSE, TRUE)
 			playsound(loc,"desceration" ,50, 1, -1)

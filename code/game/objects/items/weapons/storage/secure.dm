@@ -27,78 +27,109 @@
 	max_w_class = WEIGHT_CLASS_SMALL
 	max_combined_w_class = 14
 
+
 /obj/item/storage/secure/examine(mob/user)
 	. = ..()
 	if(in_range(user, src))
 		. += "<span class='notice'>The service panel is [open ? "open" : "closed"].</span>"
 
+
+/obj/item/storage/secure/update_overlays()
+	. = ..()
+	if(emagged)
+		. += icon_locking
+	else if(!locked)
+		. += icon_opened
+
+
 /obj/item/storage/secure/populate_contents()
 	new /obj/item/paper(src)
 	new /obj/item/pen(src)
 
-/obj/item/storage/secure/attackby(obj/item/W, mob/user, params)
+
+/obj/item/storage/secure/screwdriver_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!I.use_tool(src, user, 2 SECONDS, volume = I.tool_volume))
+		return .
+	open = !open
+	to_chat(user, span_notice("You [open ? "open" : "close"] the service panel."))
+
+
+/obj/item/storage/secure/multitool_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(!open)
+		to_chat(user, span_warning("Open the service panel first."))
+		return .
+	to_chat(user, span_notice("Now attempting to reset internal memory, please hold..."))
+	l_hacking = TRUE
+	if(!I.use_tool(src, user, 10 SECONDS, volume = I.tool_volume) || !open)
+		l_hacking = FALSE
+		return .
+	l_hacking = FALSE
+	if(!prob(40))
+		to_chat(user, span_danger("Unable to reset internal memory."))
+		return .
+	to_chat(user, span_notice("Internal memory reset. Please give [name] a few seconds to reinitialize..."))
+	l_set = FALSE
+	l_setshort = TRUE
+	addtimer(VARSET_CALLBACK(src, l_setshort, FALSE), 8 SECONDS)
+
+
+/obj/item/storage/secure/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)	// to allow storing special items
+		if(locked)
+			add_fingerprint(user)
+			to_chat(user, span_warning("It's locked!"))
+			return ATTACK_CHAIN_PROCEED
+		return ..()
+
+	if(istype(I, /obj/item/melee/energy/blade) && !emagged)
+		add_fingerprint(user)
+		emag_act(user, I)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	if(locked)
-		if((istype(W, /obj/item/melee/energy/blade)) && (!emagged))
-			emag_act(user, W)
-
-		if(istype(W, /obj/item/screwdriver))
-			if(do_after(user, 20 * W.toolspeed * gettoolspeedmod(user), target = src))
-				open = !open
-				user.show_message("<span class='notice'>You [open ? "open" : "close"] the service panel.</span>", 1)
-			return
-
-		if((istype(W, /obj/item/multitool)) && (open) && (!l_hacking))
-			user.show_message("<span class='danger'>Now attempting to reset internal memory, please hold.</span>", 1)
-			l_hacking = TRUE
-			if(do_after(user, 100 * W.toolspeed * gettoolspeedmod(user), target = src))
-				if(prob(40))
-					l_setshort = TRUE
-					l_set = FALSE
-					user.show_message("<span class='danger'>Internal memory reset. Please give it a few seconds to reinitialize.</span>", 1)
-					sleep(80)
-					l_setshort = FALSE
-					l_hacking = FALSE
-				else
-					user.show_message("<span class='danger'>Unable to reset internal memory.</span>", 1)
-					l_hacking = FALSE
-			else
-				l_hacking = FALSE
-			return
-		//At this point you have exhausted all the special things to do when locked
-		// ... but it's still locked.
-		return
+		add_fingerprint(user)
+		to_chat(user, span_warning("It's locked!"))
+		return ATTACK_CHAIN_PROCEED
 
 	return ..()
+
 
 /obj/item/storage/secure/emag_act(mob/user, obj/weapon)
-	if(!emagged)
-		add_attack_logs(user, src, "emagged")
-		emagged = TRUE
-		overlays += image('icons/obj/storage.dmi', icon_sparking)
-		sleep(6)
-		overlays.Cut()
-		overlays += image('icons/obj/storage.dmi', icon_locking)
-		locked = FALSE
-		if(istype(weapon, /obj/item/melee/energy/blade))
-			do_sparks(5, 0, loc)
-			playsound(loc, 'sound/weapons/blade1.ogg', 50, 1)
-			playsound(loc, "sparks", 50, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
-			to_chat(user, "You slice through the lock on [src].")
-		else
-			to_chat(user, "You short out the lock on [src].")
+	if(emagged)
 		return
 
+	add_attack_logs(user, src, "emagged")
+	emagged = TRUE
+	locked = FALSE
+	playsound(loc, "sparks", 50, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
+	flick_overlay_view(image(icon, src, icon_sparking), 1 SECONDS)
+	addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, update_icon)), 1 SECONDS)
+
+	if(istype(weapon, /obj/item/melee/energy/blade))
+		do_sparks(5, 0, loc)
+		playsound(loc, 'sound/weapons/blade1.ogg', 50, 1)
+		playsound(loc, "sparks", 50, TRUE, SHORT_RANGE_SOUND_EXTRARANGE)
+		if(user)
+			to_chat(user, "You slice through the lock on [src].")
+	else if(user)
+		to_chat(user, "You short out the lock on [src].")
+
+
 /obj/item/storage/secure/AltClick(mob/living/user)
-	if(istype(user) && !try_to_open())
+	if(!try_to_open(user))
 		return FALSE
 	return ..()
 
-/obj/item/storage/secure/MouseDrop(over_object, src_location, over_location)
-	if(!try_to_open())
+/obj/item/storage/secure/MouseDrop(atom/over_object, src_location, over_location, src_control, over_control, params)
+	if(!try_to_open(usr))
 		return FALSE
 	return ..()
 
-/obj/item/storage/secure/proc/try_to_open()
+/obj/item/storage/secure/proc/try_to_open(mob/living/user)
+	if(!istype(user) || user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user))
+		return TRUE
 	if(locked)
 		add_fingerprint(usr)
 		to_chat(usr, "<span class='warning'>It's locked!</span>")
@@ -109,10 +140,13 @@
 	user.set_machine(src)
 	ui_interact(user)
 
-/obj/item/storage/secure/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.physical_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/item/storage/secure/ui_state(mob/user)
+	return GLOB.physical_state
+
+/obj/item/storage/secure/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "SecureStorage", name, 520, 200)
+		ui = new(user, src, "SecureStorage", name)
 		ui.open()
 
 /obj/item/storage/secure/ui_data(mob/user)
@@ -138,8 +172,8 @@
 	switch(action)
 		if("close")
 			locked = TRUE
-			overlays.Cut()
 			code = null
+			update_icon(UPDATE_OVERLAYS)
 			close(usr)
 		if("setnumber")
 			switch(params["buttonValue"])
@@ -150,9 +184,8 @@
 						to_chat(usr, "<span class = 'notice'>The code was set successfully.</span>")
 					else if((code == l_code) && l_set)
 						locked = FALSE
-						overlays.Cut()
-						overlays += image('icons/obj/storage.dmi', icon_opened)
 						code = null
+						update_icon(UPDATE_OVERLAYS)
 					else
 						code = "ERROR"
 				if("R")
@@ -232,8 +265,8 @@
 	force = 8
 	w_class = WEIGHT_CLASS_HUGE
 	max_w_class = 8
-	anchored = 1
-	density = 0
+	anchored = TRUE
+	density = FALSE
 	cant_hold = list(/obj/item/storage/secure/briefcase)
 
 /obj/item/storage/secure/safe/attack_hand(mob/user)

@@ -15,10 +15,18 @@
 	var/set_time = 10
 	var/mob/user // for logging
 
-/obj/item/assembly/timer/describe()
+
+/obj/item/assembly/timer/Destroy()
+	user = null
+	return ..()
+
+/obj/item/assembly/timer/examine(mob/user)
+	. = ..()
 	if(timing)
-		return "The timer is counting down from [time]!"
-	return "The timer is set for [time] seconds."
+		. += span_notice("The timer is counting down from [time]!")
+	else
+		. += span_notice("The timer is set for [time] seconds.")
+
 
 /obj/item/assembly/timer/activate()
 	if(!..())
@@ -26,6 +34,7 @@
 	timing = !timing
 	update_icon()
 	return FALSE
+
 
 /obj/item/assembly/timer/toggle_secure()
 	secured = !secured
@@ -37,13 +46,17 @@
 	update_icon()
 	return secured
 
+
 /obj/item/assembly/timer/proc/timer_end()
 	if(!secured || cooldown > 0)
 		return FALSE
-	visible_message("[bicon(src)] *beep* *beep*", "*beep* *beep*")
 	cooldown = 2
-	addtimer(CALLBACK(src, PROC_REF(process_cooldown)), 10)
 	pulse(FALSE, user)
+	update_icon()
+	if(loc)
+		loc.visible_message("[bicon(src)] *beep* *beep*", "*beep* *beep*")
+	addtimer(CALLBACK(src, PROC_REF(process_cooldown)), 10)
+
 
 /obj/item/assembly/timer/process()
 	if(timing && (time > 0))
@@ -53,18 +66,19 @@
 		timer_end()
 		time = set_time
 
-/obj/item/assembly/timer/update_icon()
-	overlays.Cut()
+
+/obj/item/assembly/timer/update_overlays()
+	. = ..()
 	attached_overlays = list()
 	if(timing)
-		overlays += "timer_timing"
+		. += "timer_timing"
 		attached_overlays += "timer_timing"
-	if(holder)
-		holder.update_icon()
+	holder?.update_icon()
 
-/obj/item/assembly/timer/interact(mob/user as mob)//TODO: Have this use the wires
+
+/obj/item/assembly/timer/interact(mob/user)//TODO: Have this use the wires
 	if(!secured)
-		user.show_message("<span class='warning'>The [name] is unsecured!</span>")
+		user.show_message(span_warning("The [name] is unsecured!"))
 		return FALSE
 	var/second = time % 60
 	var/minute = (time - second) / 60
@@ -76,23 +90,24 @@
 	var/dat = {"<meta charset="UTF-8">
 	<TT>
 		<center><h2>Timing Unit</h2>
-		[minute]:[second] <a href='?src=[UID()];time=1'>[timing?"Stop":"Start"]</a> <a href='?src=[UID()];reset=1'>Reset</a><br>
-		Repeat: <a href='?src=[UID()];repeat=1'>[repeat?"On":"Off"]</a><br>
+		[minute]:[second] <a href='byond://?src=[UID()];time=1'>[timing?"Stop":"Start"]</a> <a href='byond://?src=[UID()];reset=1'>Reset</a><br>
+		Repeat: <a href='byond://?src=[UID()];repeat=1'>[repeat?"On":"Off"]</a><br>
 		Timer set for
-		<A href='?src=[UID()];tp=-30'>-</A> <A href='?src=[UID()];tp=-1'>-</A> [set_minute]:[set_second] <A href='?src=[UID()];tp=1'>+</A> <A href='?src=[UID()];tp=30'>+</A>
+		<a href='byond://?src=[UID()];tp=-30'>-</A> <a href='byond://?src=[UID()];tp=-1'>-</A> [set_minute]:[set_second] <a href='byond://?src=[UID()];tp=1'>+</A> <a href='byond://?src=[UID()];tp=30'>+</A>
 		</center>
 	</TT>
 	<BR><BR>
-	<A href='?src=[UID()];refresh=1'>Refresh</A>
+	<a href='byond://?src=[UID()];refresh=1'>Refresh</A>
 	<BR><BR>
-	<A href='?src=[UID()];close=1'>Close</A>"}
+	<a href='byond://?src=[UID()];close=1'>Close</A>"}
 	var/datum/browser/popup = new(user, "timer", name, 400, 400, src)
 	popup.set_content(dat)
 	popup.open()
 
+
 /obj/item/assembly/timer/Topic(href, href_list)
 	..()
-	if(usr.incapacitated() || !in_range(loc, usr))
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED) || !in_range(loc, usr))
 		usr << browse(null, "window=timer")
 		onclose(usr, "timer")
 		return

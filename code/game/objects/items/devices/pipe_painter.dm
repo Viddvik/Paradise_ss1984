@@ -14,7 +14,7 @@
 		modes += "[C]"
 	mode = pick(modes)
 
-/obj/item/pipe_painter/afterattack(atom/A, mob/user as mob)
+/obj/item/pipe_painter/afterattack(atom/A, mob/user, proximity, params)
 	if(!istype(A,/obj/machinery/atmospherics/pipe) || istype(A,/obj/machinery/atmospherics/pipe/simple/heat_exchanging) || istype(A,/obj/machinery/atmospherics/pipe/simple/insulated) || !in_range(user, A))
 		return
 	var/obj/machinery/atmospherics/pipe/P = A
@@ -33,7 +33,10 @@
 
 
 /obj/item/pipe_painter/attack_self(mob/user as mob)
-	mode = input("Which colour do you want to use?", name, mode) in modes
+	var/new_paint_setting = tgui_input_list(user, "Which color do you want to use?", "Pick color", modes)
+	if(!new_paint_setting)
+		return
+	mode = new_paint_setting
 
 /obj/item/pipe_painter/examine(mob/user)
 	. = ..()

@@ -19,7 +19,7 @@
 
 /datum/game_mode/abduction/announce()
 	to_chat(world, "<B>The current game mode is - Abduction!</B>")
-	to_chat(world, "There are alien <b>abductors</b> sent to [world.name] to perform nefarious experiments!")
+	to_chat(world, "There are alien <b>abductors</b> sent to [station_name()] to perform nefarious experiments!")
 	to_chat(world, "<b>Abductors</b> - kidnap the crew and replace their organs with experimental ones.")
 	to_chat(world, "<b>Crew</b> - don't get abducted and stop the abductors.")
 
@@ -149,17 +149,20 @@
 	greet_scientist(scientist,team_number)
 	update_abductor_icons_added(scientist)
 
-/datum/game_mode/abduction/proc/greet_agent(datum/mind/abductor,team_number)
+/datum/game_mode/abduction/proc/greet_agent(datum/mind/abductor, team_number)
 	var/datum/objective/stay_hidden/O = new
 	abductor.objectives += O
 	abductor.objectives += team_objectives[team_number]
 	var/team_name = team_names[team_number]
 
-	to_chat(abductor.current, "<span class='notice'>You are an agent of [team_name]!</span>")
-	to_chat(abductor.current, "<span class='notice'>With the help of your teammate, kidnap and experiment on station crew members!</span>")
-	to_chat(abductor.current, "<span class='notice'>Use your stealth technology and equipment to incapacitate humans for your scientist to retrieve.</span>")
-
-	abductor.announce_objectives()
+	var/list/messages = list()
+	messages.Add("<span class='notice'>You are an agent of [team_name]!</span>")
+	messages.Add("<span class='notice'>With the help of your teammate, kidnap and experiment on station crew members!</span>")
+	messages.Add("<span class='notice'>Use your stealth technology and equipment to incapacitate humans for your scientist to retrieve.</span>")
+	messages.Add("<span class='motd'>С полной информацией вы можете ознакомиться на вики: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Abductor\">Абдуктор</a></span>")
+	messages.Add(abductor.prepare_announce_objectives())
+	to_chat(abductor.current, chat_box_red(messages.Join("<br>")))
+	log_game("[abductor] has become an abductor agent.")
 
 /datum/game_mode/abduction/proc/greet_scientist(datum/mind/abductor,team_number)
 	var/datum/objective/stay_hidden/O = new
@@ -167,11 +170,15 @@
 	abductor.objectives += team_objectives[team_number]
 	var/team_name = team_names[team_number]
 
-	to_chat(abductor.current, "<span class='notice'>You are a scientist of [team_name]!</span>")
-	to_chat(abductor.current, "<span class='notice'>With the help of your teammate, kidnap and experiment on station crew members!</span>")
-	to_chat(abductor.current, "<span class='notice'>Use your tool and ship consoles to support the agent and retrieve human specimens.</span>")
-
-	abductor.announce_objectives()
+	var/list/messages = list()
+	messages.Add("<span class='notice'>You are a scientist of [team_name]!</span>")
+	messages.Add("<span class='notice'>With the help of your teammate, kidnap and experiment on station crew members!</span>")
+	messages.Add("<span class='notice'>Use your tool and ship consoles to support the agent and retrieve human specimens.</span>")
+	messages.Add("<span class='motd'>For more information, check the wiki page: <a href=\"[CONFIG_GET(string/wikiurl)]/index.php/Abductor\">Абдуктор</a></span>")
+	messages.Add(abductor.prepare_announce_objectives())
+	to_chat(abductor.current, chat_box_red(messages.Join("<br>")))
+	abductor.current.create_log(MISC_LOG, "[abductor.current] was made into an abductor scientist")
+	log_game("[abductor] has become an abductor scientist.")
 
 /datum/game_mode/abduction/proc/get_team_console(team_number)
 	for(var/obj/machinery/abductor/console/C in GLOB.machines)
@@ -198,26 +205,30 @@
 		if(console.experiment.points >= objective.target_amount)
 			to_chat(world, "<span class='greenannounce'>[team_name] team fulfilled its mission!</span>")
 		else
-			to_chat(world, "<span class='boldannounce'>[team_name] team failed its mission.</span>")
+			to_chat(world, span_boldannounceooc("[team_name] team failed its mission."))
 	..()
 	return 1
 
 /datum/game_mode/proc/auto_declare_completion_abduction()
 	var/text = ""
-	if(abductors.len)
-		text += "<br><span class='big'><b>The abductors were:</b></span><br>"
-		for(var/datum/mind/abductor_mind in abductors)
-			text += printplayer(abductor_mind)
+	if(!length(abductors))
+		return
+
+	text += "<br><span class='big'><b>The abductors were:</b></span><br>"
+	for(var/datum/mind/abductor_mind in abductors)
+		text += printplayer(abductor_mind)
+		text += "<br>"
+		text += printobjectives(abductor_mind)
+		text += "<br>"
+
+	if(abductees.len)
+		text += "<br><span class='big'><b>The abductees were:</b></span><br>"
+		for(var/datum/mind/abductee_mind in abductees)
+			text += printplayer(abductee_mind)
 			text += "<br>"
-			text += printobjectives(abductor_mind)
+			text += printobjectives(abductee_mind)
 			text += "<br>"
-		if(abductees.len)
-			text += "<br><span class='big'><b>The abductees were:</b></span><br>"
-			for(var/datum/mind/abductee_mind in abductees)
-				text += printplayer(abductee_mind)
-				text += "<br>"
-				text += printobjectives(abductee_mind)
-				text += "<br>"
+
 	to_chat(world, text)
 
 //Landmarks

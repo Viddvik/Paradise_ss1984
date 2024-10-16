@@ -4,9 +4,11 @@
 	icon = 'icons/mob/blob.dmi'
 	light_range = 3
 	desc = "Some blob creature thingy"
-	density = 0
-	opacity = 1
-	anchored = 1
+	density = FALSE
+	opacity = TRUE
+	anchored = TRUE
+	pass_flags_self = PASSBLOB
+	can_astar_pass = CANASTARPASS_ALWAYS_PROC
 	max_integrity = 30
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 80, "acid" = 70)
 	var/point_return = 0 //How many points the blob gets back when it removes a blob of that type. If less than 0, blob cannot be removed.
@@ -14,17 +16,26 @@
 	var/brute_resist = 0.5 //multiplies brute damage by this
 	var/fire_resist = 1 //multiplies burn damage by this
 	var/atmosblock = FALSE //if the blob blocks atmos and heat spread
+	/// If a threshold is reached, resulting in shifting variables
+	var/compromised_integrity = FALSE
 	var/mob/camera/blob/overmind
 	creates_cover = TRUE
+	obj_flags = BLOCK_Z_OUT_DOWN | BLOCK_Z_IN_UP // stops blob mobs from falling on multiz.
 
-/obj/structure/blob/New(loc)
-	..()
+
+/obj/structure/blob/Initialize(mapload)
+	. = ..()
 	GLOB.blobs += src
 	setDir(pick(GLOB.cardinal))
-	update_icon()
+	check_integrity()
 	if(atmosblock)
 		air_update_turf(1)
 	ConsumeTile()
+	var/static/list/loc_connections = list(
+		COMSIG_ATOM_ENTERED = PROC_REF(on_entered),
+	)
+	AddElement(/datum/element/connect_loc, loc_connections)
+
 
 /obj/structure/blob/Destroy()
 	if(atmosblock)
@@ -41,22 +52,22 @@
 /obj/structure/blob/BlockSuperconductivity()
 	return atmosblock
 
-/obj/structure/blob/CanPass(atom/movable/mover, turf/target, height=0)
-	if(height==0)
-		return 1
-	if(istype(mover) && mover.checkpass(PASSBLOB))
-		return 1
-	return 0
+/obj/structure/blob/proc/check_integrity()
+	return
 
-/obj/structure/blob/CanAtmosPass(turf/T)
+/obj/structure/blob/proc/update_state()
+	return
+
+/obj/structure/blob/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	return checkpass(mover, PASSBLOB)
+
+/obj/structure/blob/CanAtmosPass(turf/T, vertical)
 	return !atmosblock
 
 
-/obj/structure/blob/CanPathfindPass(obj/item/card/id/ID, to_dir, caller, no_id = FALSE)
-	. = FALSE
-	if(ismovable(caller))
-		var/atom/movable/mover = caller
-		. = . || mover.checkpass(PASSBLOB)
+/obj/structure/blob/CanAStarPass(to_dir, datum/can_pass_info/pass_info)
+	return pass_info.pass_flags == PASSEVERYTHING || (pass_info.pass_flags & PASSBLOB)
 
 
 /obj/structure/blob/process()
@@ -75,7 +86,7 @@
 		return 0
 	if(obj_integrity < max_integrity)
 		obj_integrity = min(max_integrity, obj_integrity + 1)
-		update_icon()
+		check_integrity()
 		health_timestamp = world.time + 10 // 1 seconds
 
 
@@ -121,7 +132,7 @@
 /obj/structure/blob/proc/expand(var/turf/T = null, var/prob = 1, var/a_color)
 	if(prob && !prob(obj_integrity))
 		return
-	if(istype(T, /turf/space) && prob(75)) 	return
+	if(isspaceturf(T) && prob(75)) 	return
 	if(!T)
 		var/list/dirs = list(1,2,4,8)
 		for(var/i = 1 to 4)
@@ -136,9 +147,9 @@
 		return
 	var/obj/structure/blob/normal/B = new /obj/structure/blob/normal(src.loc, min(obj_integrity, 30))
 	B.color = a_color
-	B.density = 1
+	B.set_density(TRUE)
 	if(T.Enter(B,src))//Attempt to move into the tile
-		B.density = initial(B.density)
+		B.set_density(initial(B.density))
 		B.loc = T
 	else
 		T.blob_act()//If we cant move in hit the turf
@@ -149,9 +160,12 @@
 		A.blob_act(src)
 	return 1
 
-/obj/structure/blob/Crossed(var/mob/living/L, oldloc)
-	..()
-	L.blob_act(src)
+
+/obj/structure/blob/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
+	SIGNAL_HANDLER
+
+	arrived.blob_act(src)
+
 
 /obj/structure/blob/tesla_act(power)
 	..()
@@ -186,14 +200,16 @@
 	if(damage_flag)
 		armor_protection = armor.getRating(damage_flag)
 	damage_amount = round(damage_amount * (100 - armor_protection)*0.01, 0.1)
-	if(overmind && damage_flag)
+	if(overmind?.blob_reagent_datum && damage_flag)
 		damage_amount = overmind.blob_reagent_datum.damage_reaction(src, damage_amount, damage_type, damage_flag)
 	return damage_amount
 
 /obj/structure/blob/take_damage(damage_amount, damage_type = BRUTE, damage_flag = 0, sound_effect = 1, attack_dir)
+	if(QDELETED(src))
+		return
 	. = ..()
 	if(. && obj_integrity > 0)
-		update_icon()
+		check_integrity()
 
 /obj/structure/blob/proc/change_to(var/type)
 	if(!ispath(type))
@@ -217,13 +233,13 @@
 
 /obj/structure/blob/proc/get_chem_name()
 	for(var/mob/camera/blob/B in GLOB.mob_list)
-		if(lowertext(B.blob_reagent_datum.color) == lowertext(src.color)) // Goddamit why we use strings for these
+		if(!QDELETED(B) && lowertext(B.blob_reagent_datum.color) == lowertext(src.color)) // Goddamit why we use strings for these
 			return B.blob_reagent_datum.name
 	return "unknown"
 
 /obj/structure/blob/proc/get_chem_desc()
 	for(var/mob/camera/blob/B in GLOB.mob_list)
-		if(lowertext(B.blob_reagent_datum.color) == lowertext(src.color)) // Goddamit why we use strings for these
+		if(!QDELETED(B) && lowertext(B.blob_reagent_datum.color) == lowertext(src.color)) // Goddamit why we use strings for these
 			return B.blob_reagent_datum.description
 	return "something unknown"
 
@@ -240,20 +256,45 @@
 	max_integrity = 25
 	brute_resist = 0.25
 
-/obj/structure/blob/normal/update_icon()
-	..()
+
+/obj/structure/blob/normal/check_integrity()
+	var/old_compromised_integrity = compromised_integrity
 	if(obj_integrity <= 15)
-		icon_state = "blob_damaged"
-		name = "fragile blob"
-		desc = "A thin lattice of slightly twitching tendrils."
+		compromised_integrity = TRUE
+	else
+		compromised_integrity = FALSE
+	if(old_compromised_integrity != compromised_integrity)
+		update_state()
+		update_appearance(UPDATE_NAME|UPDATE_DESC|UPDATE_ICON_STATE)
+
+
+/obj/structure/blob/normal/update_state()
+	if(compromised_integrity)
 		brute_resist = 0.5
-	else if(overmind)
-		icon_state = "blob"
-		name = "blob"
-		desc = "A thick wall of writhing tendrils."
+	else
 		brute_resist = 0.25
+
+
+/obj/structure/blob/normal/update_name(updates = ALL)
+	. = ..()
+	if(compromised_integrity)
+		name = "fragile blob"
+	else
+		name = "[overmind ? "blob" : "dead blob"]"
+
+
+/obj/structure/blob/normal/update_desc(updates = ALL)
+	. = ..()
+	if(compromised_integrity)
+		desc = "A thin lattice of slightly twitching tendrils."
+	else
+		desc = "A thick wall of [overmind ? "writhing" : "lifeless"] tendrils."
+
+
+/obj/structure/blob/normal/update_icon_state()
+	if(compromised_integrity)
+		icon_state = "blob_damaged"
 	else
 		icon_state = "blob"
-		name = "dead blob"
-		desc = "A thick wall of lifeless tendrils."
-		brute_resist = 0.25
+
+

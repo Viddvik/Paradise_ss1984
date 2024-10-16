@@ -12,16 +12,20 @@
 	volume = 5
 	pass_open_check = TRUE
 
+
+/obj/item/reagent_containers/dropper/update_icon_state()
+	icon_state = "[initial(icon_state)][reagents.total_volume ? "1" : ""]"
+
+
 /obj/item/reagent_containers/dropper/on_reagent_change()
-	if(!reagents.total_volume)
-		icon_state = "[initial(icon_state)]"
-	else
-		icon_state = "[initial(icon_state)]1"
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/item/reagent_containers/dropper/attack(mob/living/M, mob/living/user, def_zone)
-	return
 
-/obj/item/reagent_containers/dropper/afterattack(atom/target, mob/user, proximity)
+/obj/item/reagent_containers/dropper/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
+
+/obj/item/reagent_containers/dropper/afterattack(atom/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 	var/to_transfer = 0
@@ -31,7 +35,7 @@
 			return
 		if(user != C)
 			visible_message("<span class='danger'>[user] begins to drip something into [C]'s eyes!</span>")
-			if(!do_mob(user, C, 30))
+			if(!do_after(user, 3 SECONDS, C, NONE))
 				return
 		if(ishuman(target))
 			var/mob/living/carbon/human/H = target
@@ -72,7 +76,7 @@
 			return
 
 		if(reagents.total_volume)
-			if(!target.is_open_container() && !(istype(target, /obj/item/reagent_containers/food) && !istype(target, /obj/item/reagent_containers/food/pill)) && !istype(target, /obj/item/clothing/mask/cigarette))
+			if(!target.is_open_container() && !(istype(target, /obj/item/reagent_containers/food) && !ispill(target)) && !istype(target, /obj/item/clothing/mask/cigarette))
 				to_chat(user, "<span class='warning'>You cannot directly fill this object.</span>")
 				return
 
@@ -114,33 +118,36 @@
 //Syndicate item. Virus transmitting mini hypospray
 /obj/item/reagent_containers/dropper/precision/viral_injector
 
-/obj/item/reagent_containers/dropper/precision/viral_injector/attack(mob/living/M, mob/living/user, def_zone)
-	if(!M.can_inject(user, penetrate_thick = TRUE, ignore_pierceimmune = TRUE))
-		return FALSE
-	to_chat(user, "<span class='warning'>You stab [M] with the [src].</span>")
-	if(reagents.total_volume && M.reagents)
-		var/list/injected = list()
-		for(var/datum/reagent/R in reagents.reagent_list)
-			injected += R.name
-			var/datum/reagent/blood/B = R
-			if(istype(B) && B.data["diseases"])
-				var/virList = list()
-				for(var/dis in B.data["diseases"])
-					var/datum/disease/D = dis
-					var/virusData = D.name
-					var/english_symptoms = list()
-					var/datum/disease/virus/advance/A = D
-					if(istype(A))
-						for(var/datum/symptom/S in A.symptoms)
-							english_symptoms += S.name
-						virusData += " ([english_list(english_symptoms)])"
-					virList += virusData
-				var/str = english_list(virList)
-				add_attack_logs(user, M, "Infected with [str].")
 
-			reagents.reaction(M, REAGENT_INGEST, reagents.total_volume)
-			reagents.trans_to(M, 1)
+/obj/item/reagent_containers/dropper/precision/viral_injector/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
+	if(!target.can_inject(user, penetrate_thick = TRUE, ignore_pierceimmune = TRUE))
+		return .
+	if(!reagents.total_volume || !target.reagents)
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	to_chat(user, span_warning("You stab [target] with [src]."))
 
-		var/contained = english_list(injected)
-		add_attack_logs(user, M, "Injected with [src] containing ([contained])")
-		return TRUE
+	var/list/injected = list()
+	for(var/datum/reagent/reagent as anything in reagents.reagent_list)
+		injected += reagent.name
+		var/datum/reagent/blood/blood = reagent
+		if(istype(blood) && blood.data["diseases"])
+			var/virList = list()
+			for(var/datum/disease/disease as anything in blood.data["diseases"])
+				var/virusData = disease.name
+				var/english_symptoms = list()
+				var/datum/disease/virus/advance/adv_disease = disease
+				if(istype(adv_disease))
+					for(var/datum/symptom/symptom as anything in adv_disease.symptoms)
+						english_symptoms += symptom.name
+					virusData += " ([english_list(english_symptoms)])"
+				virList += virusData
+			add_attack_logs(user, target, "Infected with [english_list(virList)].")
+
+		reagents.reaction(target, REAGENT_INGEST, reagents.total_volume)
+		reagents.trans_to(target, 1)
+
+	var/contained = english_list(injected)
+	add_attack_logs(user, target, "Injected with [src] containing ([contained])")
+

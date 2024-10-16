@@ -2,27 +2,34 @@
 /mob/living/simple_animal/hostile/asteroid
 	vision_range = 2
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	heat_damage_per_tick = 20
 	faction = list("mining")
-	weather_immunities = list("lava","ash")
+	weather_immunities = list(TRAIT_LAVA_IMMUNE, TRAIT_ASHSTORM_IMMUNE)
 	obj_damage = 30
 	environment_smash = ENVIRONMENT_SMASH_WALLS
-	minbodytemp = 0
-	maxbodytemp = INFINITY
 	response_help = "pokes"
 	response_disarm = "shoves"
 	response_harm = "strikes"
 	status_flags = 0
 	a_intent = INTENT_HARM
+	AI_delay_max = 0.5 SECONDS
+	var/jewelry_loot
 	var/crusher_loot
 	var/throw_message = "bounces off of"
 	var/fromtendril = FALSE
-	see_in_dark = 8
+	nightvision = 8
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
 	mob_size = MOB_SIZE_LARGE
 	var/icon_aggro = null
 	var/crusher_drop_mod = 25
 	var/has_laser_resist = TRUE //If we want the mob to have 66% resist from burn damage projectiles
+
+/mob/living/simple_animal/hostile/asteroid/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = INFINITY, \
+		minbodytemp = 0, \
+		heat_damage = 20, \
+	)
 
 /mob/living/simple_animal/hostile/asteroid/Aggro()
 	..()
@@ -44,7 +51,7 @@
 	..()
 
 /mob/living/simple_animal/hostile/asteroid/hitby(atom/movable/AM, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum) //No floor tiling them to death, wiseguy
-	if(istype(AM, /obj/item))
+	if(isitem(AM))
 		var/obj/item/T = AM
 		if(!stat)
 			Aggro()
@@ -57,7 +64,16 @@
 	var/datum/status_effect/crusher_damage/C = has_status_effect(STATUS_EFFECT_CRUSHERDAMAGETRACKING)
 	if(C && crusher_loot && prob((C.total_damage/maxHealth) * crusher_drop_mod)) //on average, you'll need to kill 4 creatures before getting the item
 		spawn_crusher_loot()
-	..(gibbed)
+	if(!fromtendril && jewelry_loot)
+		if(prob(melee_damage_lower | melee_damage_upper ? 30 : 40)) // Poaching logic - a better reward gained from hunting harmless animals.
+			var/obj/gem = new jewelry_loot(loc)
+			if(!deathmessage)
+				deathmessage = "spits out a [gem.name] as it dies!"
+		jewelry_loot = null
+		. = ..(gibbed)
+		deathmessage = initial(deathmessage)
+	else
+		..(gibbed)
 
 /mob/living/simple_animal/hostile/asteroid/proc/spawn_crusher_loot()
 	butcher_results[crusher_loot] = 1

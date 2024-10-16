@@ -15,10 +15,17 @@
 	icon_dead = "placeholder"
 
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
-	minbodytemp = 0
 
 	melee_damage_lower = 3
 	melee_damage_upper = 7
+	weather_immunities = list(TRAIT_SNOWSTORM_IMMUNE)
+	AI_delay_max = 0 SECONDS
+
+/mob/living/simple_animal/hostile/winter/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/winter/snowman
 	name = "snowman"
@@ -30,10 +37,15 @@
 	icon_dead = "snowman-dead"
 
 	bodytemperature = 73.0		//it's made of snow and hatred, so it's pretty cold.
-	maxbodytemp = 280.15		//at roughly 7 C, these will start melting (dying) from the warmth. Mind over matter or something.
-	heat_damage_per_tick = 10	//Now With Rapid Thawing Action!
 	gold_core_spawnable = HOSTILE_SPAWN
 
+/mob/living/simple_animal/hostile/winter/snowman/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 280, \
+		minbodytemp = 0, \
+		heat_damage = 10, \
+	)
 
 /mob/living/simple_animal/hostile/winter/snowman/death(gibbed)
 	if(can_die())
@@ -69,13 +81,22 @@
 /mob/living/simple_animal/hostile/winter/santa
 	maxHealth = 150		//if this seems low for a "boss", it's because you have to fight him multiple times, with him fully healing between stages
 	health = 150
+	sentience_type = SENTIENCE_OTHER
 	var/next_stage = null
 	var/death_message
+	var/area/vision_change_area/awaymission/evil_santa/end/santa/bossfight_area
+	robust_searching = 1
+	vision_range = 12
 	name = "Santa Claus"
-
 	icon_state = "santa"
 	icon_living = "santa"
 	icon_dead = "santa-dead"
+
+/mob/living/simple_animal/hostile/winter/santa/Initialize(mapload)
+	. = ..()
+	bossfight_area = get_area(src)
+	if(istype(bossfight_area))
+		bossfight_area.boss = src
 
 /mob/living/simple_animal/hostile/winter/santa/death(gibbed)
 	// Only execute the below if we successfully died
@@ -85,9 +106,13 @@
 	if(death_message)
 		visible_message(death_message)
 	if(next_stage)
-		spawn(10)
-			new next_stage(get_turf(src))
-			qdel(src)	//hide the body
+		spawn(1 SECONDS)
+			if(!QDELETED(src))
+				new next_stage(get_turf(src))
+				qdel(src)	//hide the body
+			bossfight_area.ready_or_not()
+	else
+		bossfight_area.ready_or_not()
 
 /mob/living/simple_animal/hostile/winter/santa/stage_1		//stage 1: slow melee
 	maxHealth = 150
@@ -126,8 +151,8 @@
 /mob/living/simple_animal/hostile/winter/santa/stage_4		//stage 4: fast spinebreaker
 	name = "Final Form Santa"
 	desc = "WHAT THE HELL IS HE!?! WHY WON'T HE STAY DEAD!?!"
-	maxHealth = 300		//YOU FACE JARAX- I MEAN SANTA!
-	health = 300
+	maxHealth = 250	// 300	//YOU FACE JARAX- I MEAN SANTA!
+	health = 250
 	speed = 0	//he's lost some weight from the fighting
 
 	environment_smash = 2		//naughty walls must be punished too

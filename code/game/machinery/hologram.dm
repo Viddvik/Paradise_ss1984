@@ -39,13 +39,15 @@ GLOBAL_LIST_EMPTY(holopads)
 	name = "holopad"
 	desc = "It's a floor-mounted device for projecting holographic images."
 	icon_state = "holopad0"
-	anchored = 1
+	anchored = TRUE
 	use_power = IDLE_POWER_USE
 	idle_power_usage = 5
 	active_power_usage = 100
 	layer = HOLOPAD_LAYER //Preventing mice and drones from sneaking under them.
 	plane = FLOOR_PLANE
 	max_integrity = 300
+	light_on = FALSE
+	light_range = 2
 	armor = list(melee = 50, bullet = 20, laser = 20, energy = 20, bomb = 0, bio = 0, rad = 0, fire = 50, acid = 0)
 	var/list/masters = list()//List of living mobs that use the holopad
 	var/list/holorays = list()//Holoray-mob link.
@@ -59,13 +61,15 @@ GLOBAL_LIST_EMPTY(holopads)
 	var/ringing = FALSE
 	var/dialling_input = FALSE //The user is currently selecting where to send their call
 
-/obj/machinery/hologram/holopad/New()
-	..()
+
+/obj/machinery/hologram/holopad/Initialize(mapload)
+	. = ..()
 	GLOB.holopads += src
 	component_parts = list()
 	component_parts += new /obj/item/circuitboard/holopad(null)
 	component_parts += new /obj/item/stock_parts/capacitor(null)
 	RefreshParts()
+
 
 /obj/machinery/hologram/holopad/Destroy()
 	if(outgoing_call)
@@ -80,13 +84,42 @@ GLOBAL_LIST_EMPTY(holopads)
 	GLOB.holopads -= src
 	return ..()
 
-/obj/machinery/hologram/holopad/power_change()
-	if(powered())
-		stat &= ~NOPOWER
-	else
-		stat |= NOPOWER
+
+/obj/machinery/hologram/holopad/power_change(forced = FALSE)
+	if(!..())
+		return
+	if(stat & NOPOWER)
 		if(outgoing_call)
 			outgoing_call.ConnectionFailure(src)
+		set_light_on(FALSE)
+	update_icon(UPDATE_OVERLAYS)
+
+
+/obj/machinery/hologram/holopad/update_icon_state()
+	var/total_users = LAZYLEN(masters) + LAZYLEN(holo_calls)
+	if(icon_state == "holopad_open")
+		return
+	else if(ringing)
+		icon_state = "holopad_ringing"
+	else if(total_users)
+		icon_state = "holopad1"
+	else
+		icon_state = "holopad0"
+
+
+/obj/machinery/hologram/holopad/update_overlays()
+	. = ..()
+	underlays.Cut()
+
+	if(stat & NOPOWER)
+		return
+
+	var/total_users = LAZYLEN(masters) + LAZYLEN(holo_calls)
+	if(ringing)
+		underlays += emissive_appearance(icon, "holopad_ringing_lightmask", src)
+	else if(total_users)
+		underlays += emissive_appearance(icon, "holopad1_lightmask", src)
+
 
 /obj/machinery/hologram/holopad/obj_break()
 	. = ..()
@@ -99,10 +132,14 @@ GLOBAL_LIST_EMPTY(holopads)
 		holograph_range += 1 * B.rating
 	holo_range = holograph_range
 
+
 /obj/machinery/hologram/holopad/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/machinery/hologram/holopad/screwdriver_act(mob/user, obj/item/I)
 	. = TRUE
@@ -146,12 +183,12 @@ GLOBAL_LIST_EMPTY(holopads)
 	if(!anchored)
 		return
 
-	var/dat = {"<meta charset="UTF-8">"}
+	var/dat = {"<!DOCTYPE html><meta charset="UTF-8">"}
 	if(temp)
 		dat += temp
 	else
-		dat += "<a href='?src=[UID()];AIrequest=1'>Request an AI's presence.</a><br>"
-		dat += "<a href='?src=[UID()];Holocall=1'>Call another holopad.</a><br>"
+		dat += "<a href='byond://?src=[UID()];AIrequest=1'>Request an AI's presence.</a><br>"
+		dat += "<a href='byond://?src=[UID()];Holocall=1'>Call another holopad.</a><br>"
 
 		if(LAZYLEN(holo_calls))
 			dat += "=====================================================<br>"
@@ -161,7 +198,7 @@ GLOBAL_LIST_EMPTY(holopads)
 		for(var/I in holo_calls)
 			var/datum/holocall/HC = I
 			if(HC.connected_holopad != src)
-				dat += "<a href='?src=[UID()];connectcall=[HC.UID()]'>Answer call from [get_area(HC.calling_holopad)].</a><br>"
+				dat += "<a href='byond://?src=[UID()];connectcall=[HC.UID()]'>Answer call from [get_area(HC.calling_holopad)].</a><br>"
 				one_unanswered_call = TRUE
 			else
 				one_answered_call = TRUE
@@ -172,12 +209,11 @@ GLOBAL_LIST_EMPTY(holopads)
 		for(var/I in holo_calls)
 			var/datum/holocall/HC = I
 			if(HC.connected_holopad == src)
-				dat += "<a href='?src=[UID()];disconnectcall=[HC.UID()] '>Disconnect call from [HC.user].</a><br>"
+				dat += "<a href='byond://?src=[UID()];disconnectcall=[HC.UID()] '>Disconnect call from [HC.user].</a><br>"
 
 	var/area/area = get_area(src)
 	var/datum/browser/popup = new(user, "holopad", "[area] holopad", 400, 300)
 	popup.set_content(dat)
-	popup.set_title_image(user.browse_rsc_icon(icon, icon_state))
 	popup.open()
 
 /obj/machinery/hologram/holopad/Topic(href, href_list)
@@ -190,15 +226,15 @@ GLOBAL_LIST_EMPTY(holopads)
 		if(last_request + 200 < world.time)
 			last_request = world.time
 			temp = "You requested an AI's presence.<br>"
-			temp += "<a href='?src=[UID()];mainmenu=1'>Main Menu</a>"
+			temp += "<a href='byond://?src=[UID()];mainmenu=1'>Main Menu</a>"
 			var/area/area = get_area(src)
 			for(var/mob/living/silicon/ai/AI in GLOB.ai_list)
 				if(!AI.client)
 					continue
-				to_chat(AI, span_info("Your presence is requested at <a href='?src=[AI.UID()];jumptoholopad=[UID()]'>\the [area]</a>."))
+				to_chat(AI, span_info("Your presence is requested at <a href='byond://?src=[AI.UID()];jumptoholopad=[UID()]'>\the [area]</a>."))
 		else
 			temp = "A request for AI presence was already sent recently.<br>"
-			temp += "<a href='?src=[UID()];mainmenu=1'>Main Menu</a>"
+			temp += "<a href='byond://?src=[UID()];mainmenu=1'>Main Menu</a>"
 
 	else if(href_list["Holocall"])
 		if(outgoing_call)
@@ -207,7 +243,7 @@ GLOBAL_LIST_EMPTY(holopads)
 			to_chat(usr, span_notice("Finish dialling first!"))
 			return
 		temp = "You must stand on the holopad to make a call!<br>"
-		temp += "<a href='?src=[UID()];mainmenu=1'>Main Menu</a>"
+		temp += "<a href='byond://?src=[UID()];mainmenu=1'>Main Menu</a>"
 		if(usr.loc == loc)
 			var/list/callnames = list()
 			for(var/I in GLOB.holopads)
@@ -217,14 +253,14 @@ GLOBAL_LIST_EMPTY(holopads)
 			callnames -= get_area(src)
 			var/list/sorted_callnames = sortAtom(callnames)
 			dialling_input = TRUE
-			var/result = input(usr, "Choose an area to call", "Holocall") as null|anything in sorted_callnames
+			var/result = tgui_input_list(usr, "Choose an area to call", "Holocall", sorted_callnames)
 			dialling_input = FALSE
 			if(QDELETED(usr) || !result || outgoing_call)
 				return
 
 			if(usr.loc == loc)
 				temp = "Dialing...<br>"
-				temp += "<a href='?src=[UID()];mainmenu=1'>Main Menu</a>"
+				temp += "<a href='byond://?src=[UID()];mainmenu=1'>Main Menu</a>"
 				new /datum/holocall(usr, src, callnames[result])
 
 	else if(href_list["connectcall"])
@@ -365,7 +401,8 @@ GLOBAL_LIST_EMPTY(holopads)
 
 		hologram.mouse_opacity = MOUSE_OPACITY_TRANSPARENT//So you can't click on it.
 		hologram.layer = FLY_LAYER//Above all the other objects/mobs. Or the vast majority of them.
-		hologram.anchored = 1//So space wind cannot drag it.
+		SET_PLANE_EXPLICIT(hologram, ABOVE_GAME_PLANE, src)
+		hologram.set_anchored(TRUE)	//So space wind cannot drag it.
 		hologram.name = "[user.name] (hologram)"//If someone decides to right click.
 		hologram.set_light(2)	//hologram lighting
 		move_hologram()
@@ -404,23 +441,10 @@ For the other part of the code, check silicon say.dm. Particularly robot talk.*/
 	use_power = total_users > 0 ? ACTIVE_POWER_USE : IDLE_POWER_USE
 	active_power_usage = HOLOPAD_PASSIVE_POWER_USAGE + (HOLOGRAM_POWER_USAGE * total_users)
 	if(total_users)
-		set_light(2)
-		icon_state = "holopad1"
+		set_light_on(TRUE)
 	else
-		set_light(0)
-		icon_state = "holopad0"
+		set_light_on(FALSE)
 	update_icon()
-
-/obj/machinery/hologram/holopad/update_icon()
-	var/total_users = LAZYLEN(masters) + LAZYLEN(holo_calls)
-	if(icon_state == "holopad_open")
-		return
-	else if(ringing)
-		icon_state = "holopad_ringing"
-	else if(total_users)
-		icon_state = "holopad1"
-	else
-		icon_state = "holopad0"
 
 
 /obj/machinery/hologram/holopad/proc/set_holo(mob/living/user, var/obj/effect/overlay/holo_pad_hologram/h)
@@ -482,8 +506,10 @@ For the other part of the code, check silicon say.dm. Particularly robot talk.*/
 		HC.Disconnect(HC.calling_holopad)
 	return ..()
 
-/obj/effect/overlay/holo_pad_hologram/Process_Spacemove(movement_dir = 0)
-	return 1
+
+/obj/effect/overlay/holo_pad_hologram/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE
+
 
 /obj/effect/overlay/holo_pad_hologram/examine(mob/user)
 	if(Impersonation)

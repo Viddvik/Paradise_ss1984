@@ -1,8 +1,8 @@
 /obj/structure/spacepod_frame
-	density = 1
-	opacity = 0
+	density = TRUE
+	opacity = FALSE
 
-	anchored = 1
+	anchored = TRUE
 	layer = 3.9
 
 	icon = 'icons/goonstation/48x48/pod_construction.dmi'
@@ -23,10 +23,13 @@
 	QDEL_NULL(construct)
 	return ..()
 
-/obj/structure/spacepod_frame/attackby(obj/item/W as obj, mob/user as mob, params)
-	if(!construct || !construct.action(W, user))
+
+/obj/structure/spacepod_frame/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM || !construct || !construct.action(I, user))
 		return ..()
 	add_fingerprint(user)
+	return ATTACK_CHAIN_BLOCKED_ALL
+
 
 /obj/structure/spacepod_frame/attack_hand()
 	return

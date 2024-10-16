@@ -17,10 +17,7 @@
 	can_change_intents = 0
 	stop_automated_movement = 1
 	universal_speak = TRUE
-	flying = TRUE
 	attack_sound = 'sound/weapons/punch1.ogg'
-	minbodytemp = 0
-	maxbodytemp = INFINITY
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
 	attacktext = "бьёт"
 	maxHealth = INFINITY //The spirit itself is invincible
@@ -35,8 +32,9 @@
 	var/summoned = FALSE
 	var/cooldown = 0
 	var/damage_transfer = 1 //how much damage from each attack we transfer to the owner
-	var/light_on = 0
+	//var/light_on = 0
 	var/luminosity_on = 3
+	light_range = 3
 	var/mob/living/carbon/human/summoner
 	var/range = 10 //how far from the user the spirit can be
 	var/playstyle_string = "You are a standard Guardian. You shouldn't exist!"
@@ -48,10 +46,18 @@
 
 /mob/living/simple_animal/hostile/guardian/Initialize(mapload, mob/living/host)
 	. = ..()
+	AddElement(/datum/element/simple_flying)
 	if(!host)
 		return
 	summoner = host
 	host.grant_guardian_actions(src)
+
+/mob/living/simple_animal/hostile/guardian/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = INFINITY, \
+		minbodytemp = 0, \
+	)
 
 /mob/living/simple_animal/hostile/guardian/med_hud_set_health()
 	if(summoner)
@@ -78,7 +84,7 @@
 			ghostize()
 			qdel(src)
 	snapback()
-	if(summoned && !summoner && !admin_spawned)
+	if(summoned && !summoner && !(flags & ADMIN_SPAWNED))
 		to_chat(src, span_danger("Каким-то образом у вас нет призывателя! Вы исчезаете!"))
 		ghostize()
 		qdel(src)
@@ -91,7 +97,7 @@
 		else
 			to_chat(src, "<span class='holoparasite'>Вас откинуло назад, так как превышена дальность связи! Ваша дальность всего [range] метров от [summoner.real_name]!</span>")
 			visible_message(span_danger("\The [src] вернулся к носителю."))
-			if(istype(summoner.loc, /obj/effect))
+			if(iseffect(summoner.loc))
 				Recall(TRUE)
 			else
 				new /obj/effect/temp_visual/guardian/phase/out(loc)
@@ -110,7 +116,7 @@
 	else
 		return ..()
 
-/mob/living/simple_animal/hostile/guardian/Move() //Returns to summoner if they move out of range
+/mob/living/simple_animal/hostile/guardian/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE) //Returns to summoner if they move out of range
 	. = ..()
 	snapback()
 
@@ -133,20 +139,30 @@
 		if(hud_used)
 			hud_used.guardianhealthdisplay.maptext = "<div align='center' valign='middle' style='position:relative; top:0px; left:6px'><font color='#efeeef'>[resulthealth]%</font></div>"
 
-/mob/living/simple_animal/hostile/guardian/adjustHealth(amount, updating_health = TRUE) //The spirit is invincible, but passes on damage to the summoner
-	var/damage = amount * damage_transfer
-	if(summoner)
-		if(loc == summoner)
-			return
-		summoner.adjustBruteLoss(damage)
-		if(damage <= 0)
-			return
-		if(damage > 0)
-			to_chat(summoner, span_danger("Ваш [name] под атакой! Вы получаете урон!"))
-			summoner.visible_message(span_danger("Кровь хлещет из [summoner] ибо [src] получает урон!"))
-		if(summoner.stat == UNCONSCIOUS)
-			to_chat(summoner, span_danger("Your body can't take the strain of sustaining [src] in this condition, it begins to fall apart!"))
-			summoner.adjustCloneLoss(damage/2)
+
+/mob/living/simple_animal/hostile/guardian/adjustHealth(
+	amount = 0,
+	updating_health = TRUE,
+	blocked = 0,
+	damage_type = BRUTE,
+	forced = FALSE,
+)
+	. = STATUS_UPDATE_NONE
+	//The spirit is invincible, but passes on damage to the summoner
+	if(!summoner || loc == summoner)
+		return .
+
+	amount *= damage_transfer
+	summoner.adjustBruteLoss(amount)
+	if(amount <= 0)
+		return .
+
+	to_chat(summoner, span_danger("Ваш [name] под атакой! Вы получаете урон!"))
+	summoner.visible_message(span_danger("Кровь хлещет из [summoner] ибо [src] получает урон!"))
+	if(summoner.stat == UNCONSCIOUS)
+		to_chat(summoner, span_danger("Your body can't take the strain of sustaining [src] in this condition, it begins to fall apart!"))
+		summoner.adjustCloneLoss(amount / 2)
+
 
 /mob/living/simple_animal/hostile/guardian/ex_act(severity, target)
 	switch(severity)
@@ -190,7 +206,7 @@
 /mob/living/simple_animal/hostile/guardian/proc/Communicate(message)
 	var/input
 	if(!message)
-		input = stripped_input(src, "Введите сообщение для отправки вашему призывателю.", "Guardian", "")
+		input = tgui_input_text(src, "Введите сообщение для отправки вашему призывателю.", "Guardian")
 	else
 		input = message
 	if(!input)
@@ -212,13 +228,12 @@
 
 
 /mob/living/simple_animal/hostile/guardian/proc/ToggleLight()
-	if(!light_on)
-		set_light(luminosity_on)
+	set_light_on(!light_on)
+	if(light_on)
 		to_chat(src, span_notice("Вы активировали свет."))
 	else
-		set_light(0)
 		to_chat(src, span_notice("Вы выключили свет."))
-	light_on = !light_on
+
 
 ////////Creation
 
@@ -258,7 +273,7 @@
 		to_chat(user, "[used_message]")
 		return
 	used = TRUE // Set this BEFORE the popup to prevent people using the injector more than once, polling ghosts multiple times, and receiving multiple guardians.
-	var/choice = alert(user, "[confirmation_message]",, "Да", "Нет")
+	var/choice = tgui_alert(user, "[confirmation_message]", "Confirm", list("Да", "Нет"))
 	if(choice == "Нет")
 		to_chat(user, span_warning("Вы решили не использовать [name]."))
 		used = FALSE
@@ -271,7 +286,7 @@
 			picked_random_type = pick(possible_guardians)
 		guardian_type = picked_random_type
 	else
-		guardian_type = input(user, "Выберите тип [mob_name]", "Создание [mob_name] ") as null|anything in possible_guardians
+		guardian_type = tgui_input_list(user, "Выберите тип [mob_name]", "Создание [mob_name] ", possible_guardians)
 		if(!guardian_type)
 			to_chat(user, span_warning("Вы решили не использовать [name]."))
 			used = FALSE
@@ -338,6 +353,7 @@
 	G.name_color = color_list[color]
 	var/picked_name = pick(name_list)
 	create_theme(G, user, picked_name, color)
+	G.client?.init_verbs()
 
 /obj/item/guardiancreator/proc/create_theme(mob/living/simple_animal/hostile/guardian/G, mob/living/user, picked_name, color)
 	G.name = "[picked_name] [color]"
@@ -430,7 +446,7 @@
 
 /obj/item/paper/guardian
 	name = "Справочник по голопаразитам"
-	icon_state = "paper"
+	icon_state = "paper_words"
 	info = {"<b>Cписок видов голопаразитов</b><br>
 
  <br>
@@ -453,7 +469,7 @@
  <b>Защитник</b>: При нарушении дальности связи хозяин призывается к нему, а не наоборот. Имеет два режима: низкая атака с высокой защитой, и режим ультра-защиты, практически полностью нивелирующий входящий и исходящий урон. В режиме ультра-защиты способен пережить даже взрыв бомбы, лишь слегка ранив хозяина. Может ставить силовые барьеры, через которые могут пройти только вы и ваш подопечный.<br>
 "}
 
-/obj/item/paper/guardian/update_icon()
+/obj/item/paper/guardian/update_icon_state()
 	return
 
 

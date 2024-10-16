@@ -24,8 +24,6 @@
 	stop_automated_movement = 1
 	animate_movement = SYNC_STEPS
 
-	minbodytemp = 0
-	maxbodytemp = 350
 	atmos_requirements = list("min_oxy" = 0, "max_oxy" = 0, "min_tox" = 0, "max_tox" = 0, "min_co2" = 0, "max_co2" = 0, "min_n2" = 0, "max_n2" = 0)
 
 	a_intent = INTENT_HARM //so they don't get pushed around
@@ -36,7 +34,7 @@
 
 	AIStatus = AI_OFF
 
-	anchored = 1 //otherwise people can literally fucking pull spaceworms apart
+	anchored = TRUE //otherwise people can literally fucking pull spaceworms apart
 
 	faction = list("spaceworms")
 
@@ -51,8 +49,20 @@
 	var/atom/currentlyEating //what the worm is currently eating
 	var/plasmaPoopPotential = 5 //this mainly exists for the name
 
-/mob/living/simple_animal/hostile/spaceWorm/Process_Spacemove(var/check_drift = 0)
-	return 1 //space worms can flyyyyyy
+
+/mob/living/simple_animal/hostile/spaceWorm/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NO_FLOATING_ANIM, INNATE_TRAIT)
+
+/mob/living/simple_animal/hostile/spaceWorm/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = 350, \
+		minbodytemp = 0, \
+	)
+
+/mob/living/simple_animal/hostile/spaceWorm/Process_Spacemove(movement_dir = NONE, continuous_move = FALSE)
+	return TRUE //space worms can flyyyyyy
 
 //Worm Head, Controls the AI for the entire worm "entity"
 /mob/living/simple_animal/hostile/spaceWorm/wormHead
@@ -100,11 +110,12 @@
 		currentWormSeg = newSegment
 
 	for(var/mob/living/simple_animal/hostile/spaceWorm/SW in totalWormSegments)
-		SW.update_icon()
+		SW.update_icon(UPDATE_ICON_STATE)
 
-/mob/living/simple_animal/hostile/spaceWorm/wormHead/update_icon()
+
+/mob/living/simple_animal/hostile/spaceWorm/wormHead/update_icon_state()
 	if(stat == CONSCIOUS || stat == UNCONSCIOUS)
-		icon_state = "spacewormhead[previousWorm ? 1 : 0]"
+		icon_state = "spacewormhead[previousWorm ? "1" : "0"]"
 		if(previousWorm)
 			dir = get_dir(previousWorm,src)
 	else
@@ -113,7 +124,7 @@
 	for(var/mob/living/simple_animal/hostile/spaceWorm/SW in totalWormSegments)
 		if(SW == src)//incase src ends up in here we don't want an infinite loop
 			continue
-		SW.update_icon()
+		SW.update_icon(UPDATE_ICON_STATE)
 
 
 //Try to move onto target's turf and eat them
@@ -123,8 +134,9 @@
 		attemptToEat(target)
 
 //Attempt to eat things we bump into, Mobs, Walls, Clowns
-/mob/living/simple_animal/hostile/spaceWorm/wormHead/Bump(atom/obstacle)
-	attemptToEat(obstacle)
+/mob/living/simple_animal/hostile/spaceWorm/wormHead/Bump(atom/bumped_atom)
+	. = ..()
+	attemptToEat(bumped_atom)
 
 //Attempt to eat things, only the head can eat
 /mob/living/simple_animal/hostile/spaceWorm/wormHead/proc/attemptToEat(var/atom/noms)
@@ -144,17 +156,17 @@
 		return
 	currentlyEating = noms
 
-	var/nomDelay = 25
+	var/nomDelay = 2.5 SECONDS
 	var/turf/simulated/wall/W
 
 	if(noms in totalWormSegments)
 		return //Trying to eat part of self.
 
 	if(istype(noms, /turf))
-		if(istype(noms, /turf/simulated/wall))
+		if(iswallturf(noms))
 			W = noms
 			nomDelay *= 2
-			if(istype(W, /turf/simulated/wall/r_wall))
+			if(isreinforcedwallturf(W))
 				nomDelay *= 2
 		else
 			return
@@ -163,7 +175,7 @@
 
 	src.visible_message("<span class='userdanger'>\the [src] starts to eat \the [noms]!</span>","<span class='notice'>You start to eat \the [noms]. (This will take about [ufnomDelay] seconds.)</span>","<span class='userdanger'>You hear gnashing.</span>") //inform everyone what the fucking worm is doing.
 
-	if(do_after(src, nomDelay, 0, target = noms))
+	if(do_after(src, nomDelay, noms, DEFAULT_DOAFTER_IGNORE|DA_IGNORE_HELD_ITEM))
 		if(noms && Adjacent(noms) && (currentlyEating == noms))//It exists, were next to it, and it's still the thing were eating
 			if(W)
 				W.ChangeTurf(/turf/simulated/floor/plating)
@@ -176,7 +188,7 @@
 				src.visible_message("<span class='userdanger'>\the [src] eats \the [noms]!</span>","<span class='notice'>You eat \the [noms]!</span>","<span class='userdanger'>You hear gnashing.</span>") //inform everyone what the fucking worm is doing.
 				if(ismob(noms))
 					var/mob/M = noms //typecast because noms isn't movable
-					M.loc = src //because just setting a mob loc to null breaks the camera and such
+					M.forceMove(src) //because just setting a mob loc to null breaks the camera and such
 		else
 			currentlyEating = null
 	else
@@ -207,7 +219,7 @@
 	if(prob(stomachProcessProbability))
 		ProcessStomach()
 
-	update_icon()//While most mobs don't call this on Life(), the worm would probably look stupid without it
+	update_icon(UPDATE_ICON_STATE)//While most mobs don't call this on Life(), the worm would probably look stupid without it
 	//Plus the worm's update_icon() isn't as beefy.
 
 	..() //Really high fuckin priority that this is at the bottom.
@@ -221,17 +233,17 @@
 
 
 //Move all segments if one piece moves.
-/mob/living/simple_animal/hostile/spaceWorm/Move()
+/mob/living/simple_animal/hostile/spaceWorm/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/segmentNextPos = loc
 	. = ..()
 	if(.)
 		if(previousWorm)
 			previousWorm.Move(segmentNextPos)
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
 
 //Update the appearence of this big weird chain-worm-thingy
-/mob/living/simple_animal/hostile/spaceWorm/proc/update_icon()
+/mob/living/simple_animal/hostile/spaceWorm/update_icon_state()
 	if(stat != DEAD)
 		if(previousWorm)
 			icon_state = "spaceworm[get_dir(src,previousWorm) | get_dir(src,nextWorm)]"
@@ -328,11 +340,6 @@
 		for(var/atom/movable/stomachContent in contents)
 			contents -= stomachContent
 			stomachContent.loc = T
-
-
-//Looks weird otherwise.
-/mob/living/simple_animal/hostile/spaceWorm/float(on)
-	return
 
 
 //Jiggle the whole worm forwards towards the next segment

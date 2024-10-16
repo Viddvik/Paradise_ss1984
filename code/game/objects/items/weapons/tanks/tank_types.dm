@@ -58,22 +58,32 @@
 	desc = "Contains dangerous plasma. Do not inhale. Warning: extremely flammable."
 	icon_state = "plasma"
 	flags = CONDUCT
-	slot_flags = null	//they have no straps!
+	slot_flags = NONE	//they have no straps!
 
 /obj/item/tank/internals/plasma/populate_gas()
 	air_contents.toxins = (3 * ONE_ATMOSPHERE) * volume / (R_IDEAL_GAS_EQUATION * T20C)
 
+
 /obj/item/tank/internals/plasma/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/flamethrower))
-		var/obj/item/flamethrower/F = I
-		if((!F.status)||(F.ptank))
-			return
-		master = F
-		F.ptank = src
-		user.drop_transfer_item_to_loc(src, F)
-		F.update_icon()
-	else
-		return ..()
+		add_fingerprint(user)
+		var/obj/item/flamethrower/flamethrower = I
+		if(loc == user && !user.can_unEquip(src))
+			return ATTACK_CHAIN_PROCEED
+		if(flamethrower.ptank)
+			flamethrower.ptank.forceMove_turf()
+			to_chat(user, span_notice("You swap the plasma tank in [flamethrower]."))
+		else
+			to_chat(user, span_notice("You have installed new plasma tank in [flamethrower]."))
+		if(loc == user)
+			user.temporarily_remove_item_from_inventory(src)
+		forceMove(flamethrower)
+		master = flamethrower
+		flamethrower.ptank = src
+		flamethrower.update_icon()
+		return ATTACK_CHAIN_PROCEED_SUCCESS|ATTACK_CHAIN_NO_AFTERATTACK
+	return ..()
+
 
 /obj/item/tank/internals/plasma/full/populate_gas()
 	air_contents.toxins = (10 * ONE_ATMOSPHERE) * volume / (R_IDEAL_GAS_EQUATION * T20C)
@@ -100,7 +110,7 @@
 /obj/item/tank/internals/plasmaman/belt
 	icon_state = "plasmaman_tank_belt"
 	item_state = "plasmaman_tank_belt"
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	force = 5
 	volume = 35
 	w_class = WEIGHT_CLASS_SMALL
@@ -127,7 +137,7 @@
 	desc = "Used for emergencies. Contains very little oxygen, so try to conserve it until you actually need it."
 	icon_state = "emergency"
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	w_class = WEIGHT_CLASS_SMALL
 	force = 4
 	distribute_pressure = TANK_DEFAULT_RELEASE_PRESSURE
@@ -172,7 +182,7 @@
 	name = "nitrogen tank"
 	desc = "A tank of nitrogen."
 	icon_state = "oxygen_fr"
-	sprite_sheets = list("Vox Armalis" = 'icons/mob/clothing/species/armalis/back.dmi') //Do it for Big Bird.
+	sprite_sheets = list(SPECIES_VOX_ARMALIS = 'icons/mob/clothing/species/armalis/back.dmi') //Do it for Big Bird.
 	distribute_pressure = TANK_DEFAULT_RELEASE_PRESSURE
 
 /obj/item/tank/internals/nitrogen/populate_gas()
@@ -190,7 +200,7 @@
 	name = "vox specialized nitrogen tank"
 	desc = "A high-tech nitrogen tank designed specifically for Vox."
 	icon_state = "emergency_vox"
-	sprite_sheets = list("Vox Armalis" = 'icons/mob/clothing/species/armalis/belt.dmi') //Do it for Big Bird.
+	sprite_sheets = list(SPECIES_VOX_ARMALIS = 'icons/mob/clothing/species/armalis/belt.dmi') //Do it for Big Bird.
 	volume = 35
 
 /obj/item/tank/internals/emergency_oxygen/double/vox/populate_gas()

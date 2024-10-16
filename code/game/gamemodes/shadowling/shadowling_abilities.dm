@@ -29,7 +29,6 @@
 /obj/effect/proc_holder/spell/shadowling_glare
 	name = "Glare"
 	desc = "Stuns and mutes a target for a decent duration. Duration depends on the proximity to the target."
-	panel = "Shadowling Abilities"
 	base_cooldown = 30 SECONDS
 	clothes_req = FALSE
 	need_active_overlay = TRUE
@@ -71,7 +70,7 @@
 
 		target.Weaken(4 SECONDS)
 		target.AdjustSilence(20 SECONDS)
-		target.adjustStaminaLoss(20)
+		target.apply_damage(20, STAMINA)
 		target.apply_status_effect(STATUS_EFFECT_STAMINADOT)
 
 	else //Distant glare
@@ -85,7 +84,6 @@
 /obj/effect/proc_holder/spell/aoe/shadowling_veil
 	name = "Veil"
 	desc = "Extinguishes most nearby light sources."
-	panel = "Shadowling Abilities"
 	base_cooldown = 15 SECONDS //Short cooldown because people can just turn the lights back on
 	clothes_req = FALSE
 	var/blacklisted_lights = list(/obj/item/flashlight/flare, /obj/item/flashlight/slime)
@@ -120,7 +118,6 @@
 /obj/effect/proc_holder/spell/shadowling_shadow_walk
 	name = "Shadow Walk"
 	desc = "Phases you into the space between worlds for a short time, allowing movement through walls and invisbility."
-	panel = "Shadowling Abilities"
 	base_cooldown = 30 SECONDS //Used to be twice this, buffed
 	clothes_req = FALSE
 	phase_allowed = TRUE
@@ -140,12 +137,12 @@
 	user.visible_message("<span class='warning'>[user] vanishes in a puff of black mist!</span>", "<span class='shadowling'>You enter the space between worlds as a passageway.</span>")
 	user.SetStunned(0)
 	user.SetWeakened(0)
+	user.SetKnockdown(0)
 	user.incorporeal_move = INCORPOREAL_NORMAL
 	user.alpha = 0
 	user.ExtinguishMob()
 	user.forceMove(get_turf(user)) //to properly move the mob out of a potential container
-	if(user.pulledby)
-		user.pulledby.stop_pulling()
+	user.pulledby?.stop_pulling()
 	user.stop_pulling()
 
 	sleep(4 SECONDS)
@@ -161,11 +158,16 @@
 /obj/effect/proc_holder/spell/shadowling_guise
 	name = "Guise"
 	desc = "Wraps your form in shadows, making you harder to see."
-	panel = "Thrall Abilities"
 	base_cooldown = 120 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "shadow_walk"
 	var/conseal_time = 4 SECONDS
+
+
+/obj/effect/proc_holder/spell/shadowling_guise/Destroy()
+	if(action?.owner)
+		reveal(action.owner)
+	return ..()
 
 
 /obj/effect/proc_holder/spell/shadowling_guise/create_new_targeting()
@@ -178,7 +180,6 @@
 	addtimer(CALLBACK(src, PROC_REF(reveal), user), conseal_time)
 
 
-
 /obj/effect/proc_holder/spell/shadowling_guise/proc/reveal(mob/user)
 	if(QDELETED(user))
 		return
@@ -187,14 +188,17 @@
 	user.visible_message("<span class='warning'>[user] appears from nowhere!</span>", "<span class='shadowling'>Your shadowy guise slips away.</span>")
 
 
-
 /obj/effect/proc_holder/spell/shadowling_vision
 	name = "Shadowling Darksight"
 	desc = "Gives you night and thermal vision."
-	panel = "Shadowling Abilities"
 	base_cooldown = 0
 	clothes_req = FALSE
 	action_icon_state = "darksight"
+
+
+/obj/effect/proc_holder/spell/shadowling_vision/Destroy()
+	action?.owner?.set_vision_override(null)
+	return ..()
 
 
 /obj/effect/proc_holder/spell/shadowling_vision/create_new_targeting()
@@ -207,22 +211,20 @@
 
 	if(!user.vision_type)
 		to_chat(user, "<span class='notice'>You shift the nerves in your eyes, allowing you to see in the dark.</span>")
-		user.set_sight(/datum/vision_override/nightvision)
+		user.set_vision_override(/datum/vision_override/nightvision)
 	else
 		to_chat(user, "<span class='notice'>You return your vision to normal.</span>")
-		user.set_sight(null)
+		user.set_vision_override(null)
 
 
 /obj/effect/proc_holder/spell/shadowling_vision/thrall
 	desc = "Thrall Darksight"
 	desc = "Gives you night vision."
-	panel = "Thrall Abilities"
 
 
 /obj/effect/proc_holder/spell/aoe/shadowling_icy_veins
 	name = "Icy Veins"
 	desc = "Instantly freezes the blood of nearby people, stunning them and causing burn damage."
-	panel = "Shadowling Abilities"
 	base_cooldown = 25 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "icy_veins"
@@ -258,8 +260,7 @@
 		to_chat(target, "<span class='userdanger'>A wave of shockingly cold air engulfs you!</span>")
 		target.Stun(2 SECONDS)
 		target.apply_damage(10, BURN)
-		if(target.bodytemperature)
-			target.bodytemperature -= 200 //Extreme amount of initial cold
+		target.adjust_bodytemperature(-200) //Extreme amount of initial cold
 		if(target.reagents)
 			target.reagents.add_reagent("frostoil", 15) //Half of a cryosting
 
@@ -267,7 +268,6 @@
 /obj/effect/proc_holder/spell/shadowling_enthrall //Turns a target into the shadowling's slave. This overrides all previous loyalties
 	name = "Enthrall"
 	desc = "Allows you to enslave a conscious, non-braindead, non-catatonic human to your will. This takes some time to cast."
-	panel = "Shadowling Abilities"
 	base_cooldown = 0
 	clothes_req = FALSE
 	action_icon_state = "enthrall"
@@ -322,8 +322,8 @@
 			if(3)
 				to_chat(user, "<span class='notice'>You begin planting the tumor that will control the new thrall...</span>")
 				user.visible_message("<span class='warning'>A strange energy passes from [user]'s hands into [target]'s head!</span>")
-				to_chat(target, "<span class='boldannounce'>You feel your memories twisting, morphing. A sense of horror dominates your mind.</span>")
-		if(!do_mob(user, target, 7.7 SECONDS)) //around 23 seconds total for enthralling
+				to_chat(target, span_boldannounceic("You feel your memories twisting, morphing. A sense of horror dominates your mind."))
+		if(!do_after(user, 7.7 SECONDS, target, NONE)) //around 23 seconds total for enthralling
 			to_chat(user, "<span class='warning'>The enthralling has been interrupted - your target's mind returns to its previous state.</span>")
 			to_chat(target, "<span class='userdanger'>You wrest yourself away from [user]'s hands and compose yourself</span>")
 			enthralling = FALSE
@@ -348,7 +348,6 @@
 /obj/effect/proc_holder/spell/shadowling_regen_armor
 	name = "Rapid Re-Hatch"
 	desc = "Re-forms protective chitin that may be lost during cloning or similar processes."
-	panel = "Shadowling Abilities"
 	base_cooldown = 60 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "regen_armor"
@@ -371,13 +370,13 @@
 					 "<span class='shadowling'>You regenerate your protective armor and cleanse your form of defects.</span>")
 	user.set_species(/datum/species/shadow/ling)
 	user.adjustCloneLoss(-(user.getCloneLoss()))
-	user.equip_to_slot_or_del(new /obj/item/clothing/under/shadowling(user), slot_w_uniform)
-	user.equip_to_slot_or_del(new /obj/item/clothing/shoes/shadowling(user), slot_shoes)
-	user.equip_to_slot_or_del(new /obj/item/clothing/suit/space/shadowling(user), slot_wear_suit)
-	user.equip_to_slot_or_del(new /obj/item/clothing/head/shadowling(user), slot_head)
-	user.equip_to_slot_or_del(new /obj/item/clothing/gloves/shadowling(user), slot_gloves)
-	user.equip_to_slot_or_del(new /obj/item/clothing/mask/gas/shadowling(user), slot_wear_mask)
-	user.equip_to_slot_or_del(new /obj/item/clothing/glasses/shadowling(user), slot_glasses)
+	user.equip_to_slot_or_del(new /obj/item/clothing/under/shadowling(user), ITEM_SLOT_CLOTH_INNER)
+	user.equip_to_slot_or_del(new /obj/item/clothing/shoes/shadowling(user), ITEM_SLOT_FEET)
+	user.equip_to_slot_or_del(new /obj/item/clothing/suit/space/shadowling(user), ITEM_SLOT_CLOTH_OUTER)
+	user.equip_to_slot_or_del(new /obj/item/clothing/head/shadowling(user), ITEM_SLOT_HEAD)
+	user.equip_to_slot_or_del(new /obj/item/clothing/gloves/shadowling(user), ITEM_SLOT_GLOVES)
+	user.equip_to_slot_or_del(new /obj/item/clothing/mask/gas/shadowling(user), ITEM_SLOT_MASK)
+	user.equip_to_slot_or_del(new /obj/item/clothing/glasses/shadowling(user), ITEM_SLOT_EYES)
 
 
 /**
@@ -386,7 +385,6 @@
 /obj/effect/proc_holder/spell/shadowling_collective_mind
 	name = "Collective Hivemind"
 	desc = "Gathers the power of all of your thralls and compares it to what is needed for ascendance. Also gains you new abilities."
-	panel = "Shadowling Abilities"
 	base_cooldown = 30 SECONDS //30 second cooldown to prevent spam
 	clothes_req = FALSE
 	var/blind_smoke_acquired
@@ -420,7 +418,7 @@
 			thralls++
 			to_chat(target, "<span class='shadowling'>You feel hooks sink into your mind and pull.</span>")
 
-	if(!do_after(user, 3 SECONDS, target = user))
+	if(!do_after(user, 3 SECONDS, user))
 		to_chat(user, "<span class='warning'>Your concentration has been broken. The mental hooks you have sent out now retract into your mind.</span>")
 		return
 
@@ -461,11 +459,7 @@
 			if(!is_shadow(check))
 				continue
 
-			var/obj/effect/proc_holder/spell/shadowling_collective_mind/cm_spell = locate() in check.mind.spell_list
-			if(cm_spell)
-				check.mind.spell_list -= cm_spell
-				qdel(cm_spell)
-
+			check.mind.RemoveSpell(/obj/effect/proc_holder/spell/shadowling_collective_mind)
 			check.mind.RemoveSpell(/obj/effect/proc_holder/spell/shadowling_hatch)
 			check.mind.AddSpell(new /obj/effect/proc_holder/spell/shadowling_ascend(null))
 
@@ -478,7 +472,6 @@
 /obj/effect/proc_holder/spell/shadowling_blindness_smoke
 	name = "Blindness Smoke"
 	desc = "Spews a cloud of smoke which will blind enemies."
-	panel = "Shadowling Abilities"
 	base_cooldown = 60 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "black_smoke"
@@ -521,7 +514,7 @@
 	var/update_flags = STATUS_UPDATE_NONE
 	if(!is_shadow_or_thrall(M))
 		to_chat(M, "<span class='warning'><b>You breathe in the black smoke, and your eyes burn horribly!</b></span>")
-		update_flags |= M.EyeBlind(5, FALSE)
+		M.EyeBlind(10 SECONDS)
 		if(prob(25))
 			M.visible_message("<b>[M]</b> claws at [M.p_their()] eyes!")
 			M.Stun(4 SECONDS)
@@ -536,7 +529,6 @@
 /obj/effect/proc_holder/spell/aoe/shadowling_screech
 	name = "Sonic Screech"
 	desc = "Deafens, stuns, and confuses nearby people. Also shatters windows."
-	panel = "Shadowling Abilities"
 	base_cooldown = 30 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "screech"
@@ -589,7 +581,6 @@
 /obj/effect/proc_holder/spell/shadowling_null_charge
 	name = "Null Charge"
 	desc = "Empties an APC, preventing it from recharging until fixed."
-	panel = "Shadowling Abilities"
 	base_cooldown = 60 SECONDS
 	clothes_req = FALSE
 	action_icon_state = "null_charge"
@@ -632,7 +623,7 @@
 	target_apc.visible_message("<span class='warning'>The [target_apc] flickers and begins to grow dark.</span>")
 
 	to_chat(user, "<span class='shadowling'>You dim the APC's screen and carefully begin siphoning its power into the void.</span>")
-	if(!do_after(user, 20 SECONDS, target = target_apc))
+	if(!do_after(user, 20 SECONDS, target_apc))
 		//Whoops!  The APC's powers back on
 		to_chat(user, "<span class='shadowling'>Your concentration breaks and the APC suddenly repowers!</span>")
 		target_apc.operating = TRUE
@@ -644,7 +635,7 @@
 		to_chat(user, "<span class='shadowling'>You sent the APC's power to the void while overloading all it's lights!</span>")
 		target_apc.cell?.charge = 0	//Sent to the shadow realm
 		target_apc.chargemode = FALSE //Won't recharge either until an someone hits the button
-		target_apc.charging = FALSE
+		target_apc.charging = APC_NOT_CHARGING
 		target_apc.null_charge()
 		target_apc.update_icon()
 
@@ -652,13 +643,14 @@
 /obj/effect/proc_holder/spell/shadowling_revive_thrall
 	name = "Black Recuperation"
 	desc = "Revives or empowers a thrall."
-	panel = "Shadowling Abilities"
 	base_cooldown = 1 MINUTES
 	clothes_req = FALSE
 	action_icon_state = "revive_thrall"
 	selection_activated_message		= "<span class='notice'>You start focusing your powers on mending wounds of allies. <B>Left-click to cast at a target!</B></span>"
 	selection_deactivated_message	= "<span class='notice'>Your mind relaxes.</span>"
 	need_active_overlay = TRUE
+	/// Whether the EMPOWERED_THRALL_LIMIT limit is ignored or not
+	var/ignore_prer = FALSE
 
 
 /obj/effect/proc_holder/spell/shadowling_revive_thrall/create_new_targeting()
@@ -695,7 +687,7 @@
 			if(isshadowlinglesser(h_mob))
 				empowered_thralls++
 
-		if(empowered_thralls >= EMPOWERED_THRALL_LIMIT)
+		if(empowered_thralls >= EMPOWERED_THRALL_LIMIT && !ignore_prer)
 			to_chat(user, "<span class='warning'>You cannot spare this much energy. There are too many empowered thralls.</span>")
 			revert_cast(user)
 			return
@@ -703,7 +695,7 @@
 		user.visible_message("<span class='danger'>[user] places [user.p_their()] hands over [thrall]'s face, red light shining from beneath.</span>", \
 							"<span class='shadowling'>You place your hands on [thrall]'s face and begin gathering energy...</span>")
 		to_chat(thrall, "<span class='userdanger'>[user] places [user.p_their()] hands over your face. You feel energy gathering. Stand still...</span>")
-		if(!do_mob(user, thrall, 8 SECONDS))
+		if(!do_after(user, 8 SECONDS, thrall, NONE))
 			to_chat(user, "<span class='warning'>Your concentration snaps. The flow of energy ebbs.</span>")
 			revert_cast(user)
 			return
@@ -713,7 +705,7 @@
 			return
 
 		to_chat(user, "<span class='shadowling'><b><i>You release a massive surge of power into [thrall]!</b></i></span>")
-		user.visible_message("<span class='boldannounce'><i>Red lightning surges into [thrall]'s face!</i></span>")
+		user.visible_message(span_boldannounceic("<i>Red lightning surges into [thrall]'s face!</i>"))
 		playsound(thrall, 'sound/weapons/egloves.ogg', 50, TRUE)
 		playsound(thrall, 'sound/machines/defib_zap.ogg', 50, TRUE)
 		user.Beam(thrall, icon_state="red_lightning",icon='icons/effects/effects.dmi',time=1)
@@ -739,7 +731,7 @@
 		user.visible_message("<span class='danger'>[user] kneels over [thrall], placing [user.p_their()] hands on [thrall.p_their()] chest.</span>", \
 							"<span class='shadowling'>You crouch over the body of your thrall and begin gathering energy...</span>")
 		thrall.notify_ghost_cloning("Your masters are resuscitating you! Re-enter your corpse if you wish to be brought to life.", source = thrall)
-		if(!do_mob(user, thrall, 3 SECONDS))
+		if(!do_after(user, 3 SECONDS, thrall, NONE))
 			to_chat(user, "<span class='warning'>Your concentration snaps. The flow of energy ebbs.</span>")
 			revert_cast(user)
 			return
@@ -749,7 +741,7 @@
 			return
 
 		to_chat(user, "<span class='shadowling'><b><i>You release a massive surge of power into [thrall]!</b></i></span>")
-		user.visible_message("<span class='boldannounce'><i>Red lightning surges from [user]'s hands into [thrall]'s chest!</i></span>")
+		user.visible_message(span_boldannounceic("<i>Red lightning surges from [user]'s hands into [thrall]'s chest!</i>"))
 		playsound(thrall, 'sound/weapons/egloves.ogg', 50, TRUE)
 		playsound(thrall, 'sound/machines/defib_zap.ogg', 50, TRUE)
 		user.Beam(thrall, icon_state="red_lightning",icon='icons/effects/effects.dmi',time=1)
@@ -763,7 +755,7 @@
 		thrall.update_revive()
 		thrall.Weaken(8 SECONDS)
 		thrall.emote("gasp")
-		thrall.visible_message("<span class='boldannounce'>[thrall] heaves in breath, dim red light shining in [thrall.p_their()] eyes.</span>", \
+		thrall.visible_message(span_boldannounceic("[thrall] heaves in breath, dim red light shining in [thrall.p_their()] eyes."), \
 								"<span class='shadowling'><b><i>You have returned. One of your masters has brought you from the darkness beyond.</b></i></span>")
 		playsound(thrall, "bodyfall", 50, TRUE)
 
@@ -775,7 +767,6 @@
 /obj/effect/proc_holder/spell/shadowling_extend_shuttle
 	name = "Destroy Engines"
 	desc = "Extends the time of the emergency shuttle's arrival by ten minutes using a life force of our enemy. Shuttle will be unable to be recalled. This can only be used once."
-	panel = "Shadowling Abilities"
 	clothes_req = FALSE
 	base_cooldown = 60 SECONDS
 	selection_activated_message		= "<span class='notice'>You start gathering destructive powers to delay the shuttle. <B>Left-click to cast at a target!</B></span>"
@@ -819,10 +810,10 @@
 	user.visible_message("<span class='warning'>[user]'s eyes flash a bright red!</span>", \
 						"<span class='notice'>You begin to draw [target]'s life force.</span>")
 	target.visible_message("<span class='warning'>[target]'s face falls slack, [target.p_their()] jaw slightly distending.</span>", \
-						"<span class='boldannounce'>You are suddenly transported... far, far away...</span>")
+						span_boldannounceic("You are suddenly transported... far, far away..."))
 	extend_limit_pressed = TRUE
 
-	if(!do_after_once(user, 15 SECONDS, target = target))
+	if(!do_after(user, 15 SECONDS, target, max_interact_count = 1))
 		extend_limit_pressed = FALSE
 		to_chat(target, "<span class='warning'>You are snapped back to reality, your haze dissipating!</span>")
 		to_chat(user, "<span class='warning'>You have been interrupted. The draw has failed.</span>")
@@ -841,8 +832,7 @@
 		GLOB.event_announcement.Announce("Крупный системный сбой на борту эвакуационного шаттла. Это увеличит время прибытия примерно на 10 минут, шаттл не может быть отозван.", "Системный сбой.", 'sound/misc/notice1.ogg')
 		SSshuttle.emergency.setTimer(timer)
 		SSshuttle.emergency.canRecall = FALSE
-	user.mind.spell_list.Remove(src) //Can only be used once!
-	qdel(src)
+	user.mind.RemoveSpell(src)	//Can only be used once!
 
 
 // ASCENDANT ABILITIES BEYOND THIS POINT //
@@ -850,7 +840,6 @@
 /obj/effect/proc_holder/spell/ascendant_annihilate
 	name = "Annihilate"
 	desc = "Gibs someone instantly."
-	panel = "Ascendant"
 	base_cooldown = 0
 	clothes_req = FALSE
 	human_req = FALSE
@@ -896,11 +885,16 @@
 	target.gib()
 
 
+/obj/effect/proc_holder/spell/shadowling_revive_thrall/ascendant
+	name = "Black will"
+	desc = "Empower your faithful thrall or revives"
+	base_cooldown = 0
+	ignore_prer = TRUE
+	human_req = FALSE
 
 /obj/effect/proc_holder/spell/ascendant_hypnosis
 	name = "Hypnosis"
 	desc = "Instantly enthralls a human."
-	panel = "Ascendant"
 	base_cooldown = 0
 	clothes_req = FALSE
 	human_req = FALSE
@@ -929,20 +923,19 @@
 
 	var/mob/living/carbon/human/target = targets[1]
 
-	target.vomit(lost_nutrition = 0, blood = TRUE, stun = TRUE, distance = 1, message = FALSE)
+	target.vomit(0, VOMIT_BLOOD, distance = 2, message = FALSE)
 	playsound(user.loc, 'sound/hallucinations/veryfar_noise.ogg', 50, TRUE)
 	to_chat(user, "<span class='shadowling'>You instantly rearrange <b>[target]</b>'s memories, hyptonitizing [target.p_them()] into a thrall.</span>")
 	to_chat(target, "<span class='userdanger'><font size=3>An agonizing spike of pain drives into your mind, and--</font></span>")
 	SSticker.mode.add_thrall(target.mind)
 	target.mind.special_role = SPECIAL_ROLE_SHADOWLING_THRALL
-	target.add_language("Shadowling Hivemind")
+	target.add_language(LANGUAGE_HIVE_SHADOWLING)
 
 
 
 /obj/effect/proc_holder/spell/ascendant_phase_shift
 	name = "Phase Shift"
 	desc = "Phases you into the space between worlds at will, allowing you to move through walls and become invisible."
-	panel = "Ascendant"
 	base_cooldown = 1.5 SECONDS
 	clothes_req = FALSE
 	human_req = FALSE
@@ -974,7 +967,6 @@
 /obj/effect/proc_holder/spell/aoe/ascendant_storm
 	name = "Lightning Storm"
 	desc = "Shocks everyone nearby."
-	panel = "Ascendant"
 	base_cooldown = 10 SECONDS
 	clothes_req = FALSE
 	human_req = FALSE
@@ -1015,7 +1007,6 @@
 /obj/effect/proc_holder/spell/ascendant_transmit
 	name = "Ascendant Broadcast"
 	desc = "Sends a message to the whole wide world."
-	panel = "Ascendant"
 	base_cooldown = 20 SECONDS
 	clothes_req = FALSE
 	human_req = FALSE

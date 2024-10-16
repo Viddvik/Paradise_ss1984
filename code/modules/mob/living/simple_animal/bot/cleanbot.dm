@@ -16,7 +16,7 @@
 	bot_core_type = /obj/machinery/bot_core/cleanbot
 	window_id = "autoclean"
 	window_name = "Automatic Station Cleaner v1.1"
-	pass_flags = PASSMOB
+	pass_flags = PASSMOB|PASSFLAPS
 	path_image_color = "#993299"
 
 	///Mask color defines what color cleanbot's chassis will be. Format: "#RRGGBB"
@@ -34,17 +34,24 @@
 
 
 
-/mob/living/simple_animal/bot/cleanbot/New()
-	..()
+/mob/living/simple_animal/bot/cleanbot/Initialize(mapload)
+	. = ..()
+
 	get_targets()
 
 	var/datum/job/janitor/J = new/datum/job/janitor
 	access_card.access += J.get_access()
 	prev_access = access_card.access
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
-/mob/living/simple_animal/bot/cleanbot/update_icon()
-	overlays.Cut()
+
+/mob/living/simple_animal/bot/cleanbot/update_icon_state()
+	return
+
+
+/mob/living/simple_animal/bot/cleanbot/update_overlays()
+	. = ..()
+
 	var/overlay_state
 	switch(mode)
 		if(BOT_CLEANING)
@@ -52,15 +59,10 @@
 		if(BOT_IDLE)
 			overlay_state = "[on]"
 
-	var/mutable_appearance/state_appearance = mutable_appearance(icon, "[icon_state][overlay_state]")
-	state_appearance.appearance_flags |= RESET_COLOR
-	overlays += state_appearance
+	. += mutable_appearance(icon, "[icon_state][overlay_state]", appearance_flags = RESET_COLOR)
 
 	if(mask_color)
-		var/mutable_appearance/casing_mask = mutable_appearance(icon, "cleanbot_mask")
-		casing_mask.appearance_flags |= RESET_COLOR
-		casing_mask.color = mask_color
-		overlays += casing_mask
+		. += mutable_appearance(icon, "cleanbot_mask", appearance_flags = RESET_COLOR, color = mask_color)
 
 
 /mob/living/simple_animal/bot/cleanbot/bot_reset()
@@ -76,14 +78,22 @@
 	text_dehack_fail = "[name] does not seem to respond to your repair code!"
 
 
-/mob/living/simple_animal/bot/cleanbot/attackby(obj/item/W, mob/user, params)
-	if(istype(W, /obj/item/toy/crayon/spraycan))
-		var/obj/item/toy/crayon/spraycan/can = W
-		if(!can.capped && Adjacent(user))
-			src.mask_color = can.colour
-			update_icon()
-	else
+/mob/living/simple_animal/bot/cleanbot/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(istype(I, /obj/item/toy/crayon/spraycan))
+		add_fingerprint(user)
+		var/obj/item/toy/crayon/spraycan/can = I
+		if(can.capped)
+			to_chat(user, span_warning("The cap on [can] is sealed."))
+			return ATTACK_CHAIN_PROCEED|ATTACK_CHAIN_NO_AFTERATTACK
+		playsound(loc, 'sound/effects/spray.ogg', 20, TRUE)
+		mask_color = can.colour
+		update_icon()
+		return ATTACK_CHAIN_PROCEED_SUCCESS|ATTACK_CHAIN_NO_AFTERATTACK
+
+	return ..()
 
 
 /mob/living/simple_animal/bot/cleanbot/emag_act(mob/user)
@@ -111,7 +121,7 @@
 		if(issimulatedturf(loc))
 			if(prob(10)) //Wets floors randomly
 				var/turf/simulated/T = loc
-				T.MakeSlippery()
+				T.MakeSlippery(TURF_WET_WATER, 80 SECONDS)
 
 			if(prob(5)) //Spawns foam!
 				visible_message(span_danger("[src] whirs and bubbles violently, before releasing a plume of froth!"))
@@ -146,7 +156,7 @@
 	if(target)
 		if(!path || !length(path)) //No path, need a new one
 			//Try to produce a path to the target, and ignore airlocks to which it has access.
-			path = get_path_to(src, target, 30, id = access_card)
+			path = get_path_to(src, target, max_distance = 30, access = access_card.GetAccess())
 			if(!bot_move(target))
 				add_to_ignore(target)
 				target = null
@@ -190,7 +200,7 @@
 
 
 /mob/living/simple_animal/bot/cleanbot/proc/start_clean(obj/effect/decal/cleanable/target)
-	anchored = TRUE
+	set_anchored(TRUE)
 	visible_message(span_notice("[src] begins to clean up [target]"))
 	mode = BOT_CLEANING
 	update_icon()
@@ -202,7 +212,7 @@
 		return
 	if(mode == BOT_CLEANING)
 		QDEL_NULL(target)
-		anchored = FALSE
+		set_anchored(FALSE)
 	mode = BOT_IDLE
 	update_icon()
 
@@ -223,10 +233,10 @@
 	ui_interact(M)
 
 
-/mob/living/simple_animal/bot/cleanbot/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = TRUE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/mob/living/simple_animal/bot/cleanbot/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "BotClean", name, 500, 500)
+		ui = new(user, src, "BotClean", name)
 		ui.open()
 
 
@@ -275,6 +285,8 @@
 
 
 /mob/living/simple_animal/bot/cleanbot/UnarmedAttack(atom/A)
+	if(!can_unarmed_attack())
+		return
 	if(istype(A,/obj/effect/decal/cleanable))
 		start_clean(A)
 	else

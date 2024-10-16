@@ -6,7 +6,7 @@
 	icon_state = "waterbackpack"
 	item_state = "waterbackpack"
 	w_class = WEIGHT_CLASS_BULKY
-	slot_flags = SLOT_BACK
+	slot_flags = ITEM_SLOT_BACK
 	slowdown = 1
 	actions_types = list(/datum/action/item_action/toggle_mister)
 	max_integrity = 200
@@ -22,21 +22,24 @@
 	create_reagents(volume)
 	noz = make_noz()
 
-/obj/item/watertank/ui_action_click()
+/obj/item/watertank/ui_action_click(mob/user, datum/action/action, leftclick)
 	toggle_mister()
 
-/obj/item/watertank/item_action_slot_check(slot, mob/user)
-	if(slot == slot_back)
-		return 1
+/obj/item/watertank/item_action_slot_check(slot, mob/user, datum/action/action)
+	if(slot == ITEM_SLOT_BACK)
+		return TRUE
 
 /obj/item/watertank/verb/toggle_mister()
 	set name = "Toggle Mister"
 	set category = "Object"
-	if(usr.get_item_by_slot(slot_back) != src)
+
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
+		return
+
+	if(usr.get_item_by_slot(ITEM_SLOT_BACK) != src)
 		to_chat(usr, "<span class='notice'>The watertank needs to be on your back to use.</span>")
 		return
-	if(usr.incapacitated())
-		return
+
 	on = !on
 
 	var/mob/living/carbon/human/user = usr
@@ -61,14 +64,15 @@
 /obj/item/watertank/equipped(mob/user, slot, initial)
 	. = ..()
 
-	if(slot != slot_back)
+	if(slot != ITEM_SLOT_BACK)
 		remove_noz()
+
 
 /obj/item/watertank/proc/remove_noz()
 	if(ismob(noz.loc))
-		var/mob/M = noz.loc
-		M.drop_item_ground(noz, force = TRUE)
-	return
+		var/mob/user = noz.loc
+		user.drop_item_ground(noz, force = TRUE)
+
 
 /obj/item/watertank/Destroy()
 	if(on)
@@ -76,18 +80,20 @@
 		QDEL_NULL(noz)
 	return ..()
 
-/obj/item/watertank/attack_hand(mob/user as mob)
-	if(src.loc == user)
+
+/obj/item/watertank/attack_hand(mob/user)
+	if(loc == user)
 		ui_action_click()
 		return
-	..()
+	return ..()
 
 
-/obj/item/watertank/attackby(obj/item/W, mob/user, params)
-	if(W == noz)
+/obj/item/watertank/attackby(obj/item/I, mob/user, params)
+	if(I == noz)
 		remove_noz()
-		return
-	..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
+
 
 // This mister item is intended as an extension of the watertank and always attached to it.
 // Therefore, it's designed to be "locked" to the player's hands or extended back onto
@@ -103,7 +109,6 @@
 	amount_per_transfer_from_this = 50
 	possible_transfer_amounts = list(25,50,100)
 	volume = 500
-	flags = NOBLUDGEON
 	container_type = OPENCONTAINER
 
 	var/obj/item/watertank/tank
@@ -116,8 +121,8 @@
 		loc = tank
 	return
 
-/obj/item/reagent_containers/spray/mister/dropped(mob/user, silent = FALSE)
-	..()
+/obj/item/reagent_containers/spray/mister/dropped(mob/user, slot, silent = FALSE)
+	. = ..()
 	to_chat(user, "<span class='notice'>The mister snaps back onto the watertank.</span>")
 	tank.on = 0
 	loc = tank
@@ -133,12 +138,14 @@
 	else
 		return 1
 
-/obj/item/reagent_containers/spray/mister/Move()
+
+/obj/item/reagent_containers/spray/mister/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(loc != tank.loc)
-		loc = tank.loc
+		forceMove(tank.loc)
 
-/obj/item/reagent_containers/spray/mister/afterattack(obj/target, mob/user, proximity)
+
+/obj/item/reagent_containers/spray/mister/afterattack(obj/target, mob/user, proximity, params)
 	if(target.loc == loc || target == tank) //Safety check so you don't fill your mister with mutagen or something and then blast yourself in the face with it putting it away
 		return
 	..()
@@ -190,12 +197,28 @@
 /obj/item/watertank/atmos/make_noz()
 	return new /obj/item/extinguisher/mini/nozzle(src)
 
-/obj/item/watertank/atmos/dropped(mob/user, silent = FALSE)
-	..()
-	icon_state = "waterbackpackatmos"
-	if(istype(noz, /obj/item/extinguisher/mini/nozzle))
-		var/obj/item/extinguisher/mini/nozzle/N = noz
-		N.nozzle_mode = 0
+
+/obj/item/watertank/atmos/update_icon_state()
+	var/obj/item/extinguisher/mini/nozzle/our_noz = noz
+	switch(our_noz.nozzle_mode)
+		if(EXTINGUISHER)
+			icon_state = "waterbackpackatmos_0"
+		if(NANOFROST)
+			icon_state = "waterbackpackatmos_1"
+		if(METAL_FOAM)
+			icon_state = "waterbackpackatmos_2"
+		else
+			icon_state = "waterbackpackatmos"
+
+
+/obj/item/watertank/atmos/dropped(mob/user, slot, silent = FALSE)
+	. = ..()
+	if(!noz)
+		return
+	var/obj/item/extinguisher/mini/nozzle/our_noz = noz
+	our_noz.nozzle_mode = NONE
+	update_icon(UPDATE_ICON_STATE)
+
 
 /obj/item/extinguisher/mini/nozzle
 	name = "extinguisher nozzle"
@@ -209,11 +232,11 @@
 	precision = 1
 	cooling_power = 5
 	w_class = WEIGHT_CLASS_HUGE
-	flags = NODROP //Necessary to ensure that the nozzle and tank never seperate
-	var/obj/item/watertank/tank
-	var/nozzle_mode = 0
+	var/obj/item/watertank/atmos/tank
+	var/nozzle_mode = NONE
 	var/metal_synthesis_cooldown = 0
 	var/nanofrost_cooldown = 0
+
 
 /obj/item/extinguisher/mini/nozzle/New(parent_tank)
 	. = ..()
@@ -222,40 +245,43 @@
 		reagents = tank.reagents
 		max_water = tank.volume
 		loc = tank
-	return
 
-/obj/item/extinguisher/mini/nozzle/Move()
+
+/obj/item/extinguisher/mini/nozzle/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
+
+
+/obj/item/extinguisher/mini/nozzle/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	. = ..()
 	if(tank && loc != tank.loc)
-		loc = tank
-	return
+		forceMove(tank)
 
-/obj/item/extinguisher/mini/nozzle/attack_self(mob/user as mob)
+
+/obj/item/extinguisher/mini/nozzle/attack_self(mob/user)
 	switch(nozzle_mode)
 		if(EXTINGUISHER)
 			nozzle_mode = NANOFROST
-			tank.icon_state = "waterbackpackatmos_1"
 			to_chat(user, "Swapped to nanofrost launcher")
-			return
+
 		if(NANOFROST)
 			nozzle_mode = METAL_FOAM
-			tank.icon_state = "waterbackpackatmos_2"
 			to_chat(user, "Swapped to metal foam synthesizer")
-			return
+
 		if(METAL_FOAM)
 			nozzle_mode = EXTINGUISHER
-			tank.icon_state = "waterbackpackatmos_0"
 			to_chat(user, "Swapped to water extinguisher")
-			return
-	return
 
-/obj/item/extinguisher/mini/nozzle/dropped(mob/user, silent = FALSE)
-	..()
+	tank.update_icon(UPDATE_ICON_STATE)
+
+
+/obj/item/extinguisher/mini/nozzle/dropped(mob/user, slot, silent = FALSE)
+	. = ..()
 	to_chat(user, "<span class='notice'>The nozzle snaps back onto the tank!</span>")
 	tank.on = 0
 	loc = tank
 
-/obj/item/extinguisher/mini/nozzle/afterattack(atom/target, mob/user)
+/obj/item/extinguisher/mini/nozzle/afterattack(atom/target, mob/user, proximity, params)
 	if(nozzle_mode == EXTINGUISHER)
 		..()
 		return

@@ -53,12 +53,14 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 
 	light_color = LIGHT_COLOR_PURE_GREEN
 
-/obj/machinery/clonepod/power_change()
-	..()
+
+/obj/machinery/clonepod/power_change(forced = FALSE)
+	..() //we don't check return here because we also care about the BROKEN flag
 	if(!(stat & (BROKEN|NOPOWER)))
 		set_light(2)
 	else
-		set_light(0)
+		set_light_on(FALSE)
+
 
 /obj/machinery/clonepod/biomass
 	biomass = CLONE_BIOMASS
@@ -295,7 +297,7 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 		H.faction.Add("syndicate")	//Чтобы синдикатовцы после клонирования оставались синдикатовцами
 
 
-	domutcheck(H, null, MUTCHK_FORCED) //Ensures species that get powers by the species proc handle_dna keep them
+	H.check_genes(MUTCHK_FORCED) //Ensures species that get powers by the species proc handle_dna keep them
 
 	if(efficiency > 2 && efficiency < 5 && prob(25))
 		randmutb(H)
@@ -397,51 +399,65 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 		update_icon()
 		use_power(200)
 
+
 //Let's unlock this early I guess.  Might be too early, needs tweaking.
 /obj/machinery/clonepod/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
 	if(exchange_parts(user, I))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
 	if(I.GetID())
+		add_fingerprint(user)
 		if(!check_access(I))
 			to_chat(user, span_danger("Access Denied."))
-			return
+			return ATTACK_CHAIN_PROCEED
 		if(!(occupant || mess))
 			to_chat(user, span_danger("Error: Pod has no occupant."))
-			return
-		else
-			add_fingerprint(user)
-			connected_message("Authorized Ejection")
-			announce_radio_message("An authorized ejection of [(occupant) ? occupant.real_name : "the malfunctioning pod"] has occured")
-			to_chat(user, span_notice("You force an emergency ejection."))
-			go_out()
+			return ATTACK_CHAIN_PROCEED
+		connected_message("Authorized Ejection")
+		announce_radio_message("An authorized ejection of [(occupant) ? occupant.real_name : "the malfunctioning pod"] has occured")
+		to_chat(user, span_notice("You force an emergency ejection."))
+		go_out()
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	if(HAS_TRAIT(src, TRAIT_CMAGGED))
+		add_fingerprint(user)
 		var/cleaning = FALSE
 		if(istype(I, /obj/item/reagent_containers/spray/cleaner))
-			var/obj/item/reagent_containers/spray/cleaner/C = I
-			if(C.reagents.total_volume >= C.amount_per_transfer_from_this)
+			var/obj/item/reagent_containers/spray/cleaner/cleaner = I
+			if(cleaner.reagents.total_volume >= cleaner.amount_per_transfer_from_this)
 				cleaning = TRUE
-			else
-				return
-		if(istype(I, /obj/item/soap))
+		else if(istype(I, /obj/item/soap))
 			cleaning = TRUE
-
 		if(!cleaning)
-			return
-		user.visible_message(span_notice("[user] starts to clean the ooze off the [src]."), span_notice("You start to clean the ooze off the [src]."))
-		if(do_after(user, 50, target = src))
-			user.visible_message(span_notice("[user] cleans the ooze off [src]."), span_notice("You clean the ooze off [src]."))
-			REMOVE_TRAIT(src, TRAIT_CMAGGED, CMAGGED)
+			return ..()
+		user.visible_message(
+			span_notice("[user] starts to clean the ooze off the [src]."),
+			span_notice("You start to clean the ooze off the [src]."),
+		)
+		if(!do_after(user, 5 SECONDS, src))
+			return ATTACK_CHAIN_PROCEED
+		user.visible_message(
+			span_notice("[user] cleans the ooze off [src]."),
+			span_notice("You clean the ooze off [src]."),
+		)
+		REMOVE_TRAIT(src, TRAIT_CMAGGED, CMAGGED)
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
-// A user can feed in biomass sources manually.
-	else if(is_type_in_list(I, GLOB.cloner_biomass_items))
-		if(user.drop_transfer_item_to_loc(I, src))
-			add_fingerprint(user)
-			to_chat(user, span_notice("[src] processes [I]."))
-			biomass += BIOMASS_BASE_AMOUNT
-			qdel(I)
-	else
-		return ..()
+	// A user can feed in biomass sources manually.
+	if(is_type_in_list(I, GLOB.cloner_biomass_items))
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		add_fingerprint(user)
+		to_chat(user, span_notice("The [name] processes [I]."))
+		biomass += BIOMASS_BASE_AMOUNT
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
+
 
 /obj/machinery/clonepod/crowbar_act(mob/user, obj/item/I)
 	. = TRUE
@@ -460,7 +476,7 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 	. = TRUE
 	// These icon states don't really matter since we need to call update_icon() to handle panel open/closed overlays anyway.
 	default_deconstruction_screwdriver(user, null, null, I)
-	update_icon()
+	update_icon(UPDATE_OVERLAYS)
 
 /obj/machinery/clonepod/wrench_act(mob/user, obj/item/I)
 	. = TRUE
@@ -469,16 +485,16 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 	if(occupant)
 		to_chat(user, span_warning("Can not do that while [src] is in use."))
 		return
+	set_anchored(!anchored)
 	if(anchored)
+		WRENCH_ANCHOR_MESSAGE
+	else
 		WRENCH_UNANCHOR_MESSAGE
-		anchored = FALSE
 		connected.pods -= src
 		connected = null
-	else
-		WRENCH_ANCHOR_MESSAGE
-		anchored = TRUE
 
-/obj/machinery/clonepod/emag_act(user)
+
+/obj/machinery/clonepod/emag_act(mob/user)
 	if(isnull(occupant))
 		return
 	go_out()
@@ -544,14 +560,10 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 		to_chat(occupant, span_notice("<b>There is a bright flash!</b><br>\
 			<i>You feel like a new being.</i>"))
 		if(HAS_TRAIT(src, TRAIT_CMAGGED))
-			playsound(loc, 'sound/items/bikehorn.ogg', 50, 1)
-			occupant.dna.SetSEState(GLOB.clumsyblock, TRUE, FALSE)
-			occupant.dna.SetSEState(GLOB.comicblock, TRUE, FALSE)
-			genemutcheck(occupant, GLOB.clumsyblock, MUTCHK_FORCED)
-			genemutcheck(occupant, GLOB.comicblock, MUTCHK_FORCED)
-			occupant.dna.default_blocks.Add(GLOB.clumsyblock) //Until Genetics fixes you, this is your life now
-			occupant.dna.default_blocks.Add(GLOB.comicblock)
-		occupant.flash_eyes(visual = 1)
+			playsound(loc, 'sound/items/bikehorn.ogg', 50, TRUE)
+			occupant.force_gene_block(GLOB.clumsyblock, TRUE, TRUE)
+			occupant.force_gene_block(GLOB.comicblock,, TRUE, TRUE)	//Until Genetics fixes you, this is your life now
+		occupant.flash_eyes(visual = TRUE)
 		clonemind = null
 
 
@@ -564,7 +576,7 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 		crit.cure()
 	occupant.forceMove(T)
 	occupant.update_body()
-	domutcheck(occupant) //Waiting until they're out before possible notransform.
+	occupant.check_genes() //Waiting until they're out before possible notransform.
 	occupant.special_post_clone_handling()
 	occupant = null
 	update_icon()
@@ -596,19 +608,21 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 	mess = TRUE
 	update_icon()
 
-/obj/machinery/clonepod/update_icon()
-	..()
-	cut_overlays()
 
-	if(panel_open)
-		add_overlay("panel_open")
-
+/obj/machinery/clonepod/update_icon_state()
 	if(occupant && !(stat & NOPOWER))
 		icon_state = "pod_cloning"
 	else if(mess)
 		icon_state = "pod_mess"
 	else
 		icon_state = "pod_idle"
+
+
+/obj/machinery/clonepod/update_overlays()
+	. = ..()
+	if(panel_open)
+		. += "panel_open"
+
 
 /obj/machinery/clonepod/relaymove(mob/user)
 	if(user.stat == CONSCIOUS)
@@ -646,24 +660,25 @@ GLOBAL_LIST_INIT(cloner_biomass_items, list(\
 	H.setCloneLoss(CLONE_INITIAL_DAMAGE, FALSE)
 	H.setBrainLoss(BRAIN_INITIAL_DAMAGE)
 
-	for(var/o in H.internal_organs)
-		var/obj/item/organ/O = o
-		if(!istype(O) || O.vital)
+	for(var/obj/item/organ/internal/organ as anything in H.internal_organs)
+		if(organ.vital)
 			continue
 
 		// Let's non-specially remove all non-vital organs
 		// What could possibly go wrong
-		var/obj/item/I = O.remove(H, TRUE)
+		var/atom/movable/thing = organ.remove(H, ORGAN_MANIPULATION_NOEFFECT)
 		// Make this support stuff that turns into items when removed
-		I.forceMove(src)
-		missing_organs += I
+		if(!QDELETED(thing))
+			thing.forceMove(src)
+			missing_organs += thing
 
-	var/static/list/zones = list("r_arm", "l_arm", "r_leg", "l_leg")
+	var/static/list/zones = list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)
 	for(var/zone in zones)
-		var/obj/item/organ/external/E = H.get_organ(zone)
-		var/obj/item/I = E.remove(H)
-		I.forceMove(src)
-		missing_organs += I
+		var/obj/item/organ/external/bodypart = H.get_organ(zone)
+		var/atom/movable/thing = bodypart.remove(H)
+		if(!QDELETED(thing))
+			thing.forceMove(src)
+			missing_organs += thing
 
 	organs_number = LAZYLEN(missing_organs)
 	H.updatehealth()

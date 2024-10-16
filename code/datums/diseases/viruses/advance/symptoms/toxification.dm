@@ -22,7 +22,7 @@ Toxification syndrome
 	var/mob/living/carbon/human/H = A.affected_mob
 	if(istype(H))
 		germs_multiplier = 6 + sqrtor0(25 + A.totalTransmittable()) //~~10 on average
-		H.dna.species.germs_growth_rate *= germs_multiplier
+		H.physiology.germs_growth_mod *= germs_multiplier
 
 /datum/symptom/infection/Activate(datum/disease/virus/advance/A)
 	..()
@@ -38,13 +38,14 @@ Toxification syndrome
 				)))
 				if(prob(10))
 					M.emote("groan", "pale")
-	if(prob((A.stage - 2) - M.count_of_infected_organs()/4))
-		var/obj/item/organ/O = pick(M.internal_organs + M.bodyparts)
-		if(O.germ_level < INFECTION_LEVEL_ONE)
-			O.germ_level = INFECTION_LEVEL_ONE
+	if(prob((A.stage - 2) - M.count_infected_organs() / 4))
+		var/obj/item/organ/organ = safepick(M.internal_organs + M.bodyparts)
+		if(organ && organ.germ_level < INFECTION_LEVEL_ONE)
+			organ.germ_level = INFECTION_LEVEL_ONE
 	return
 
 /datum/symptom/infection/End(datum/disease/virus/advance/A)
 	var/mob/living/carbon/human/H = A.affected_mob
 	if(germs_multiplier)
-		H.dna.species.germs_growth_rate /= germs_multiplier
+		H.physiology.germs_growth_mod /= germs_multiplier
+

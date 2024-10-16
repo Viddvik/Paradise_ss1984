@@ -28,8 +28,8 @@
 		data["messages"] = tnote
 		for(var/c in tnote)
 			if(c["target"] == active_conversation)
-				data["convo_name"] = sanitize(c["owner"])
-				data["convo_job"] = sanitize(c["job"])
+				var/obj/item/pda/device = locateUID(c["target"])
+				data["convo_device"] = QDELETED(device) ? "Error#1133: Unable to find UserName." : "[device.owner] ([device.ownjob])"
 				break
 	else
 		var/list/convopdas = list()
@@ -109,11 +109,7 @@
 			active_conversation = null
 
 /datum/data/pda/app/messenger/proc/create_message(var/mob/living/U, var/obj/item/pda/P)
-	var/t = input(U, "Please enter message", name, null) as text|null
-	if(!t)
-		return
-	t = sanitize(copytext_char(t, 1, MAX_MESSAGE_LEN))
-	t = readd_quotes(t)
+	var/t = tgui_input_text(U, "Please enter your message", name)
 	if(!t || !istype(P))
 		return
 	if(!in_range(pda, U) && pda.loc != U)
@@ -127,7 +123,7 @@
 	if(last_text && world.time < last_text + 5)
 		return
 
-	if(!pda.can_use())
+	if(!pda.can_use(U))
 		return
 
 	last_text = world.time
@@ -171,8 +167,8 @@
 
 
 		useMS.send_pda_message("[P.owner]","[pda.owner]","[t]")
-		tnote.Add(list(list("sent" = 1, "owner" = "[P.owner]", "job" = "[P.ownjob]", "message" = "[t]", "target" = "[P.UID()]")))
-		PM.tnote.Add(list(list("sent" = 0, "owner" = "[pda.owner]", "job" = "[pda.ownjob]", "message" = "[t]", "target" = "[pda.UID()]")))
+		tnote.Add(list(list("sent" = 1, "message" = "[t]", "target" = "[P.UID()]")))
+		PM.tnote.Add(list(list("sent" = 0, "message" = "[t]", "target" = "[pda.UID()]")))
 
 		// Show it to ghosts
 		for(var/mob/M in GLOB.dead_mob_list)
@@ -186,7 +182,8 @@
 			PM.conversations.Add("[pda.UID()]")
 
 		SStgui.update_uis(src)
-		PM.notify("<b>Message from [pda.owner] ([pda.ownjob]), </b>\"[t]\" (<a href='?src=[PM.UID()];choice=Message;target=[pda.UID()]'>Reply</a>)")
+		PM.notify("<b>Message from [pda.owner] ([pda.ownjob]), </b>\"[t]\" (<a href='byond://?src=[PM.UID()];choice=Message;target=[pda.UID()]'>Reply</a>)")
+		to_chat(U, "[bicon(pda)] <b>Message to [P.owner] ([P.ownjob]), </b>\"[t]\" (<a href='byond://?src=[UID()];choice=Message;target=[P.UID()]'>Send more</a>)")
 		log_pda("(PDA: [src.name]) sent \"[t]\" to [P.name]", U)
 		var/log_message = "sent PDA message \"[t]\" using [pda]"
 		var/receiver
@@ -232,7 +229,7 @@
 
 // Handler for the in-chat reply button
 /datum/data/pda/app/messenger/Topic(href, href_list)
-	if(!pda.can_use())
+	if(!pda.can_use(usr))
 		return
 	unnotify()
 	switch(href_list["choice"])

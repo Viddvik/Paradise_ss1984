@@ -69,14 +69,15 @@ Limb Rejection
 		to_chat(H, span_alert("You still need [limb]!"))
 		return FALSE
 
-	for(var/obj/item/organ/internal/organ in limb.internal_organs)
+	for(var/obj/item/organ/internal/organ as anything in limb.internal_organs)
 		if(organ.vital)
 			to_chat(H, span_alert("You still need [organ]!"))
 			return FALSE
 
 	var/obj/item/projectile/limb/limb_projectile = new(user.loc, limb)
 	limb_projectile.current = get_turf(user)
-	limb_projectile.preparePixelProjectile(target, get_turf(target), user)
+	var/turf/target_turf = get_turf(target)
+	limb_projectile.preparePixelProjectile(target, target_turf, user)
 	limb_projectile.firer = user
 	limb_projectile.fire()
 	playsound(get_turf(usr), 'sound/effects/splat.ogg', 50, 1)
@@ -85,6 +86,6 @@ Limb Rejection
 	qdel(limb)
 	H.emote("scream")
 
-	user.newtonian_move(get_dir(U, T))
+	user.newtonian_move(get_dir(target_turf, T))
 
 	return TRUE

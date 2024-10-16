@@ -6,7 +6,8 @@
 	item_state = "utility"
 	lefthand_file = 'icons/mob/inhands/equipment/belt_lefthand.dmi'
 	righthand_file = 'icons/mob/inhands/equipment/belt_righthand.dmi'
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
+	flags = BLOCKS_LIGHT
 	attack_verb = list("whipped", "lashed", "disciplined")
 	max_integrity = 300
 	pickup_sound = 'sound/items/handling/backpack_pickup.ogg'
@@ -14,13 +15,16 @@
 	drop_sound = 'sound/items/handling/backpack_drop.ogg'
 	var/use_item_overlays = FALSE // Do we have overlays for items held inside the belt?
 
-/obj/item/storage/belt/update_icon()
-	if(use_item_overlays)
-		overlays.Cut()
-		for(var/obj/item/I in contents)
-			if(I.belt_icon)
-				overlays += "[I.belt_icon]"
-	..()
+
+/obj/item/storage/belt/update_overlays()
+	. = ..()
+	if(!use_item_overlays)
+		return
+	for(var/obj/item/item in contents)
+		if(!item.belt_icon)
+			continue
+		. += mutable_appearance(icon, item.belt_icon, color = item.color)
+
 
 /obj/item/storage/belt/proc/can_use()
 	return is_equipped()
@@ -52,7 +56,8 @@
 		/obj/item/extinguisher/mini,
 		/obj/item/holosign_creator,
 		/obj/item/radio,
-		/obj/item/robotanalyzer)
+		/obj/item/robotanalyzer,
+		/obj/item/clothing/gloves)
 
 /obj/item/storage/belt/utility/full/populate_contents()
 	new /obj/item/screwdriver(src)
@@ -133,8 +138,10 @@
 	max_combined_w_class = 17
 	use_to_pickup = 1
 	name = "surgical belt"
+	icon_state = "surgicalbelt"
+	item_state = "surgical"
 	desc = "Can hold various surgical tools."
-	storage_slots = 9
+	storage_slots = 11
 	use_item_overlays = TRUE
 	can_hold = list(
 		/obj/item/scalpel,
@@ -146,7 +153,9 @@
 		/obj/item/FixOVein,
 		/obj/item/surgicaldrill,
 		/obj/item/cautery,
-		/obj/item/radio)
+		/obj/item/radio,
+		/obj/item/clothing/gloves/color/latex,
+		/obj/item/reagent_containers/spray/cleaner)
 
 /obj/item/storage/belt/medical/surgery/loaded/populate_contents()
 	new /obj/item/scalpel(src)
@@ -213,11 +222,11 @@
 		/obj/item/reagent_containers/food/snacks/donut,
 		/obj/item/reagent_containers/food/snacks/candy/confectionery/toffee,
 		/obj/item/kitchen/knife/combat,
+		/obj/item/melee/baton/security,
 		/obj/item/melee/baton,
-		/obj/item/melee/classic_baton,
 		/obj/item/flashlight/seclite,
 		/obj/item/holosign_creator/security,
-		/obj/item/melee/classic_baton/telescopic,
+		/obj/item/melee/baton/telescopic,
 		/obj/item/restraints/legcuffs/bola,
 		/obj/item/forensics/sample_kit/powder,
 		/obj/item/forensics/sample_kit,
@@ -229,7 +238,7 @@
 	new /obj/item/restraints/handcuffs(src)
 	new /obj/item/grenade/flashbang(src)
 	new /obj/item/flash(src)
-	new /obj/item/melee/baton/loaded(src)
+	new /obj/item/melee/baton/security/loaded(src)
 	update_icon()
 
 /obj/item/storage/belt/security/detective
@@ -238,16 +247,23 @@
 	icon_state = "detective_belt"
 	item_state = "detective_belt"
 
+/obj/item/storage/belt/security/detective/populate_contents()
+	new /obj/item/flash(src)
+	new /obj/item/restraints/handcuffs(src)
+	new /obj/item/holosign_creator/security(src)
+	new /obj/item/flashlight/seclite(src)
+	update_icon()
+
 /obj/item/storage/belt/security/response_team/populate_contents()
 	new /obj/item/reagent_containers/spray/pepper(src)
-	new /obj/item/melee/baton/loaded(src)
+	new /obj/item/melee/baton/security/loaded(src)
 	new /obj/item/flash(src)
-	new /obj/item/melee/classic_baton/telescopic(src)
+	new /obj/item/melee/baton/telescopic(src)
 	new /obj/item/grenade/flashbang(src)
 	update_icon()
 
 /obj/item/storage/belt/security/response_team_gamma/populate_contents()
-	new /obj/item/melee/baton/loaded(src)
+	new /obj/item/melee/baton/security/loaded(src)
 	new /obj/item/reagent_containers/spray/pepper(src)
 	new /obj/item/flash(src)
 	new /obj/item/grenade/flashbang(src)
@@ -325,6 +341,7 @@
 	new /obj/item/weldingtool/largetank(src)
 	new /obj/item/crowbar/red(src)
 	new /obj/item/wirecutters(src, "red")
+	new /obj/item/multitool/ai_detect(src)
 	new /obj/item/stack/cable_coil(src, 30, COLOR_RED)
 	update_icon()
 
@@ -376,6 +393,15 @@
 /obj/item/storage/belt/grenade/frag/populate_contents()
 	for(var/I in 1 to 4)
 		new /obj/item/grenade/frag(src)
+
+/obj/item/storage/belt/grenade/demolitionist/populate_contents()
+	for(var/I in 1 to 5)
+		new /obj/item/grenade/frag(src)
+		new /obj/item/grenade/gluon(src)
+		new /obj/item/grenade/smokebomb(src)
+		new /obj/item/grenade/plastic/c4(src)
+	for(var/I in 1 to 2)
+		new /obj/item/grenade/empgrenade(src)
 
 /obj/item/storage/belt/rocketman
 	name = "rocket belt"
@@ -450,6 +476,12 @@
 	new /obj/item/grenade/plastic/x4/thermite(src)
 	new /obj/item/storage/pill_bottle/sovietstimulants(src)
 
+/obj/item/storage/belt/military/assault/gammaert/full/populate_contents()
+	new /obj/item/storage/pouch/fast(src)
+	new /obj/item/storage/pouch/fast(src)
+	new /obj/item/storage/pouch/fast(src)
+	new /obj/item/melee/baton/telescopic(src)
+
 /obj/item/storage/belt/janitor
 	name = "janibelt"
 	desc = "A belt used to hold most janitorial supplies."
@@ -501,21 +533,18 @@
 
 /obj/item/storage/belt/lazarus/Initialize(mapload)
 	. = ..()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/item/storage/belt/lazarus/update_icon()
-	..()
+/obj/item/storage/belt/lazarus/update_icon_state()
 	icon_state = "[initial(icon_state)]_[length(contents)]"
 
-/obj/item/storage/belt/lazarus/attackby(obj/item/W, mob/user)
+
+/obj/item/storage/belt/lazarus/attackby(obj/item/I, mob/user, params)
 	var/amount = length(contents)
 	. = ..()
 	if(amount != length(contents))
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
-/obj/item/storage/belt/lazarus/remove_from_storage(obj/item/W, atom/new_location)
-	..()
-	update_icon()
 
 /obj/item/storage/belt/bandolier
 	name = "bandolier"
@@ -541,22 +570,19 @@
 
 /obj/item/storage/belt/bandolier/booze/populate_contents()
 	for(var/I in 1 to 16)
-		new /obj/item/ammo_casing/shotgun/fakebeanbag(src)
+		new /obj/item/ammo_casing/shotgun/beanbag/fake(src)
 	update_icon()
 
-/obj/item/storage/belt/bandolier/update_icon()
-	..()
+/obj/item/storage/belt/bandolier/update_icon_state()
 	icon_state = "[initial(icon_state)]_[length(contents)]"
 
-/obj/item/storage/belt/bandolier/attackby(obj/item/W, mob/user)
+
+/obj/item/storage/belt/bandolier/attackby(obj/item/I, mob/user, params)
 	var/amount = length(contents)
 	. = ..()
 	if(amount != length(contents))
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
-/obj/item/storage/belt/bandolier/remove_from_storage(obj/item/W, atom/new_location)
-	..()
-	update_icon()
 
 /obj/item/storage/belt/holster
 	name = "shoulder holster"
@@ -661,11 +687,11 @@
 	storage_slots = 1
 	w_class = WEIGHT_CLASS_BULKY
 	max_w_class = WEIGHT_CLASS_BULKY
-	can_hold = list(/obj/item/melee/rapier)
+	can_hold = list(/obj/item/melee/rapier/captain)
 
 /obj/item/storage/belt/rapier/populate_contents()
-	new /obj/item/melee/rapier(src)
-	update_icon()
+	new /obj/item/melee/rapier/captain(src)
+	update_appearance(UPDATE_ICON_STATE)
 
 /obj/item/storage/belt/rapier/attack_hand(mob/user)
 	if(loc != user)
@@ -695,16 +721,35 @@
 		return
 	playsound(src, 'sound/weapons/blade_unsheath.ogg', 20)
 
-/obj/item/storage/belt/rapier/update_icon()
-	. = ..()
+/obj/item/storage/belt/rapier/update_icon_state()
 	icon_state = initial(icon_state)
 	item_state = initial(item_state)
 	if(length(contents))
 		icon_state = "[icon_state]-rapier"
 		item_state = "[item_state]-rapier"
-	if(isliving(loc))
-		var/mob/living/L = loc
-		L.update_inv_belt()
+	update_equipped_item(update_speedmods = FALSE)
+
+/obj/item/storage/belt/rapier/syndie
+	name = "suspicious rapier sheath"
+	desc = "A sinister, thin sheath, suitable for a rapier."
+	icon_state = "syndie_sheath"
+	item_state = "syndie_sheath"
+	can_hold = list(/obj/item/melee/rapier/syndie)
+
+/obj/item/storage/belt/rapier/syndie/populate_contents()
+	new /obj/item/melee/rapier/syndie(src)
+	update_appearance(UPDATE_ICON_STATE)
+
+/obj/item/storage/belt/rapier/centcomm
+	name = "centcomm rapier sheath"
+	desc = "Украшенные ножны, корпоративный кич в комплекте."
+	icon_state = "centcomm_sheath"
+	item_state = "centcomm_sheath"
+	can_hold = list(/obj/item/melee/rapier/centcomm)
+
+/obj/item/storage/belt/rapier/centcomm/populate_contents()
+	new /obj/item/melee/rapier/centcomm(src)
+	update_appearance(UPDATE_ICON_STATE)
 
 // -------------------------------------
 //     Bluespace Belt
@@ -737,13 +782,13 @@
 		/obj/item/restraints/legcuffs/bola
 		)
 
-	flags = NODROP
 	var/smokecount = 0
 	var/bolacount = 0
 	var/cooldown = 0
 
 /obj/item/storage/belt/bluespace/owlman/Initialize(mapload)
 	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, INNATE_TRAIT)
 	START_PROCESSING(SSobj, src)
 	cooldown = world.time
 
@@ -783,8 +828,10 @@
 				if(H.s_active && H.s_active == src)
 					H.s_active.show_to(H)
 
-/obj/item/storage/belt/bluespace/attack(mob/M as mob, mob/user as mob, def_zone)
-	return
+
+/obj/item/storage/belt/bluespace/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	return ATTACK_CHAIN_PROCEED
+
 
 /obj/item/storage/belt/bluespace/admin
 	name = "Admin's Tool-belt"
@@ -891,6 +938,7 @@
 	new /obj/item/survivalcapsule(src)
 	new /obj/item/grenade/plastic/miningcharge/lesser(src)
 	new /obj/item/grenade/plastic/miningcharge/lesser(src)
+	new /obj/item/wormhole_jaunter(src)
 
 /obj/item/storage/belt/mining/alt
 	icon_state = "explorer2"
@@ -977,22 +1025,19 @@
 	sheath_sound = 'sound/weapons/blade_dark_sheath.ogg'
 	unsheath_sound = 'sound/weapons/blade_dark_unsheath.ogg'
 
-/obj/item/storage/belt/claymore/update_icon()
-	. = ..()
+/obj/item/storage/belt/claymore/update_icon_state()
 	if(length(contents))
 		icon_state = "[initial(icon_state)]_blade"
 		item_state = "[initial(icon_state)]_blade"
 	else
 		icon_state = initial(icon_state)
 		item_state = initial(item_state)
-	if(isliving(loc))
-		var/mob/living/L = loc
-		L.update_inv_belt()
-		L.update_inv_s_store()
+	update_equipped_item(update_speedmods = FALSE)
+
 
 /obj/item/storage/belt/claymore/populate_contents()
 	new claymore_path(src)
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
 /obj/item/storage/belt/claymore/attack_hand(mob/user)
 	if(loc != user)
@@ -1008,7 +1053,7 @@
 		var/obj/item/I = contents[1]
 		H.visible_message(span_notice("[H] takes [I] out of [src]."), span_notice("You take [I] out of [src]."))
 		H.put_in_hands(I, ignore_anim = FALSE)
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 	else
 		to_chat(user, span_warning("[src] is empty!"))
 

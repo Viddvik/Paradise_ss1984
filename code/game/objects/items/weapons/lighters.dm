@@ -8,9 +8,13 @@
 	w_class = WEIGHT_CLASS_TINY
 	throwforce = 4
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	attack_verb = null
 	resistance_flags = FIRE_PROOF
+	light_system = MOVABLE_LIGHT_DIRECTIONAL
+	light_range = 2
+	light_on = FALSE
+	light_power = 1
 	var/lit = FALSE
 	var/icon_on = "lighter-g-on"
 	var/icon_off = "lighter-g"
@@ -43,18 +47,17 @@
 	attack_verb = list("burnt", "singed")
 
 	attempt_light(user)
-	set_light(2)
+	set_light_on(TRUE)
 	START_PROCESSING(SSobj, src)
 
 /obj/item/lighter/proc/attempt_light(mob/living/user)
 	if(prob(75) || issilicon(user)) // Robots can never burn themselves trying to light it.
-		to_chat(user, "<span class='notice'>You light [src].</span>")
+		to_chat(user, span_notice("You light [src]."))
+	else if(HAS_TRAIT(user, TRAIT_BADASS))
+		to_chat(user, span_notice("[src]'s flames lick your hand as you light it, but you don't flinch."))
 	else
-		var/mob/living/carbon/human/H = user
-		var/obj/item/organ/external/affecting = H.get_organ("[user.hand ? "l" : "r" ]_hand")
-		if(affecting.receive_damage( 0, 5 ))		//INFERNO
-			H.UpdateDamageIcon()
-		to_chat(user,"<span class='notice'>You light [src], but you burn your hand in the process.</span>")
+		user.apply_damage(5, BURN, def_zone = user.hand ? BODY_ZONE_PRECISE_L_HAND : BODY_ZONE_PRECISE_R_HAND)	//INFERNO
+		to_chat(user, span_notice("You light [src], but you burn your hand in the process."))
 	if(world.time > next_on_message)
 		playsound(src, 'sound/items/lighter/plastic_strike.ogg', 25, TRUE)
 		next_on_message = world.time + 5 SECONDS
@@ -69,7 +72,7 @@
 	attack_verb = null //human_defense.dm takes care of it
 
 	show_off_message(user)
-	set_light(0)
+	set_light_on(FALSE)
 	STOP_PROCESSING(SSobj, src)
 
 /obj/item/lighter/extinguish_light(force = FALSE)
@@ -83,26 +86,39 @@
 		playsound(src, 'sound/items/lighter/plastic_close.ogg', 25, TRUE)
 		next_off_message = world.time + 5 SECONDS
 
-/obj/item/lighter/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-	if(!isliving(M))
-		return
-	M.IgniteMob()
-	if(!istype(M, /mob))
-		return
 
-	if(istype(M.wear_mask, /obj/item/clothing/mask/cigarette) && user.zone_selected == "mouth" && lit)
-		var/obj/item/clothing/mask/cigarette/cig = M.wear_mask
-		if(M == user)
-			cig.attackby(src, user)
-		else
-			if(istype(src, /obj/item/lighter/zippo))
-				cig.light("<span class='rose'>[user] whips the [name] out and holds it for [M]. [user.p_their(TRUE)] arm is as steady as the unflickering flame [user.p_they()] light[user.p_s()] \the [cig] with.</span>")
-			else
-				cig.light("<span class='notice'>[user] holds the [name] out for [M], and lights the [cig.name].</span>")
-			playsound(src, 'sound/items/lighter/light.ogg', 25, TRUE)
-			M.update_inv_wear_mask()
+/obj/item/lighter/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!lit)
+		return ..()
+
+	var/return_flags = ATTACK_CHAIN_PROCEED
+
+	if(target.IgniteMob())
+		return_flags |= ATTACK_CHAIN_SUCCESS
+		add_attack_logs(user, target, "set on fire", ATKLOG_FEW)
+
+	if(user.zone_selected != BODY_ZONE_PRECISE_MOUTH || !istype(target.wear_mask, /obj/item/clothing/mask/cigarette))
+		return ..() | return_flags
+
+	var/obj/item/clothing/mask/cigarette/cig = target.wear_mask
+	if(cig.lit)
+		to_chat(user, span_notice("The [cig.name] is already lit."))
+		return return_flags
+
+	if(target == user)
+		return cig.attackby(src, user, params) | return_flags
+
+	return_flags |= ATTACK_CHAIN_SUCCESS
+	. = return_flags
+
+	if(istype(src, /obj/item/lighter/zippo))
+		cig.light(span_rose("[user] whips the [name] out and holds it for [target]. [user.p_their(TRUE)] arm is as steady as the unflickering flame [user.p_they()] light[user.p_s()] [cig] with."))
 	else
-		..()
+		cig.light(span_notice("[user] holds the [name] out for [target], and lights the [cig.name]."))
+
+	playsound(src, 'sound/items/lighter/light.ogg', 25, TRUE)
+	target.update_inv_wear_mask()
+
 
 /obj/item/lighter/process()
 	var/turf/location = get_turf(src)
@@ -243,6 +259,14 @@
 	icon_on = "zippo_rd_on"
 	icon_off = "zippo_rd"
 
+/obj/item/lighter/zippo/qm
+	name = "Quartermaster Lighter"
+	desc = "It costs 400.000 credits to fire this lighter for 12 seconds."
+	icon_state = "zippo_qm"
+	item_state = "qmzippo"
+	icon_on = "zippo_qm_on"
+	icon_off = "zippo_qm"
+
 //Ninja-Zippo//
 /obj/item/lighter/zippo/ninja
 	name = "\"Shinobi on a rice field\" zippo"
@@ -272,6 +296,7 @@
 	pickup_sound = 'sound/items/handling/generic_small_pickup.ogg'
 	drop_sound = 'sound/items/handling/generic_small_drop.ogg'
 
+
 /obj/item/match/process()
 	var/turf/location = get_turf(src)
 	smoketime--
@@ -279,77 +304,101 @@
 		matchburnout()
 	if(location)
 		location.hotspot_expose(700, 5)
-		return
+
 
 /obj/item/match/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
 	..()
 	matchignite()
+
 
 /obj/item/match/extinguish_light(force = FALSE)
 	if(!force)
 		return
 	matchburnout()
 
+
+/obj/item/match/update_icon_state()
+	icon_state = lit ? "match_lit" : "match_burnt"
+	item_state = lit ? "cigon" : "cigoff"
+
+
+/obj/item/match/update_name(updates = ALL)
+	. = ..()
+	var/init_name = initial(name)
+	name = lit ? "lit [init_name]" : burnt ? "burnt [init_name]" : initial(name)
+
+
+/obj/item/match/update_desc(updates = ALL)
+	. = ..()
+	var/init_name = initial(name)
+	desc = lit ? "A [init_name]. This one is lit." : burnt ? "A [init_name]. This one has seen better days." : initial(desc)
+
+
 /obj/item/match/proc/matchignite()
 	if(!lit && !burnt)
 		lit = TRUE
-		icon_state = "match_lit"
-		damtype = "fire"
+		damtype = FIRE
 		force = 3
 		hitsound = 'sound/weapons/tap.ogg'
-		item_state = "cigon"
-		name = "lit match"
-		desc = "A match. This one is lit."
 		attack_verb = list("burnt","singed")
 		START_PROCESSING(SSobj, src)
-		update_icon()
+		update_appearance(UPDATE_ICON_STATE|UPDATE_NAME|UPDATE_DESC)
 		return TRUE
+
 
 /obj/item/match/proc/matchburnout()
 	if(lit)
 		lit = FALSE
 		burnt = TRUE
-		damtype = "brute"
+		damtype = BRUTE
 		force = initial(force)
-		icon_state = "match_burnt"
-		item_state = "cigoff"
-		name = "burnt match"
-		desc = "A match. This one has seen better days."
 		attack_verb = list("flicked")
 		STOP_PROCESSING(SSobj, src)
+		update_appearance(UPDATE_ICON_STATE|UPDATE_NAME|UPDATE_DESC)
 		return TRUE
 
-/obj/item/match/dropped(mob/user, silent = FALSE)
+
+/obj/item/match/dropped(mob/user, slot, silent = FALSE)
 	matchburnout()
 	. = ..()
 
-/obj/item/match/attack(mob/living/carbon/M, mob/living/carbon/user)
-	if(!isliving(M))
+
+/obj/item/match/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!lit)
 		return ..()
-	if(lit && M.IgniteMob())
-		add_attack_logs(user, M, "set on fire", ATKLOG_FEW)
-	var/obj/item/clothing/mask/cigarette/cig = help_light_cig(M)
-	if(lit && cig && user.a_intent == INTENT_HELP)
-		if(cig.lit)
-			to_chat(user, "<span class='notice'>[cig] is already lit.</span>")
-		if(M == user)
-			cig.attackby(src, user)
+
+	var/return_flags = ATTACK_CHAIN_PROCEED
+
+	if(target.IgniteMob())
+		return_flags |= ATTACK_CHAIN_SUCCESS
+		add_attack_logs(user, target, "set on fire", ATKLOG_FEW)
+
+	var/obj/item/clothing/mask/cigarette/cig = help_light_cig(target)
+	if(!cig || user.zone_selected != BODY_ZONE_PRECISE_MOUTH)
+		return ..() | return_flags
+
+	if(cig.lit)
+		to_chat(user, span_notice("The [cig.name] is already lit."))
+		return return_flags
+
+	if(target == user)
+		return cig.attackby(src, user, params) | return_flags
+
+	return_flags |= ATTACK_CHAIN_SUCCESS
+	. = return_flags
+
+	if(istype(src, /obj/item/match/unathi))
+		if(prob(50))
+			cig.light(span_rose("[user] spits fire at [target], lighting [cig] and nearly burning [user.p_their()] face!"))
+			matchburnout()
 		else
-			if(istype(src, /obj/item/match/unathi))
-				if(prob(50))
-					cig.light("<span class='rose'>[user] spits fire at [M], lighting [cig] and nearly burning [user.p_their()] face!</span>")
-					matchburnout()
-				else
-					cig.light("<span class='rose'>[user] spits fire at [M], burning [user.p_their()] face and lighting [cig] in the process.</span>")
-					var/obj/item/organ/external/head/affecting = M.get_organ("head")
-					affecting.receive_damage(0, 5)
-					M.UpdateDamageIcon()
-				playsound(user.loc, 'sound/effects/unathiignite.ogg', 40, FALSE)
-			else
-				cig.light("<span class='notice'>[user] holds [src] out for [M], and lights [cig].</span>")
-				playsound(src, 'sound/items/lighter/light.ogg', 25, TRUE)
+			cig.light(span_rose("[user] spits fire at [target], burning [user.p_their()] face and lighting [cig] in the process."))
+			target.apply_damage(5, BURN, def_zone = BODY_ZONE_HEAD)
+			playsound(src, 'sound/effects/unathiignite.ogg', 40, FALSE)
 	else
-		..()
+		cig.light(span_notice("[user] holds [src] out for [target], and lights [cig]."))
+		playsound(src, 'sound/items/lighter/light.ogg', 25, TRUE)
+
 
 /obj/item/match/decompile_act(obj/item/matter_decompiler/C, mob/user)
 	if(burnt)
@@ -358,19 +407,23 @@
 		return TRUE
 	return ..()
 
+
 /obj/item/proc/help_light_cig(mob/living/M)
-	var/mask_item = M.get_item_by_slot(slot_wear_mask)
+	var/mask_item = M.get_item_by_slot(ITEM_SLOT_MASK)
 	if(istype(mask_item, /obj/item/clothing/mask/cigarette))
 		return mask_item
+
 
 /obj/item/match/firebrand
 	name = "firebrand"
 	desc = "An unlit firebrand. It makes you wonder why it's not just called a stick."
 	smoketime = 20 //40 seconds
 
-/obj/item/match/firebrand/New()
-	..()
+
+/obj/item/match/firebrand/Initialize(mapload)
+	. = ..()
 	matchignite()
+
 
 /obj/item/match/unathi
 	name = "small blaze"
@@ -378,14 +431,20 @@
 	icon_state = "match_unathi"
 	attack_verb = null
 	force = 0
-	flags = DROPDEL | ABSTRACT
+	item_flags = DROPDEL|ABSTRACT
 	origin_tech = null
 	lit = TRUE
 	w_class = WEIGHT_CLASS_BULKY //to prevent it going to pockets
 
+
 /obj/item/match/unathi/Initialize(mapload)
 	. = ..()
 	START_PROCESSING(SSobj, src)
+
+
+/obj/item/match/unathi/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
+	return	// we are already burning
+
 
 /obj/item/match/unathi/matchburnout()
 	if(!lit)
@@ -393,6 +452,8 @@
 	lit = FALSE //to avoid a qdel loop
 	qdel(src)
 
+
 /obj/item/match/unathi/Destroy()
 	. = ..()
 	STOP_PROCESSING(SSobj, src)
+

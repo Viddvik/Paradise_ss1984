@@ -6,6 +6,7 @@
 	req_access = list(ACCESS_BAR)
 	max_integrity = 500
 	integrity_failure = 250
+	blocks_emissive = FALSE
 	armor = list("melee" = 20, "bullet" = 20, "laser" = 20, "energy" = 100, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 50, "acid" = 50)
 	var/list/barsigns=list()
 	var/list/hiddensigns
@@ -35,7 +36,7 @@
 		desc = "It displays \"[name]\"."
 
 /obj/structure/sign/barsign/obj_break(damage_flag)
-	if(!broken && !(flags & NODECONSTRUCT))
+	if(!broken && !(obj_flags & NODECONSTRUCT))
 		broken = TRUE
 
 /obj/structure/sign/barsign/deconstruct(disassembled = TRUE)
@@ -83,25 +84,32 @@
 
 	return TRUE
 
-/obj/structure/sign/barsign/attackby(var/obj/item/I, var/mob/user)
-	if(istype(I, /obj/item/stack/cable_coil) && panel_open)
-		if(emagged) //Emagged, not broken by EMP
-			to_chat(user, "<span class='warning'>Sign has been damaged beyond repair!</span>")
-			return
-		if(!broken)
-			to_chat(user, "<span class='warning'>This sign is functioning properly!</span>")
-			return
 
-		var/obj/item/stack/cable_coil/C = I
-		if(C.use(2))
-			add_fingerprint(user)
-			to_chat(user, "<span class='notice'>You replace the burnt wiring.</span>")
-			broken = FALSE
-		else
-			to_chat(user, "<span class='warning'>You need at least two lengths of cable!</span>")
-
-	else
+/obj/structure/sign/barsign/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
 		return ..()
+
+	if(iscoil(I))
+		add_fingerprint(user)
+		if(!panel_open)
+			to_chat(user, span_warning("You should open the service panel first!"))
+			return ATTACK_CHAIN_PROCEED
+		if(emagged) //Emagged, not broken by EMP
+			to_chat(user, span_warning("Sign has been damaged beyond repair!"))
+			return ATTACK_CHAIN_PROCEED
+		if(!broken)
+			to_chat(user, span_warning("This sign is functioning properly!"))
+			return ATTACK_CHAIN_PROCEED
+		var/obj/item/stack/cable_coil/coil = I
+		if(!coil.use(2))
+			to_chat(user, span_warning("You need at least two lengths of cable!"))
+			return ATTACK_CHAIN_PROCEED
+		to_chat(user, span_notice("You replace the burnt wiring."))
+		broken = FALSE
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
+	return ..()
+
 
 /obj/structure/sign/barsign/emp_act(severity)
     set_sign(new /datum/barsign/hiddensigns/empbarsign)
@@ -109,9 +117,11 @@
 
 /obj/structure/sign/barsign/emag_act(mob/user)
 	if(broken || emagged)
-		to_chat(user, "<span class='warning'>Nothing interesting happens!</span>")
+		if(user)
+			to_chat(user, "<span class='warning'>Nothing interesting happens!</span>")
 		return
-	to_chat(user, "<span class='notice'>You emag the barsign. Takeover in progress...</span>")
+	if(user)
+		to_chat(user, "<span class='notice'>You emag the barsign. Takeover in progress...</span>")
 	addtimer(CALLBACK(src, PROC_REF(post_emag)), 100)
 
 /obj/structure/sign/barsign/proc/post_emag()
@@ -122,7 +132,7 @@
 	req_access = list(ACCESS_SYNDICATE)
 
 /obj/structure/sign/barsign/proc/pick_sign()
-	var/picked_name = input("Available Signage", "Bar Sign") as null|anything in barsigns
+	var/picked_name = tgui_input_list(usr, "Available Signage", "Bar Sign", barsigns)
 	if(!picked_name)
 		return
 	set_sign(picked_name)
@@ -359,30 +369,15 @@
 	icon = "spaceasshole"
 	desc = "Open since 2125, Not much has changed since then; the engineers still release the singulo and the damn miners still are more likely to cave your face in that deliver ores."
 
-/datum/barsign/evahumanspace
-	name = "SS220 EVA Human in Space"
-	icon = "evahumanspace"
-	desc = "Safety is a privilege."
-
-/datum/barsign/warpsurf
-	name = "SS220 Warp Surf"
-	icon = "warpsurf"
-	desc = "Welcome to the club, buddy!"
-
-/datum/barsign/papacafe
-	name = "SS220 Space Daddy's Cafe"
-	icon = "papacafe"
-	desc = "Respect your Space Daddy!"
-
-/datum/barsign/wycctide
-	name = "SS220 Wycctide"
-	icon = "wycctide"
-	desc = "Oh no, it's coming!"
-
 /datum/barsign/shitcur
-	name = "SS220 Shitcur"
+	name = "SS1984 Shitcur"
 	icon = "shitcur"
 	desc = "Innocence proves nothing."
+
+/datum/barsign/vacation
+	name = "Digital Vacation"
+	icon = "vacation"
+	desc = "Отдохните от мира информации, преисполнившись свободой не выбирать!"
 
 /datum/barsign/hiddensigns
 	hidden = 1

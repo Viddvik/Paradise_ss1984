@@ -4,7 +4,7 @@
 	icon = 'icons/obj/items.dmi'
 	icon_state = "pickaxe"
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	force = 15
 	throwforce = 10
 	item_state = "pickaxe"
@@ -12,7 +12,6 @@
 	materials = list(MAT_METAL=2000) //one sheet, but where can you make them?
 	origin_tech = "materials=2;engineering=3"
 	attack_verb = list("hit", "pierced", "sliced", "attacked")
-	var/list/digsound = list('sound/effects/picaxe1.ogg','sound/effects/picaxe2.ogg','sound/effects/picaxe3.ogg')
 	var/drill_verb = "picking"
 	sharp = 1
 	embed_chance = 15
@@ -21,8 +20,6 @@
 	usesound = 'sound/effects/picaxe1.ogg'
 	toolspeed = 0.8
 
-/obj/item/pickaxe/proc/playDigSound()
-	playsound(src, pick(digsound),20,1)
 
 /obj/item/pickaxe/emergency
 	name = "emergency disembarkation tool"
@@ -78,7 +75,6 @@
 	name = "mining drill"
 	icon_state = "handdrill"
 	item_state = "jackhammer"
-	digsound = list('sound/weapons/drill.ogg')
 	toolspeed = 0.4 //available from roundstart, faster than a pickaxe.
 	hitsound = 'sound/weapons/drill.ogg'
 	usesound = 'sound/weapons/drill.ogg'
@@ -88,7 +84,12 @@
 /obj/item/pickaxe/drill/cyborg
 	name = "cyborg mining drill"
 	desc = "An integrated electric mining drill."
-	flags = NODROP
+
+
+/obj/item/pickaxe/drill/cyborg/Initialize(mapload)
+	. = ..()
+	ADD_TRAIT(src, TRAIT_NODROP, CYBORG_ITEM_TRAIT)
+
 
 /obj/item/pickaxe/drill/diamonddrill
 	name = "diamond-tipped mining drill"
@@ -98,7 +99,7 @@
 	toolspeed = 0.1
 
 /obj/item/pickaxe/drill/cyborg/diamond //This is the BORG version!
-	name = "diamond-tipped cyborg mining drill" //To inherit the NODROP flag, and easier to change borg specific drill mechanics.
+	name = "diamond-tipped cyborg mining drill" //To inherit the NODROP trait, and easier to change borg specific drill mechanics.
 	icon_state = "diamonddrill"
 	toolspeed = 0.1
 
@@ -107,7 +108,6 @@
 	icon_state = "jackhammer"
 	item_state = "jackhammer"
 	origin_tech = "materials=6;powerstorage=4;engineering=5;magnets=4"
-	digsound = list('sound/weapons/sonic_jackhammer.ogg')
 	hitsound = 'sound/weapons/sonic_jackhammer.ogg'
 	usesound = 'sound/weapons/sonic_jackhammer.ogg'
 	desc = "Cracks rocks with sonic blasts, and doubles as a demolition power tool for smashing walls."
@@ -120,7 +120,7 @@
 	icon = 'icons/obj/items.dmi'
 	icon_state = "shovel"
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	force = 8
 	throwforce = 4
 	item_state = "shovel"
@@ -128,6 +128,7 @@
 	materials = list(MAT_METAL=50)
 	origin_tech = "materials=2;engineering=2"
 	attack_verb = list("bashed", "bludgeoned", "thrashed", "whacked")
+	hitsound = 'sound/effects/Shovel_hitting_sound.ogg'
 	usesound = 'sound/effects/shovel_dig.ogg'
 	toolspeed = 0.8
 

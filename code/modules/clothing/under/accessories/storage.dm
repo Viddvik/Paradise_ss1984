@@ -2,7 +2,6 @@
 	name = "load bearing equipment"
 	desc = "Used to hold things when you don't have enough hands."
 	icon_state = "webbing"
-	item_color = "webbing"
 	slot = ACCESSORY_SLOT_UTILITY
 	pickup_sound = 'sound/items/handling/backpack_pickup.ogg'
 	equip_sound = 'sound/items/handling/backpack_equip.ogg'
@@ -12,8 +11,8 @@
 	actions_types = list(/datum/action/item_action/accessory/storage)
 	w_class = WEIGHT_CLASS_NORMAL // so it doesn't fit in pockets
 
-/obj/item/clothing/accessory/storage/New()
-	..()
+/obj/item/clothing/accessory/storage/Initialize(mapload)
+	. = ..()
 	hold = new/obj/item/storage/internal(src)
 	hold.storage_slots = slots
 
@@ -21,23 +20,30 @@
 	QDEL_NULL(hold)
 	return ..()
 
-/obj/item/clothing/accessory/storage/attack_hand(mob/user as mob)
+
+/obj/item/clothing/accessory/storage/attack_hand(mob/user)
 	if(has_suit)	//if we are part of a suit
-		hold.open(user)
+		hold?.open(user)
 		return
 
-	if(hold.handle_attack_hand(user))	//otherwise interact as a regular storage item
-		..(user)
+	if(!hold || !hold.handle_attack_hand(user))	//otherwise interact as a regular storage item
+		return ..()
 
-/obj/item/clothing/accessory/storage/MouseDrop(obj/over_object as obj)
+
+/obj/item/clothing/accessory/storage/MouseDrop(atom/over_object, src_location, over_location, src_control, over_control, params)
 	if(has_suit)
-		return
+		return has_suit.MouseDrop(over_object, src_location, over_location, src_control, over_control, params)
 
-	if(hold.handle_mousedrop(usr, over_object))
-		..(over_object)
+	if(!hold || !hold.handle_mousedrop(usr, over_object))
+		return ..()
 
-/obj/item/clothing/accessory/storage/attackby(obj/item/W as obj, mob/user as mob, params)
-	return hold.attackby(W, user, params)
+
+/obj/item/clothing/accessory/storage/attackby(obj/item/I, mob/user, params)
+	. = ..()
+	if(ATTACK_CHAIN_CANCEL_CHECK(.) || !hold)
+		return .
+	return hold.attackby(I, user, params)
+
 
 /obj/item/clothing/accessory/storage/emp_act(severity)
 	..()
@@ -47,7 +53,7 @@
 	hold.hear_talk(M, message_pieces, verb)
 	..()
 
-/obj/item/clothing/accessory/storage/hear_message(mob/M, var/msg, verb, datum/language/speaking)
+/obj/item/clothing/accessory/storage/hear_message(mob/M, msg, verb, datum/language/speaking)
 	hold.hear_message(M, msg)
 	..()
 
@@ -61,11 +67,11 @@
 		L += S.return_inv()
 	for(var/obj/item/gift/G in src)
 		L += G.gift
-		if(istype(G.gift, /obj/item/storage))
+		if(isstorage(G.gift))
 			L += G.gift:return_inv()
 	return L
 
-/obj/item/clothing/accessory/storage/attack_self(mob/user as mob)
+/obj/item/clothing/accessory/storage/attack_self(mob/user)
 	if(has_suit)	//if we are part of a suit
 		hold.open(user)
 	else
@@ -80,40 +86,36 @@
 	name = "webbing"
 	desc = "Sturdy mess of synthcotton belts and buckles, ready to share your burden."
 	icon_state = "webbing"
-	item_color = "webbing"
 
 	sprite_sheets = list(
-		"Vox" = 'icons/mob/clothing/species/vox/suit.dmi',
-		"Monkey" = 'icons/mob/clothing/species/monkey/suit.dmi',
-		"Farwa" = 'icons/mob/clothing/species/monkey/suit.dmi',
-		"Wolpin" = 'icons/mob/clothing/species/monkey/suit.dmi',
-		"Neara" = 'icons/mob/clothing/species/monkey/suit.dmi',
-		"Stok" = 'icons/mob/clothing/species/monkey/suit.dmi'
+		SPECIES_VOX = 'icons/mob/clothing/species/vox/suit.dmi',
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/suit.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/suit.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/suit.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/suit.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/suit.dmi'
 		)
 
 /obj/item/clothing/accessory/storage/black_vest
 	name = "black webbing vest"
 	desc = "Robust black synthcotton vest with lots of pockets to hold whatever you need, but cannot hold in hands."
 	icon_state = "vest_black"
-	item_color = "vest_black"
 	slots = 5
 
 /obj/item/clothing/accessory/storage/brown_vest
 	name = "brown webbing vest"
 	desc = "Worn brownish synthcotton vest with lots of pockets to unload your hands."
 	icon_state = "vest_brown"
-	item_color = "vest_brown"
 	slots = 5
 
 /obj/item/clothing/accessory/storage/knifeharness
 	name = "decorated harness"
 	desc = "A heavily decorated harness of sinew and leather with two knife-loops."
 	icon_state = "unathiharness2"
-	item_color = "unathiharness2"
 	slots = 2
 
-/obj/item/clothing/accessory/storage/knifeharness/New()
-	..()
+/obj/item/clothing/accessory/storage/knifeharness/Initialize(mapload)
+	. = ..()
 	hold.max_combined_w_class = 4
 	hold.can_hold = list(/obj/item/hatchet/unathiknife, /obj/item/kitchen/knife)
 

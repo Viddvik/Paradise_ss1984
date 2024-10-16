@@ -33,11 +33,12 @@
 	butcher_results = list(/obj/item/organ/internal/regenerative_core = 1)
 	var/brood_type = /mob/living/simple_animal/hostile/asteroid/hivelordbrood
 
+
 /mob/living/simple_animal/hostile/asteroid/hivelord/OpenFire(the_target)
 	if(world.time >= ranged_cooldown)
 		var/mob/living/simple_animal/hostile/asteroid/hivelordbrood/A = new brood_type(loc)
-
-		A.admin_spawned = admin_spawned
+		if(flags & ADMIN_SPAWNED)
+			A.flags |= ADMIN_SPAWNED
 		A.GiveTarget(target)
 		A.friends = friends
 		A.faction = faction.Copy()
@@ -74,7 +75,6 @@
 	speed = 3
 	maxHealth = 1
 	health = 1
-	flying = TRUE
 	harm_intent_damage = 5
 	melee_damage_lower = 2
 	melee_damage_upper = 2
@@ -88,11 +88,14 @@
 	pass_flags = PASSTABLE | PASSMOB
 	density = FALSE
 	del_on_death = 1
+	var/life_time = 10 SECONDS
+
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/Initialize(mapload)
 	. = ..()
-	addtimer(CALLBACK(src, PROC_REF(death)), 100)
+	addtimer(CALLBACK(src, PROC_REF(death)), life_time)
 	AddComponent(/datum/component/swarming)
+	AddElement(/datum/element/simple_flying)
 
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood
@@ -104,7 +107,7 @@
 	attacktext = "пронзает"
 	color = "#C80000"
 
-/mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/death()
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/blood/death(gibbed)
 	if(can_die() && loc)
 		// Splash the turf we are on with blood
 		reagents.reaction(get_turf(src))
@@ -206,8 +209,8 @@
 /mob/living/simple_animal/hostile/asteroid/hivelord/legion/death(gibbed)
 	visible_message("<span class='warning'>The skulls on [src] wail in anger as they flee from their dying host!</span>")
 	var/turf/T = get_turf(src)
-	for(var/i in 1 to 3)
-		new brood_type(T)
+	for(var/i in 1 to 2)
+		new /mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/weaken(T)
 	if(T)
 		if(stored_mob)
 			stored_mob.forceMove(get_turf(src))
@@ -246,10 +249,11 @@
 	del_on_death = TRUE
 	stat_attack = UNCONSCIOUS
 	robust_searching = 1
+	var/can_infest = TRUE
 	var/can_infest_dead = FALSE
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/Life(seconds, times_fired)
-	if(isturf(loc))
+	if(isturf(loc) && can_infest)
 		for(var/mob/living/carbon/human/H in view(src,1)) //Only for corpse right next to/on same tile
 			if(H.stat == UNCONSCIOUS || (can_infest_dead && H.stat == DEAD))
 				infest(H)
@@ -259,14 +263,14 @@
 	. = ..()
 	if(!isobj(target))
 		var/mob/living/carbon/human/victim = target
-		if(victim.can_inject(null, FALSE, "chest", FALSE, TRUE) && !victim.get_int_organ(/obj/item/organ/internal/legion_tumour) && prob(1))
+		if(victim.can_inject(null, FALSE, BODY_ZONE_CHEST, FALSE, TRUE) && !victim.get_int_organ(/obj/item/organ/internal/legion_tumour) && prob(1))
 			new /obj/item/organ/internal/legion_tumour(victim)
 			visible_message(span_userdanger("[src] вгрызается в шею [target], впрыскивая странную черную жидкость!</span>")) //made it on russian to attract more attention from attacklogs
 
 /mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/proc/infest(mob/living/carbon/human/H)
 	visible_message("<span class='warning'>[name] burrows into the flesh of [H]!</span>")
 	var/mob/living/simple_animal/hostile/asteroid/hivelord/legion/L
-	if((DWARF in H.mutations)) //dwarf legions aren't just fluff!
+	if(HAS_TRAIT(H, TRAIT_DWARF)) //dwarf legions aren't just fluff!
 		L = new /mob/living/simple_animal/hostile/asteroid/hivelord/legion/dwarf(H.loc)
 	else
 		L = new(H.loc)
@@ -299,6 +303,14 @@
 	stat_attack = DEAD
 	can_infest_dead = TRUE
 
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/weaken
+	melee_damage_lower = 6
+	melee_damage_upper = 6
+	can_infest = FALSE
+
+/mob/living/simple_animal/hostile/asteroid/hivelordbrood/legion/magic
+	life_time = 30 SECONDS
+
 //Legion that spawns Legions
 /mob/living/simple_animal/hostile/big_legion
 	name = "legion"
@@ -315,7 +327,6 @@
 	AIStatus = AI_ON
 	stop_automated_movement = FALSE
 	wander = TRUE
-	maxbodytemp = INFINITY
 	layer = MOB_LAYER
 	del_on_death = TRUE
 	sentience_type = SENTIENCE_BOSS
@@ -326,13 +337,18 @@
 	aggro_vision_range = 9
 	speed = 3
 	faction = list("mining")
-	weather_immunities = list("lava","ash")
+	weather_immunities = list(TRAIT_LAVA_IMMUNE, TRAIT_ASHSTORM_IMMUNE)
 	obj_damage = 30
 	environment_smash = ENVIRONMENT_SMASH_STRUCTURES
-	see_in_dark = 8
+	nightvision = 8
 	lighting_alpha = LIGHTING_PLANE_ALPHA_MOSTLY_INVISIBLE
 	tts_seed = "Mannoroth"
 
+/mob/living/simple_animal/hostile/big_legion/ComponentInitialize()
+	AddComponent( \
+		/datum/component/animal_temperature, \
+		maxbodytemp = INFINITY, \
+	)
 
 /mob/living/simple_animal/hostile/big_legion/Initialize(mapload)
 	.=..()
@@ -352,10 +368,8 @@
 
 /obj/effect/mob_spawn/human/corpse/damaged/legioninfested/dwarf/equip(mob/living/carbon/human/H, use_prefs = FALSE, _mob_name = FALSE, _mob_gender = FALSE, _mob_species = FALSE)
 	. = ..()
-	H.dna.SetSEState(GLOB.smallsizeblock, 1, 1)
-	H.mutations.Add(DWARF)
-	genemutcheck(H, GLOB.smallsizeblock, null, MUTCHK_FORCED)
-	H.update_mutations()
+	H.force_gene_block(GLOB.smallsizeblock, TRUE)
+
 
 /obj/effect/mob_spawn/human/corpse/damaged/legioninfested/Initialize(mapload)
 	var/type = pickweight(list("Miner" = 66, "Ashwalker" = 10, "Golem" = 10,"Clown" = 10, pick(list("Shadow", "YeOlde","Operative", "Cultist")) = 4))
@@ -378,7 +392,7 @@
 			if(prob(30))
 				r_pocket = pickweight(list(/obj/item/stack/marker_beacon = 20, /obj/item/stack/spacecash/c1000 = 7, /obj/item/reagent_containers/hypospray/autoinjector/survival = 2, /obj/item/borg/upgrade/modkit/damage = 1 ))
 			if(prob(10))
-				l_pocket = pickweight(list(/obj/item/stack/spacecash/c1000 = 7, /obj/item/reagent_containers/hypospray/autoinjector/survival = 2, /obj/item/borg/upgrade/modkit/cooldown = 1 ))
+				l_pocket = pickweight(list(/obj/item/stack/spacecash/c1000 = 7, /obj/item/reagent_containers/hypospray/autoinjector/survival = 2, /obj/item/borg/upgrade/modkit/cooldown/haste = 1 ))
 		if("Ashwalker")
 			mob_species = /datum/species/unathi/ashwalker
 			uniform = /obj/item/clothing/under/ash_walker
@@ -438,7 +452,7 @@
 			uniform = /obj/item/clothing/under/color/black
 			shoes = /obj/item/clothing/shoes/black
 			suit = /obj/item/clothing/suit/storage/labcoat
-			glasses = /obj/item/clothing/glasses/sunglasses/blindfold
+			glasses = /obj/item/clothing/glasses/sunglasses/blindfold/black
 			back = /obj/item/tank/internals/oxygen
 			mask = /obj/item/clothing/mask/breath
 		if("Cultist")

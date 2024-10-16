@@ -164,9 +164,8 @@
 /datum/reagent/iron/on_mob_life(mob/living/M)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		if(!(NO_BLOOD in H.dna.species.species_traits))
-			if(H.blood_volume < BLOOD_VOLUME_NORMAL)
-				H.blood_volume += 0.8
+		if(!HAS_TRAIT(H, TRAIT_NO_BLOOD) && !HAS_TRAIT(H, TRAIT_NO_BLOOD_RESTORE) && H.blood_volume < BLOOD_VOLUME_NORMAL)
+			H.blood_volume += 0.8
 	return ..()
 
 /datum/reagent/iron/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
@@ -308,8 +307,8 @@
 /datum/reagent/colorful_reagent/on_mob_life(mob/living/M)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		if(!(NO_BLOOD in H.dna.species.species_traits) && !H.dna.species.exotic_blood)
-			H.dna.species.blood_color = "#[num2hex(rand(0, 255))][num2hex(rand(0, 255))][num2hex(rand(0, 255))]"
+		if(!HAS_TRAIT(H, TRAIT_NO_BLOOD) && !HAS_TRAIT(H, TRAIT_EXOTIC_BLOOD))
+			H.dna.species.blood_color = "#[num2hex(rand(0, 255), 2)][num2hex(rand(0, 255), 2)][num2hex(rand(0, 255), 2)]"
 	return ..()
 
 /datum/reagent/colorful_reagent/reaction_mob(mob/living/simple_animal/M, method=REAGENT_TOUCH, volume)
@@ -334,7 +333,7 @@
 /datum/reagent/hair_dye/reaction_mob(mob/living/M, volume)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/head/head_organ = H.get_organ("head")
+		var/obj/item/organ/external/head/head_organ = H.get_organ(BODY_ZONE_HEAD)
 		head_organ.facial_colour = rand_hex_color()
 		head_organ.sec_facial_colour = rand_hex_color()
 		head_organ.hair_colour = rand_hex_color()
@@ -355,8 +354,8 @@
 /datum/reagent/hairgrownium/reaction_mob(mob/living/M, volume)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/head/head_organ = H.get_organ("head")
-		head_organ.h_style = random_hair_style(H.gender, head_organ.dna.species.name)
+		var/obj/item/organ/external/head/head_organ = H.get_organ(BODY_ZONE_HEAD)
+		head_organ.h_style = random_hair_style(H.gender, head_organ.dna.species.name, H = H)
 		head_organ.f_style = random_facial_hair_style(H.gender, head_organ.dna.species.name)
 		H.update_hair()
 		H.update_fhair()
@@ -374,14 +373,14 @@
 /datum/reagent/super_hairgrownium/reaction_mob(mob/living/M, volume)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/head/head_organ = H.get_organ("head")
+		var/obj/item/organ/external/head/head_organ = H.get_organ(BODY_ZONE_HEAD)
 		var/datum/sprite_accessory/tmp_hair_style = GLOB.hair_styles_full_list["Very Long Hair"]
 		var/datum/sprite_accessory/tmp_facial_hair_style = GLOB.facial_hair_styles_list["Very Long Beard"]
 
 		if(head_organ.dna.species.name in tmp_hair_style.species_allowed) //If 'Very Long Hair' is a style the person's species can have, give it to them.
 			head_organ.h_style = "Very Long Hair"
 		else //Otherwise, give them a random hair style.
-			head_organ.h_style = random_hair_style(H.gender, head_organ.dna.species.name)
+			head_organ.h_style = random_hair_style(H.gender, head_organ.dna.species.name, H = H)
 		if(head_organ.dna.species.name in tmp_facial_hair_style.species_allowed) //If 'Very Long Beard' is a style the person's species can have, give it to them.
 			head_organ.f_style = "Very Long Beard"
 		else //Otherwise, give them a random facial hair style.
@@ -392,7 +391,7 @@
 			if(H.wear_mask)
 				H.drop_item_ground(H.wear_mask, force = TRUE)
 			var/obj/item/clothing/mask/fakemoustache = new /obj/item/clothing/mask/fakemoustache
-			H.equip_to_slot(fakemoustache, slot_wear_mask)
+			H.equip_to_slot(fakemoustache, ITEM_SLOT_MASK)
 			to_chat(H, "<span class='notice'>Hair bursts forth from your every follicle!")
 	..()
 
@@ -424,7 +423,7 @@
 		var/lovely_phrase = pick("appreciated", "loved", "pretty good", "really nice", "pretty happy with yourself, even though things haven't always gone as well as they could")
 		to_chat(M, "<span class='notice'>You feel [lovely_phrase].</span>")
 
-	else if(!M.restrained())
+	else if(!M.incapacitated() && !HAS_TRAIT(M, TRAIT_HANDS_BLOCKED))
 		for(var/mob/living/carbon/C in orange(1, M))
 			if(C)
 				if(C == M)
@@ -447,6 +446,7 @@
 	description = "Jestosterone is an odd chemical compound that induces a variety of annoying side-effects in the average person. It also causes mild intoxication, and is toxic to mimes."
 	color = "#ff00ff" //Fuchsia, pity we can't do rainbow here
 	taste_description = "a funny flavour"
+	var/datum/component/squeak
 
 /datum/reagent/jestosterone/on_new()
 	..()
@@ -454,16 +454,16 @@
 	if(!istype(C))
 		return
 	if(C.mind)
-		if(C.mind.assigned_role == "Clown" || C.mind.assigned_role == SPECIAL_ROLE_HONKSQUAD)
+		if(C.mind.assigned_role == JOB_TITLE_CLOWN || C.mind.assigned_role == SPECIAL_ROLE_HONKSQUAD)
 			to_chat(C, "<span class='notice'>Whatever that was, it feels great!</span>")
-		else if(C.mind.assigned_role == "Mime")
+		else if(C.mind.assigned_role == JOB_TITLE_MIME)
 			to_chat(C, "<span class='warning'>You feel nauseous.</span>")
 			C.AdjustDizzy(volume STATUS_EFFECT_CONSTANT)
 		else
 			to_chat(C, "<span class='warning'>Something doesn't feel right...</span>")
 			C.AdjustDizzy(volume STATUS_EFFECT_CONSTANT)
 	ADD_TRAIT(C, TRAIT_JESTER, id)
-	C.AddComponent(/datum/component/squeak, null, null, null, null, null, TRUE, falloff_exponent = 20)
+	squeak = C.AddComponent(/datum/component/squeak, null, null, null, null, null, TRUE, falloff_exponent = 20)
 	C.AddElement(/datum/element/waddling)
 
 /datum/reagent/jestosterone/on_mob_life(mob/living/carbon/M)
@@ -472,7 +472,7 @@
 	var/update_flags = STATUS_UPDATE_NONE
 	if(prob(10))
 		M.emote("giggle")
-	if(M?.mind.assigned_role == "Clown" || M?.mind.assigned_role == SPECIAL_ROLE_HONKSQUAD)
+	if(M?.mind.assigned_role == JOB_TITLE_CLOWN || M?.mind.assigned_role == SPECIAL_ROLE_HONKSQUAD)
 		update_flags |= M.adjustBruteLoss(-0.75) //Screw those pesky clown beatings!
 	else
 		M.AdjustDizzy(20 SECONDS, 0, 1000 SECONDS)
@@ -492,15 +492,15 @@
 			"Your legs feel like jelly.",
 			"You feel like telling a pun.")
 			to_chat(M, "<span class='warning'>[pick(clown_message)]</span>")
-		if(M?.mind.assigned_role == "Mime")
+		if(M?.mind.assigned_role == JOB_TITLE_MIME)
 			update_flags |= M.adjustToxLoss(0.75)
 	return ..() | update_flags
 
 /datum/reagent/jestosterone/on_mob_delete(mob/living/M)
 	..()
 	REMOVE_TRAIT(M, TRAIT_JESTER, id)
-	qdel(M.GetComponent(/datum/component/squeak))
 	M.RemoveElement(/datum/element/waddling)
+	QDEL_NULL(squeak)
 
 /datum/reagent/royal_bee_jelly
 	name = "royal bee jelly"
@@ -519,31 +519,30 @@
 	id = "growthserum"
 	description = "A commercial chemical designed to help older men in the bedroom." //not really it just makes you a giant
 	color = "#ff0000"//strong red. rgb 255, 0, 0
-	var/current_size = 1
+	var/current_size = RESIZE_DEFAULT_SIZE
 	taste_description = "enhancement"
 
 /datum/reagent/growthserum/on_mob_life(mob/living/carbon/H)
 	var/newsize = current_size
 	switch(volume)
 		if(0 to 19)
-			newsize = 1.1
+			newsize = 1.1 * RESIZE_DEFAULT_SIZE
 		if(20 to 49)
-			newsize = 1.2
+			newsize = 1.2 * RESIZE_DEFAULT_SIZE
 		if(50 to 99)
-			newsize = 1.25
+			newsize = 1.25 * RESIZE_DEFAULT_SIZE
 		if(100 to 199)
-			newsize = 1.3
+			newsize = 1.3 * RESIZE_DEFAULT_SIZE
 		if(200 to INFINITY)
-			newsize = 1.5
+			newsize = 1.5 * RESIZE_DEFAULT_SIZE
 
-	H.resize = newsize/current_size
+	H.update_transform(newsize/current_size)
 	current_size = newsize
-	H.update_transform()
 	return ..()
 
 /datum/reagent/growthserum/on_mob_delete(mob/living/M)
-	M.resize = 1/current_size
-	M.update_transform()
+	M.update_transform(RESIZE_DEFAULT_SIZE/current_size)
+	current_size = RESIZE_DEFAULT_SIZE
 	..()
 
 /datum/reagent/pax
@@ -716,5 +715,5 @@
 
 /datum/reagent/monkeylanguage/on_mob_life(mob/living/M)
 	if(volume > 4)
-		M.add_language("Chimpanzee")
+		M.add_language(LANGUAGE_MONKEY_HUMAN)
 	return ..()

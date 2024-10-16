@@ -5,8 +5,9 @@ GLOBAL_LIST_EMPTY(doppler_arrays)
 	desc = "A highly precise directional sensor array which measures the release of quants from decaying tachyons. The doppler shifting of the mirror-image formed by these quants can reveal the size, location and temporal affects of energetic disturbances within a large radius ahead of the array."
 	icon = 'icons/obj/machines/research.dmi'
 	icon_state = "tdoppler"
-	density = 1
-	anchored = 1
+	base_icon_state = "tdoppler"
+	density = TRUE
+	anchored = TRUE
 	atom_say_verb = "states coldly"
 	var/list/logged_explosions = list()
 	var/explosion_target
@@ -37,26 +38,27 @@ GLOBAL_LIST_EMPTY(doppler_arrays)
 	logged_explosions.Cut()
 	return ..()
 
+
 /obj/machinery/doppler_array/attackby(obj/item/I, mob/user, params)
+	if(user.a_intent == INTENT_HARM)
+		return ..()
+
 	if(istype(I, /obj/item/disk/tech_disk))
 		add_fingerprint(user)
 		var/obj/item/disk/tech_disk/disk = I
 		disk.load_tech(toxins_tech)
 		to_chat(user, span_notice("You swipe the disk into [src]."))
-		return
+		return ATTACK_CHAIN_PROCEED_SUCCESS
+
 	return ..()
+
 
 /obj/machinery/doppler_array/wrench_act(mob/user, obj/item/I)
 	. = TRUE
-	if(!I.use_tool(src, user, 0, volume = I.tool_volume))
+	if(!default_unfasten_wrench(user, I, 0))
 		return
-	if(!anchored && !isinspace())
-		anchored = TRUE
-		WRENCH_ANCHOR_MESSAGE
-	else if(anchored)
-		anchored = FALSE
-		WRENCH_UNANCHOR_MESSAGE
-	power_change()
+	update_icon(UPDATE_ICON_STATE)
+
 
 /obj/machinery/doppler_array/attack_hand(mob/user)
 	if(..())
@@ -67,15 +69,20 @@ GLOBAL_LIST_EMPTY(doppler_arrays)
 /obj/machinery/doppler_array/attack_ghost(mob/user)
 	ui_interact(user)
 
+
 /obj/machinery/doppler_array/AltClick(mob/user)
 	rotate(user)
 
-/obj/machinery/doppler_array/verb/rotate(mob/user)
+
+/obj/machinery/doppler_array/verb/rotate_verb()
 	set name = "Rotate Tachyon-doppler Dish"
 	set category = "Object"
 	set src in oview(1)
+	rotate(usr)
 
-	if(user.incapacitated())
+
+/obj/machinery/doppler_array/proc/rotate(mob/user)
+	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED))
 		return
 	if(!Adjacent(user))
 		return
@@ -164,21 +171,26 @@ GLOBAL_LIST_EMPTY(doppler_arrays)
 	for(var/message in messages)
 		atom_say(message)
 
-/obj/machinery/doppler_array/power_change()
-	if(stat & BROKEN)
-		icon_state = "[initial(icon_state)]-broken"
-	else
-		if(powered() && anchored)
-			icon_state = initial(icon_state)
-			stat &= ~NOPOWER
-		else
-			icon_state = "[initial(icon_state)]-off"
-			stat |= NOPOWER
 
-/obj/machinery/doppler_array/ui_interact(mob/user, ui_key = "main", datum/tgui/ui = null, force_open = FALSE, datum/tgui/master_ui = null, datum/ui_state/state = GLOB.default_state)
-	ui = SStgui.try_update_ui(user, src, ui_key, ui, force_open)
+/obj/machinery/doppler_array/update_icon_state()
+	if(stat & BROKEN)
+		icon_state = "[base_icon_state]-broken"
+	else
+		icon_state = (!(stat & NOPOWER) && anchored) ? base_icon_state : "[base_icon_state]-off"
+
+
+/obj/machinery/doppler_array/power_change(forced = FALSE)	// overrides base power_change to check to make sure machine is anchored
+	if(powered(power_channel) && anchored)
+		stat &= ~NOPOWER
+	else
+		stat |= NOPOWER
+	update_icon(UPDATE_ICON_STATE)
+
+
+/obj/machinery/doppler_array/ui_interact(mob/user, datum/tgui/ui = null)
+	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, ui_key, "TachyonArray", name, 500, 600, master_ui, state)
+		ui = new(user, src, "TachyonArray", name)
 		ui.open()
 
 /obj/machinery/doppler_array/ui_data(mob/user)

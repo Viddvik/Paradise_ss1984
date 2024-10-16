@@ -19,19 +19,32 @@
 	name = "E.X.P.E.R.I-MENTOR"
 	icon = 'icons/obj/machines/heavy_lathe.dmi'
 	icon_state = "h_lathe"
-	density = 1
-	anchored = 1
+	density = TRUE
+	anchored = TRUE
 	use_power = IDLE_POWER_USE
-	var/recentlyExperimented = 0
+	var/recentlyExperimented = FALSE
 	var/mob/trackedIan
 	var/mob/trackedRuntime
 	var/badThingCoeff = 0
 	var/resetTime = 15
 	var/cloneMode = FALSE
 	var/cloneCount = 0
+	/// The distance to your rnd console. Useful for creative mapping.
+	var/console_dist = 3
 	var/list/item_reactions = list()
 	var/list/valid_items = list() //valid items for special reactions like transforming
 	var/list/critical_items = list() //items that can cause critical reactions
+
+
+/obj/machinery/r_n_d/experimentor/Initialize(mapload)
+	. = ..()
+	return INITIALIZE_HINT_LATELOAD
+
+
+/obj/machinery/r_n_d/experimentor/LateInitialize()
+	. = ..()
+	console_connect()
+
 
 /obj/machinery/r_n_d/experimentor/proc/ConvertReqString2List(list/source_list)
 	var/list/temp_list = params2list(source_list)
@@ -95,9 +108,10 @@
 	RefreshParts()
 
 /obj/machinery/r_n_d/experimentor/RefreshParts()
+	badThingCoeff = initial(badThingCoeff)
+	resetTime = initial(resetTime)
 	for(var/obj/item/stock_parts/manipulator/M in component_parts)
-		if(resetTime > 0 && (resetTime - M.rating) >= 1)
-			resetTime -= M.rating
+		resetTime -= M.rating
 	for(var/obj/item/stock_parts/scanning_module/M in component_parts)
 		badThingCoeff += M.rating*2
 	for(var/obj/item/stock_parts/micro_laser/M in component_parts)
@@ -111,57 +125,72 @@
 			return FALSE
 	return TRUE
 
-/obj/machinery/r_n_d/experimentor/attackby(obj/item/O, mob/user, params)
-	if(shocked)
+
+/obj/machinery/r_n_d/experimentor/update_icon_state()
+	icon_state = "h_lathe[recentlyExperimented ? "_wloop" : ""]"
+
+
+/obj/machinery/r_n_d/experimentor/attackby(obj/item/I, mob/user, params)
+	if(shocked && shock(user, 50))
 		add_fingerprint(user)
-		shock(user,50)
+		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(default_deconstruction_screwdriver(user, "h_lathe_maint", "h_lathe", O))
-		add_fingerprint(user)
-		if(linked_console)
-			linked_console.linked_destroy = null
-			linked_console = null
-		return
+	if(user.a_intent == INTENT_HARM)
+		return ..()
 
-	if(exchange_parts(user, O))
-		return
-
-	if(panel_open && istype(O, /obj/item/crowbar))
-		default_deconstruction_crowbar(user, O)
-		return
-
-	if(!checkCircumstances(O))
-		to_chat(user, "<span class='warning'>The [O] is not yet valid for the [src] and must be completed!</span>")
-		return
-
-	if(disabled)
-		return
-	if(!linked_console)
-		to_chat(user, "<span class='warning'>The [src] must be linked to an R&D console first!</span>")
-		return
-	if(loaded_item)
-		to_chat(user, "<span class='warning'>The [src] is already loaded.</span>")
-		return
-	if(istype(O, /obj/item))
-		if(!O.origin_tech)
-			to_chat(user, "<span class='warning'>This doesn't seem to have a tech origin!</span>")
-			return
-		var/list/temp_tech = ConvertReqString2List(O.origin_tech)
-		if(temp_tech.len == 0)
-			to_chat(user, "<span class='warning'>You cannot experiment on this item!</span>")
-			return
-		if(!user.drop_transfer_item_to_loc(O, src))
-			return
-		loaded_item = O
-		to_chat(user, "<span class='notice'>You add the [O.name] to the machine.</span>")
-		flick("h_lathe_load", src)
+	if(exchange_parts(user, I))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 
 	add_fingerprint(user)
-	return
+	if(disabled)
+		to_chat(user, span_warning("The [name] is offline."))
+		return ATTACK_CHAIN_PROCEED
+	if(!linked_console)
+		to_chat(user, span_warning("The [name] should be linked to an R&D console first."))
+		return ATTACK_CHAIN_PROCEED
+	if(loaded_item)
+		to_chat(user, span_warning("The [name] is already loaded."))
+		return ATTACK_CHAIN_PROCEED
+	if(!checkCircumstances(I))
+		to_chat(user, span_warning("The [I.name] is not yet valid for [src] and must be completed."))
+		return ATTACK_CHAIN_PROCEED
+	if(!I.origin_tech)
+		to_chat(user, span_warning("The [I.name] has no technological origin."))
+		return ATTACK_CHAIN_PROCEED
+	var/list/temp_tech = ConvertReqString2List(I.origin_tech)
+	if(!length(temp_tech))
+		to_chat(user, span_warning("The [I.name] has no technological origin."))
+		return ATTACK_CHAIN_PROCEED
+	if(!user.drop_transfer_item_to_loc(I, src))
+		return ..()
+	loaded_item = I
+	to_chat(user, span_notice("You have added [I] to [src]."))
+	flick("h_lathe_load", src)
+	return ATTACK_CHAIN_BLOCKED_ALL
 
-/obj/machinery/r_n_d/experimentor/default_deconstruction_crowbar(user, obj/item/O)
+
+/obj/machinery/r_n_d/experimentor/screwdriver_act(mob/living/user, obj/item/I)
+	if(shocked && shock(user, 50))
+		add_fingerprint(user)
+		return TRUE
+	. = default_deconstruction_screwdriver(user, "h_lathe_maint", "h_lathe", I)
+	if(. && linked_console)
+		linked_console.linked_destroy = null
+		linked_console = null
+
+
+/obj/machinery/r_n_d/experimentor/crowbar_act(mob/living/user, obj/item/I)
+	. = TRUE
+	if(shocked && shock(user, 50))
+		add_fingerprint(user)
+		return .
+	if(!panel_open)
+		add_fingerprint(user)
+		to_chat(user, span_warning("Open the maintenance panel first."))
+		return .
 	ejectItem()
-	..(O)
+	default_deconstruction_crowbar(user, I)
+
 
 /obj/machinery/r_n_d/experimentor/attack_hand(mob/user)
 	if(..())
@@ -248,8 +277,8 @@
 			counter = 1
 
 /obj/machinery/r_n_d/experimentor/proc/experiment(exp,obj/item/exp_on)
-	recentlyExperimented = 1
-	icon_state = "h_lathe_wloop"
+	recentlyExperimented = TRUE
+	update_icon(UPDATE_ICON_STATE)
 	var/chosenchem
 	var/criticalReaction = (exp_on.type in critical_items) ? TRUE : FALSE
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +290,7 @@
 		if(prob(EFFECT_PROB_VERYLOW-badThingCoeff))
 			visible_message("<span class='danger'>[src] malfunctions and destroys [exp_on], lashing its arms out at nearby people!</span>")
 			for(var/mob/living/m in oview(1, src))
-				m.apply_damage(15,BRUTE,pick("head","chest","groin"))
+				m.apply_damage(15,BRUTE,pick(BODY_ZONE_HEAD, BODY_ZONE_CHEST, BODY_ZONE_PRECISE_GROIN))
 				investigate_log("Experimentor dealt minor brute to [key_name_log(m)].", INVESTIGATE_EXPERIMENTOR)
 			ejectItem(TRUE)
 		if(prob(EFFECT_PROB_LOW-badThingCoeff))
@@ -398,7 +427,7 @@
 			visible_message("<span class='warning'>[src] malfunctions, activating its emergency coolant systems!</span>")
 			throwSmoke(src.loc)
 			for(var/mob/living/m in oview(1, src))
-				m.apply_damage(5,BURN,pick("head","chest","groin"))
+				m.apply_damage(5,BURN,pick(BODY_ZONE_HEAD, BODY_ZONE_CHEST, BODY_ZONE_PRECISE_GROIN))
 				investigate_log("Experimentor has dealt minor burn damage to [key_name_log(m)]", INVESTIGATE_EXPERIMENTOR)
 			ejectItem()
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -512,7 +541,7 @@
 			throwSmoke(src.loc)
 			if(trackedIan)
 				throwSmoke(trackedIan.loc)
-				trackedIan.loc = src.loc
+				trackedIan.forceMove(loc)
 				investigate_log("Experimentor has stolen Ian!", INVESTIGATE_EXPERIMENTOR) //...if anyone ever fixes it...
 			else
 				new /mob/living/simple_animal/pet/dog/corgi(src.loc)
@@ -534,9 +563,19 @@
 			use_power(500000)
 			investigate_log("Experimentor has drained power from its APC", INVESTIGATE_EXPERIMENTOR)
 
-	spawn(resetTime)
-		icon_state = "h_lathe"
-		recentlyExperimented = 0
+	addtimer(CALLBACK(src, PROC_REF(reset_machine)), resetTime)
+
+
+/obj/machinery/r_n_d/experimentor/proc/reset_machine()
+	recentlyExperimented = FALSE
+	update_icon(UPDATE_ICON_STATE)
+
+
+/obj/machinery/r_n_d/experimentor/proc/console_connect()
+	var/obj/machinery/computer/rdconsole/D = locate(/obj/machinery/computer/rdconsole) in oview(console_dist, src)
+	if(D)
+		linked_console = D
+
 
 /obj/machinery/r_n_d/experimentor/Topic(href, href_list)
 	if(..())
@@ -550,9 +589,7 @@
 		usr << browse(null, "window=experimentor")
 		return
 	else if(scantype == "search")
-		var/obj/machinery/computer/rdconsole/D = locate(/obj/machinery/computer/rdconsole) in oview(3,src)
-		if(D)
-			linked_console = D
+		console_connect()
 	else if(scantype == "eject")
 		ejectItem()
 	else if(scantype == "refresh")
@@ -616,6 +653,7 @@
 /obj/item/relic
 	name = "strange object"
 	desc = "What mysteries could this hold?"
+	icon_state = "shock_kit"
 	icon = 'icons/obj/assemblies.dmi'
 	origin_tech = "combat=1;plasmatech=1;powerstorage=1;materials=1"
 	var/realName = "defined object"

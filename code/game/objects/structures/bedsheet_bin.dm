@@ -10,7 +10,7 @@ LINEN BINS
 	icon = 'icons/obj/items.dmi'
 	icon_state = "sheet"
 	item_state = "sheet"
-	flags = NO_PIXEL_RANDOM_DROP
+	item_flags = NO_PIXEL_RANDOM_DROP
 	layer = 4.0
 	throwforce = 1
 	throw_speed = 1
@@ -18,26 +18,26 @@ LINEN BINS
 	w_class = WEIGHT_CLASS_TINY
 	item_color = "white"
 	resistance_flags = FLAMMABLE
-	slot_flags = SLOT_NECK
+	slot_flags = ITEM_SLOT_NECK
 	drop_sound = 'sound/items/handling/cloth_drop.ogg'
 	pickup_sound =  'sound/items/handling/cloth_pickup.ogg'
-
+	dying_key = DYE_REGISTRY_BEDSHEET
 	dog_fashion = /datum/dog_fashion/head/ghost
 	var/list/dream_messages = list("white")
 	var/list/nightmare_messages = list("black")
 	var/comfort = 0.5
 
 	sprite_sheets = list(
-		"Monkey" = 'icons/mob/clothing/species/monkey/neck.dmi',
-		"Farwa" = 'icons/mob/clothing/species/monkey/neck.dmi',
-		"Wolpin" = 'icons/mob/clothing/species/monkey/neck.dmi',
-		"Neara" = 'icons/mob/clothing/species/monkey/neck.dmi',
-		"Stok" = 'icons/mob/clothing/species/monkey/neck.dmi'
+		SPECIES_MONKEY = 'icons/mob/clothing/species/monkey/neck.dmi',
+		SPECIES_FARWA = 'icons/mob/clothing/species/monkey/neck.dmi',
+		SPECIES_WOLPIN = 'icons/mob/clothing/species/monkey/neck.dmi',
+		SPECIES_NEARA = 'icons/mob/clothing/species/monkey/neck.dmi',
+		SPECIES_STOK = 'icons/mob/clothing/species/monkey/neck.dmi'
 		)
 
 
 
-/obj/item/bedsheet/attack_self(mob/user as mob)
+/obj/item/bedsheet/attack_self(mob/user)
 	user.drop_from_active_hand()
 	if(layer == initial(layer))
 		layer = 5
@@ -46,15 +46,20 @@ LINEN BINS
 	add_fingerprint(user)
 	return
 
+
 /obj/item/bedsheet/attackby(obj/item/I, mob/user, params)
-	if(I.sharp)
-		var/obj/item/stack/sheet/cloth/C = new (get_turf(src), 3)
-		transfer_fingerprints_to(C)
-		C.add_fingerprint(user)
+	if(is_sharp(I))
+		if(loc == user && !user.can_unEquip(src))
+			add_fingerprint(user)
+			return ATTACK_CHAIN_PROCEED
+		var/obj/item/stack/sheet/cloth/cloth = new(drop_location(), 3)
+		transfer_fingerprints_to(cloth)
+		cloth.add_fingerprint(user)
+		to_chat(user, span_notice("You tear [src] up."))
 		qdel(src)
-		to_chat(user, "<span class='notice'>You tear [src] up.</span>")
-	else
-		return ..()
+		return ATTACK_CHAIN_BLOCKED_ALL
+	return ..()
+
 
 /obj/item/bedsheet/blue
 	icon_state = "sheetblue"
@@ -246,7 +251,7 @@ LINEN BINS
 	desc = "A linen bin. It looks rather cosy."
 	icon = 'icons/obj/structures.dmi'
 	icon_state = "linenbin-full"
-	anchored = 1
+	anchored = TRUE
 	resistance_flags = FLAMMABLE
 	max_integrity = 70
 	var/amount = 20
@@ -263,7 +268,7 @@ LINEN BINS
 	else
 		. += "<span class='notice'>There are [amount] bed sheets in the bin.</span>"
 
-/obj/structure/bedsheetbin/update_icon()
+/obj/structure/bedsheetbin/update_icon_state()
 	switch(amount)
 		if(0)
 			icon_state = "linenbin-empty"
@@ -276,30 +281,38 @@ LINEN BINS
 /obj/structure/bedsheetbin/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
 	if(amount)
 		amount = 0
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 	..()
 
 /obj/structure/bedsheetbin/burn()
 	amount = 0
 	extinguish()
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
 
-/obj/structure/bedsheetbin/attackby(obj/item/I as obj, mob/user as mob, params)
+
+/obj/structure/bedsheetbin/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/bedsheet))
 		add_fingerprint(user)
-		user.drop_transfer_item_to_loc(I, src)
-		sheets.Add(I)
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		sheets += I
 		amount++
-		to_chat(user, "<span class='notice'>You put [I] in [src].</span>")
-	else if(amount && !hidden && I.w_class < WEIGHT_CLASS_BULKY)	//make sure there's sheets to hide it among, make sure nothing else is hidden in there.
+		to_chat(user, span_notice("You put [I] into [src]."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	//make sure there's sheets to hide it among, make sure nothing else is hidden in there.
+	if(user.a_intent != INTENT_HARM && amount && !hidden && I.w_class < WEIGHT_CLASS_BULKY)
 		add_fingerprint(user)
-		user.drop_transfer_item_to_loc(I, src)
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
 		hidden = I
-		to_chat(user, "<span class='notice'>You hide [I] among the sheets.</span>")
+		to_chat(user, span_notice("You hide [I] among the sheets."))
+		return ATTACK_CHAIN_BLOCKED_ALL
+
+	return ..()
 
 
-
-/obj/structure/bedsheetbin/attack_hand(mob/user as mob)
+/obj/structure/bedsheetbin/attack_hand(mob/user)
 	if(amount >= 1)
 		amount--
 
@@ -316,7 +329,7 @@ LINEN BINS
 		to_chat(user, "<span class='notice'>You take [B] out of [src].</span>")
 
 		if(hidden)
-			hidden.loc = user.loc
+			hidden.forceMove_turf()
 			to_chat(user, "<span class='notice'>[hidden] falls out of [B]!</span>")
 			hidden = null
 
@@ -338,7 +351,7 @@ LINEN BINS
 
 		B.loc = loc
 		to_chat(user, "<span class='notice'>You telekinetically remove [B] from [src].</span>")
-		update_icon()
+		update_icon(UPDATE_ICON_STATE)
 
 		if(hidden)
 			hidden.loc = loc

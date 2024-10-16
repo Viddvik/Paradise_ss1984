@@ -17,12 +17,15 @@
 	desc = "Looks like some kind of thick wax."
 	icon = 'icons/obj/smooth_structures/wryn/wall.dmi'
 	icon_state = "wall"
+	base_icon_state = "wall"
 	density = TRUE
 	opacity = TRUE
 	anchored = TRUE
-	canSmoothWith = list(/obj/structure/wryn/wax)
+	canSmoothWith = SMOOTH_GROUP_WRYN_WAX_WALL + SMOOTH_GROUP_WRYN_WAX_WINDOW
 	max_integrity = 30
-	smooth = SMOOTH_TRUE
+	smoothing_groups = SMOOTH_GROUP_WRYN_WAX
+	smooth = SMOOTH_BITMASK
+
 
 /obj/structure/wryn/wax/Initialize()
 	if(usr)
@@ -35,27 +38,29 @@
 	. = ..()
 	T.air_update_turf(TRUE)
 
-/obj/structure/wryn/wax/Move()
+/obj/structure/wryn/wax/Move(atom/newloc, direct = NONE, glide_size_override = 0, update_dir = TRUE)
 	var/turf/T = loc
 	. = ..()
 	move_update_air(T)
 
-/obj/structure/wryn/wax/CanAtmosPass()
+/obj/structure/wryn/wax/CanAtmosPass(turf/T, vertical)
 	return !density
 
 /obj/structure/wryn/wax/wall
 	name = "wax wall"
 	desc = "Thick wax solidified into a wall."
-	canSmoothWith = list(/obj/structure/wryn/wax/wall, /obj/structure/wryn/wax/window)
+	smoothing_groups = SMOOTH_GROUP_WRYN_WAX_WALL + SMOOTH_GROUP_WRYN_WAX_WINDOW
+	obj_flags = BLOCK_Z_IN_DOWN | BLOCK_Z_IN_UP
 
 /obj/structure/wryn/wax/window
 	name = "wax window"
 	desc = "Wax just thin enough to let light pass through."
 	icon = 'icons/obj/smooth_structures/wryn/window.dmi'
-	icon_state = "window"
-	opacity = 0
+	base_icon_state = "window"
+	icon_state = "window-0"
+	smoothing_groups = SMOOTH_GROUP_WRYN_WAX_WALL + SMOOTH_GROUP_WRYN_WAX_WINDOW
+	opacity = FALSE
 	max_integrity = 20
-	canSmoothWith = list(/obj/structure/wryn/wax/wall, /obj/structure/wryn/wax/window)
 
 /obj/structure/wryn/floor
 	icon = 'icons/obj/smooth_structures/wryn/floor.dmi'
@@ -68,41 +73,30 @@
 	plane = FLOOR_PLANE
 	icon_state = "wax_floor"
 	max_integrity = 10
+	var/current_dir
 	var/static/list/floorImageCache
+	obj_flags = BLOCK_Z_OUT_DOWN | BLOCK_Z_IN_UP
 
-/obj/structure/wryn/floor/proc/updateOverlays()
 
-	overlays.Cut()
-
-	if(!floorImageCache || !floorImageCache.len)
-		floorImageCache = list()
-		floorImageCache.len = 4
-		floorImageCache["north"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_n", layer=2.11, pixel_y = -32)
-		floorImageCache["south"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_s", layer=2.11, pixel_y = 32)
-		floorImageCache["east"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_e", layer=2.11, pixel_x = -32)
-		floorImageCache["west"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_w", layer=2.11, pixel_x = 32)
-
-	var/turf/N = get_step(src, NORTH)
-	var/turf/S = get_step(src, SOUTH)
-	var/turf/E = get_step(src, EAST)
-	var/turf/W = get_step(src, WEST)
-	if(!locate(/obj/structure/wryn) in N.contents)
-		if(istype(N, /turf/simulated/floor))
-			overlays += floorImageCache["south"]
-	if(!locate(/obj/structure/wryn) in S.contents)
-		if(istype(S, /turf/simulated/floor))
-			overlays += floorImageCache["north"]
-	if(!locate(/obj/structure/wryn) in E.contents)
-		if(istype(E, /turf/simulated/floor))
-			overlays += floorImageCache["west"]
-	if(!locate(/obj/structure/wryn) in W.contents)
-		if(istype(W, /turf/simulated/floor))
-			overlays += floorImageCache["east"]
+/obj/structure/wryn/floor/update_overlays()
+	. = ..()
+	for(var/check_dir in GLOB.cardinal)
+		var/turf/check = get_step(src, check_dir)
+		if(issimulatedturf(check) && !(locate(/obj/structure/wryn) in check))
+			. += floorImageCache["[GetOppositeDir(check_dir)]"]
 
 
 /obj/structure/wryn/floor/proc/fullUpdateWeedOverlays()
-	for(var/obj/structure/wryn/floor/W in range(1,src))
-		W.updateOverlays()
+	if(!length(floorImageCache))
+		floorImageCache = list(4)
+		floorImageCache["[NORTH]"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_n", layer=2.11, pixel_y = -32)
+		floorImageCache["[SOUTH]"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_s", layer=2.11, pixel_y = 32)
+		floorImageCache["[EAST]"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_e", layer=2.11, pixel_x = -32)
+		floorImageCache["[WEST]"] = image('icons/obj/smooth_structures/wryn/floor.dmi', "wax_floor_side_w", layer=2.11, pixel_x = 32)
+
+	for(var/obj/structure/wryn/floor/floor in range(1,src))
+		floor.update_icon(UPDATE_OVERLAYS)
+
 
 /obj/structure/wryn/floor/New(pos)
 	..()
@@ -112,10 +106,14 @@
 	fullUpdateWeedOverlays()
 	return ..()
 
-/obj/structure/wryn/wax/CanPass(atom/movable/mover, turf/target)
-	if(istype(mover) && mover.checkpass(PASSGLASS))
+
+/obj/structure/wryn/wax/CanAllowThrough(atom/movable/mover, border_dir)
+	. = ..()
+	if(checkpass(mover))
+		return TRUE
+	if(checkpass(mover, PASSGLASS))
 		return !opacity
-	return !density
+
 
 /obj/structure/wryn/floor/temperature_expose(datum/gas_mixture/air, exposed_temperature, exposed_volume)
 	..()

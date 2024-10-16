@@ -27,31 +27,38 @@
 /obj/item/reagent_containers/food/drinks/attack_self(mob/user)
 	return
 
-/obj/item/reagent_containers/food/drinks/attack(mob/M, mob/user, def_zone)
+
+/obj/item/reagent_containers/food/drinks/attack(mob/living/carbon/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(!iscarbon(target))
+		return ..()
+
+	. = ATTACK_CHAIN_PROCEED
+
 	if(!reagents || !reagents.total_volume)
-		to_chat(user, "<span class='warning'> None of [src] left, oh no!</span>")
-		return FALSE
+		to_chat(user, span_warning("None of [src] left, oh no!"))
+		return .
 
 	if(!is_drainable())
-		to_chat(user, "<span class='warning'> You need to open [src] first!</span>")
-		return FALSE
+		to_chat(user, span_warning("You need to open [src] first!"))
+		return .
 
-	if(istype(M, /mob/living/carbon))
-		var/mob/living/carbon/C = M
-		if(!get_location_accessible(C, "mouth"))
-			if(C == user)
-				to_chat(user, "<span class='warning'>Your face is obscured, so you cant eat.</span>")
-			else
-				to_chat(user, "<span class='warning'>[C]'s face is obscured, so[C.p_they()] cant eat.</span>")
-			return FALSE
+	if(!get_location_accessible(target, BODY_ZONE_PRECISE_MOUTH))
+		if(target == user)
+			to_chat(user, span_warning("Your face is obscured."))
+		else
+			to_chat(user, span_warning("[target]'s face is obscured."))
+		return .
 
-		var/list/transfer_data = reagents.get_transferred_reagents(C, amount_per_transfer_from_this)
-		if(C.eat(src, user))
-			if(isrobot(user)) //Cyborg modules that include drinks automatically refill themselves, but drain the borg's cell
-				if(length(transfer_data))
-					SynthesizeDrinkFromTransfer(user, transfer_data)
-			return TRUE
-	return FALSE
+	if(!target.eat(src, user))
+		return .
+
+	. |= ATTACK_CHAIN_SUCCESS
+
+	var/list/transfer_data = reagents.get_transferred_reagents(target, amount_per_transfer_from_this)
+	//Cyborg modules that include drinks automatically refill themselves, but drain the borg's cell
+	if(isrobot(user) && length(transfer_data))
+		SynthesizeDrinkFromTransfer(user, transfer_data)
+
 
 /obj/item/reagent_containers/food/drinks/proc/SynthesizeDrinkFromTransfer(mob/user, list/transfer_data)
 
@@ -78,14 +85,14 @@
 	else
 		return
 
-/obj/item/reagent_containers/food/drinks/MouseDrop(atom/over) //CHUG! CHUG! CHUG!
-	if(!iscarbon(over))
+/obj/item/reagent_containers/food/drinks/MouseDrop(atom/over_object, src_location, over_location, src_control, over_control, params) //CHUG! CHUG! CHUG!
+	if(!iscarbon(over_object) || usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
 		return ..()
-	var/mob/living/carbon/chugger = over
+	var/mob/living/carbon/chugger = over_object
 	if(!(container_type & DRAINABLE))
 		to_chat(chugger, "<span class='notice'>You need to open [src] first!</span>")
 		return
-	if(!get_location_accessible(chugger, "mouth"))
+	if(!get_location_accessible(chugger, BODY_ZONE_PRECISE_MOUTH))
 		to_chat(chugger, "<span class='notice'>Your face is obscured, so you cant [pick("chugging","gulping")].</span>")
 		return
 	if(reagents.total_volume && loc == chugger && src == chugger.get_active_hand())
@@ -93,7 +100,7 @@
 			"<span class='notice'>You start chugging [src].</span>",
 			"<span class='notice'>You hear what sounds like gulping.</span>")
 		chugging = TRUE
-		while(do_after_once(chugger, 4 SECONDS, TRUE, chugger, null, "You stop chugging [src]."))
+		while(do_after(chugger, 4 SECONDS, chugger, progress = FALSE, max_interact_count = 1, cancel_on_max = TRUE, cancel_message = span_warning("You stop chugging [src].")))
 			chugger.eat(src, chugger, 25) //Half of a glass, quarter of a bottle.
 			if(!reagents.total_volume) //Finish in style.
 				chugger.emote("gasp")
@@ -103,7 +110,7 @@
 				break
 		chugging = FALSE
 
-/obj/item/reagent_containers/food/drinks/afterattack(obj/target, mob/user, proximity)
+/obj/item/reagent_containers/food/drinks/afterattack(obj/target, mob/user, proximity, params)
 	if(!proximity)
 		return
 
@@ -301,11 +308,14 @@
 	possible_transfer_amounts = null
 	volume = 10
 
+
+/obj/item/reagent_containers/food/drinks/sillycup/update_icon_state()
+	icon_state = "water_cup[reagents.total_volume ? "" : "_e"]"
+
+
 /obj/item/reagent_containers/food/drinks/sillycup/on_reagent_change()
-	if(reagents.total_volume)
-		icon_state = "water_cup"
-	else
-		icon_state = "water_cup_e"
+	update_icon(UPDATE_ICON_STATE)
+
 
 //////////////////////////drinkingglass and shaker//
 //Note by Darem: This code handles the mixing of drinks. New drinks go in three places: In Chemistry-Reagents.dm (for the drink
@@ -316,6 +326,8 @@
 	name = "shaker"
 	desc = "A metal shaker to mix drinks in."
 	icon_state = "shaker"
+	lefthand_file = 'icons/mob/inhands/items_lefthand.dmi'
+	righthand_file = 'icons/mob/inhands/items_righthand.dmi'
 	amount_per_transfer_from_this = 10
 	materials = list(MAT_METAL=1500)
 	volume = 100
@@ -377,18 +389,6 @@
 	icon_state = "britcup"
 	volume = 30
 
-/obj/item/reagent_containers/food/drinks/bag
-	name = "drink bag"
-	desc = "Normally put in wine boxes, or down pants at stadium events."
-	icon_state = "goonbag"
-	volume = 70
-
-/obj/item/reagent_containers/food/drinks/bag/goonbag
-	name = "goon from a Blue Toolbox special edition"
-	desc = "Wine from the land down under, where the dingos roam and the roos do wander."
-	icon_state = "goonbag"
-	list_reagents = list("wine" = 70)
-
 /obj/item/reagent_containers/food/drinks/oilcan
 	name = "oil can"
 	desc = "Contains oil intended for use on cyborgs, robots, and other synthetics."
@@ -398,3 +398,54 @@
 
 /obj/item/reagent_containers/food/drinks/oilcan/full
 	list_reagents = list("oil" = 100)
+
+
+/obj/item/reagent_containers/food/drinks/zaza
+	name = "Cherry Zaza"
+	desc = "I possess Zaza!"
+	icon_state = "zaza_can"
+	item_state = "zaza_can"
+	volume = 80
+	foodtype = SUGAR
+	container_type = NONE
+	list_reagents = list("zaza" = 80)
+
+
+/obj/item/reagent_containers/food/drinks/zaza/on_reagent_change()
+	update_icon(UPDATE_OVERLAYS)
+
+
+/obj/item/reagent_containers/food/drinks/zaza/update_overlays()
+	. = ..()
+
+	if(reagents.total_volume)
+		var/image/filling = image('icons/obj/reagentfillings.dmi', "[icon_state]50")
+
+		switch(round(reagents.total_volume))
+			if(1 to 50)
+				filling.icon_state = "[icon_state]50"
+			if(51 to 60)
+				filling.icon_state = "[icon_state]60"
+			if(61 to 65)
+				filling.icon_state = "[icon_state]65"
+			if(66 to 70)
+				filling.icon_state = "[icon_state]70"
+			if(71 to 75)
+				filling.icon_state = "[icon_state]75"
+			if(76 to INFINITY)
+				filling.icon_state = "[icon_state]80"
+		filling.icon += mix_color_from_reagents(reagents.reagent_list)
+		. += filling
+
+	if(!is_open_container())
+		. += "zaza_lid"
+
+
+/obj/item/reagent_containers/food/drinks/zaza/attack_self(mob/user)
+	if(!is_open_container())
+		container_type |= OPENCONTAINER
+		to_chat(user, span_notice("You put the lid on [src]."))
+	else
+		to_chat(user, span_notice("You take the lid off [src]."))
+		container_type &= ~OPENCONTAINER
+	update_icon(UPDATE_OVERLAYS)

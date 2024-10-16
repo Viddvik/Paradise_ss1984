@@ -11,21 +11,22 @@ REAGENT SCANNER
 	desc = "A terahertz-ray emitter and scanner used to detect underfloor objects such as cables and pipes."
 	icon = 'icons/obj/device.dmi'
 	icon_state = "t-ray0"
-	var/on = 0
-	slot_flags = SLOT_BELT
-	w_class = 2
+	base_icon_state = "t-ray"
+	var/on = FALSE
+	slot_flags = ITEM_SLOT_BELT
 	w_class = WEIGHT_CLASS_SMALL
 	item_state = "electronic"
 	materials = list(MAT_METAL=150)
 	origin_tech = "magnets=1;engineering=1"
 	var/scan_range = 1
-	var/pulse_duration = 10
+	var/pulse_duration = 1 SECONDS
 
 /obj/item/t_scanner/extended_range
 	name = "T-ray сканер расширенной дальности"
 	desc = "Излучатель и сканер терагерцевого излучения, используемый для обнаружения скрытых объектов и объектов под полом, таких как кабели и трубы. \
 	\nДанная модель обладает расширенным радиусом действия."
 	icon_state = "t-ray-range0"
+	base_icon_state = "t-ray-range"
 	scan_range = 3
 	origin_tech = "magnets=3;engineering=3"
 	materials = list(MAT_METAL=300)
@@ -35,7 +36,8 @@ REAGENT SCANNER
 	desc = "Излучатель и сканер терагерцевого излучения, используемый для обнаружения скрытых объектов и объектов под полом, таких как кабели и трубы. \
 	\nДанная модель способна генерировать более продолжительные импульсы."
 	icon_state = "t-ray-pulse0"
-	pulse_duration = 50
+	base_icon_state = "t-ray-pulse"
+	pulse_duration = 5 SECONDS
 	origin_tech = "magnets=5;engineering=3"
 	materials = list(MAT_METAL=300)
 
@@ -44,8 +46,9 @@ REAGENT SCANNER
 	desc = "Излучатель и сканер терагерцевого излучения, используемый для обнаружения скрытых объектов и объектов под полом, таких как кабели и трубы. \
 	\nДанная модель способна генерировать более продолжительные импульсы и обладает расширенным радиусом действия."
 	icon_state = "t-ray-advanced0"
+	base_icon_state = "t-ray-advanced"
 	scan_range = 3
-	pulse_duration = 50
+	pulse_duration = 5 SECONDS
 	origin_tech = "magnets=7;engineering=3"
 	materials = list(MAT_METAL=300)
 
@@ -54,8 +57,9 @@ REAGENT SCANNER
 	desc = "Излучатель и сканер терагерцевого излучения, используемый для обнаружения скрытых объектов и объектов под полом, таких как кабели и трубы. \
 	\nВысокотехнологичная модель, способная генерировать очень продолжительные импульсы в пределах большого радиуса."
 	icon_state = "t-ray-science0"
+	base_icon_state = "t-ray-science"
 	scan_range = 5
-	pulse_duration = 100
+	pulse_duration = 10 SECONDS
 	origin_tech = "magnets=8;engineering=5"
 	materials = list(MAT_METAL=500)
 
@@ -65,8 +69,9 @@ REAGENT SCANNER
 	\nЭкспериментальный образец, обладающий расширенным радиусом действия и более продолжительным импульсом. \
 	\nСудя по его виду, эта вещь была собрана безумными учеными в ходе спонтанных экспериментов."
 	icon_state = "t-ray-experimental0"
+	base_icon_state = "t-ray-experimental"
 	scan_range = 3
-	pulse_duration = 80
+	pulse_duration = 8 SECONDS
 	origin_tech = null
 	materials = list()
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | ACID_PROOF
@@ -76,14 +81,19 @@ REAGENT SCANNER
 		STOP_PROCESSING(SSobj, src)
 	return ..()
 
-/obj/item/t_scanner/attack_self(mob/user)
+/obj/item/t_scanner/update_icon_state()
+	icon_state = "[base_icon_state][on]"
 
+/obj/item/t_scanner/proc/toggle_mode()
 	on = !on
-	icon_state = copytext(icon_state, 1, length(icon_state))+"[on]"
-
+	update_icon(UPDATE_ICON_STATE)
 	if(on)
 		START_PROCESSING(SSobj, src)
+	else
+		STOP_PROCESSING(SSobj, src)
 
+/obj/item/t_scanner/attack_self(mob/user)
+	toggle_mode()
 
 /obj/item/t_scanner/process()
 	if(!on)
@@ -92,48 +102,43 @@ REAGENT SCANNER
 	scan()
 
 /obj/item/t_scanner/proc/scan()
+	t_ray_scan(loc, pulse_duration, scan_range)
 
-	for(var/turf/scan_turf in range(scan_range, src.loc) )
-
-		if(!scan_turf.intact)
+/proc/t_ray_scan(mob/viewer, flick_time, distance)
+	if(!ismob(viewer) || !viewer.client)
+		return
+	var/list/t_ray_images = list()
+	for(var/atom/movable/in_turf_atom in orange(distance, viewer))
+		if(!isobj(in_turf_atom) && !isliving(in_turf_atom))
 			continue
 
-		for(var/obj/in_turf_object in scan_turf.contents)
-
+		if(isobj(in_turf_atom))
+			var/obj/in_turf_object = in_turf_atom
 			if(in_turf_object.level != 1)
 				continue
 
-			var/temp_invisibility = in_turf_object.invisibility
-			var/temp_alpha = in_turf_object.alpha
-			if(temp_invisibility == INVISIBILITY_ABSTRACT || temp_invisibility == INVISIBILITY_ANOMALY)
-				in_turf_object.invisibility = 0
-				in_turf_object.alpha = 128
-				in_turf_object.drain_act_protected = TRUE
-				if(in_turf_object.layer < TURF_LAYER)
-					in_turf_object.layer += TRAY_SCAN_LAYER_OFFSET
-				spawn(pulse_duration)
-					in_turf_object.plane = GAME_PLANE
-					if(in_turf_object)
-						var/turf/objects_turf = in_turf_object.loc
-						if(objects_turf && objects_turf.intact)
-							in_turf_object.invisibility = temp_invisibility
-						in_turf_object.alpha = temp_alpha
-						in_turf_object.drain_act_protected = FALSE
-		for(var/mob/living/in_turf_mob in scan_turf.contents)
-			var/oldalpha = in_turf_mob.alpha
-			if(in_turf_mob.alpha < 255 && istype(in_turf_mob))
-				in_turf_mob.alpha = 255
-				spawn(10)
-					if(in_turf_mob)
-						in_turf_mob.alpha = oldalpha
+			if(in_turf_object.invisibility != INVISIBILITY_MAXIMUM && in_turf_object.invisibility != INVISIBILITY_ANOMALY)
+				continue
 
-		var/mob/living/in_turf_mob = locate() in scan_turf
+		if(isliving(in_turf_atom))
+			var/mob/living/in_turf_living = in_turf_atom
+			if(!(in_turf_living.alpha < 255 || in_turf_living.invisibility == INVISIBILITY_LEVEL_TWO))
+				continue
 
-		if(in_turf_mob && in_turf_mob.invisibility == INVISIBILITY_LEVEL_TWO)
-			in_turf_mob.invisibility = 0
-			spawn(2)
-				if(in_turf_mob)
-					in_turf_mob.invisibility = INVISIBILITY_LEVEL_TWO
+		var/turf/T = get_turf(in_turf_atom)
+		var/image/I = new(loc = T)
+		var/mutable_appearance/MA = new(in_turf_atom)
+		MA.alpha = isliving(in_turf_atom) ? 255 : 128
+		MA.dir = in_turf_atom.dir
+		if(MA.layer < TURF_LAYER)
+			MA.layer += TRAY_SCAN_LAYER_OFFSET
+		MA.plane = GAME_PLANE
+		SET_PLANE_EXPLICIT(MA, GAME_PLANE, T)
+		I.appearance = MA
+		t_ray_images += I
+
+	if(length(t_ray_images))
+		flick_overlay(t_ray_images, list(viewer.client), flick_time)
 
 /obj/item/t_scanner/security
 	name = "Противо-маскировочное ТГц устройство"
@@ -143,12 +148,13 @@ REAGENT SCANNER
 	righthand_file = 'icons/mob/inhands/items_righthand.dmi'
 	item_state = "sb_t-ray"
 	icon_state = "sb_t-ray0"
+	base_icon_state = "sb_t-ray"
 	scan_range = 2
-	pulse_duration = 30
 	var/was_alerted = FALSE // Protection against spam alerts from this scanner
 	var/burnt = FALSE // Did emp break us?
 	var/datum/effect_system/spark_spread/spark_system	//The spark system, used for generating... sparks?
 	origin_tech = "combat=3;magnets=5;biotech=5"
+
 
 /obj/item/t_scanner/security/Initialize()
 	. = ..()
@@ -157,50 +163,75 @@ REAGENT SCANNER
 	spark_system.set_up(5, 0, src)
 	spark_system.attach(src)
 
+
+/obj/item/t_scanner/security/update_icon_state()
+	if(burnt)
+		icon_state = "[base_icon_state]_burnt"
+		return
+	icon_state = "[base_icon_state][on]"
+
+
+/obj/item/t_scanner/security/update_desc(updates = ALL)
+	. = ..()
+	if(!burnt)
+		desc = initial(desc)
+		return
+	desc = "Излучатель терагерцевого типа используемый для сканирования области на наличие замаскированных биоорганизмов. Устройство сгорело, теперь можно обнаружить разве что крошки от пончика оставшиеся на нём..."
+
+
 /obj/item/t_scanner/security/attack_self(mob/user)
 	if(!burnt)
 		on = !on
-		icon_state = copytext(icon_state, 1, length(icon_state))+"[on]"
+		update_icon(UPDATE_ICON_STATE)
 
 	if(on)
-		START_PROCESSING(SSobj, src)
+		START_PROCESSING(SSprocessing, src)
+	else
+		STOP_PROCESSING(SSprocessing, src)
+
 
 /obj/item/t_scanner/security/emp_act(severity)
 	. = ..()
 	if(prob(25) && !burnt)
 		burnt = TRUE
-		on = FALSE;
-		icon_state = copytext(icon_state, 1, length(icon_state))+"_burnt"
-		desc = "Излучатель терагерцевого типа используемый для сканирования области на наличие замаскированных биоорганизмов. Устройство сгорело, теперь можно обнаружить разве что крошки от пончика оставшиеся на нём..."
+		on = FALSE
+		update_appearance(UPDATE_ICON_STATE|UPDATE_DESC)
 		playsound(loc, "sparks", 50, TRUE, 5)
 		spark_system.start()
 
+
 /obj/item/t_scanner/security/scan()
-
+	var/mob/viewer = loc
+	if(!ismob(viewer) || !viewer.client)
+		return
 	new /obj/effect/temp_visual/scan(get_turf(src))
+	var/list/t_ray_images = list()
 
-	var/list/mobs_in_range = viewers(scan_range, get_turf(src))
-	for(var/mob/living/in_turf_mob in mobs_in_range)
-		var/oldalpha = in_turf_mob.alpha
-		if(in_turf_mob.alpha < 255 && istype(in_turf_mob))
-			in_turf_mob.alpha = 255
-			alert_searchers(in_turf_mob)
-			spawn(pulse_duration)
-				if(in_turf_mob)
-					in_turf_mob.alpha = oldalpha
-		if(in_turf_mob && in_turf_mob.invisibility == INVISIBILITY_LEVEL_TWO)
-			in_turf_mob.invisibility = 0
-			alert_searchers(in_turf_mob)
-			spawn(pulse_duration)
-				if(in_turf_mob)
-					in_turf_mob.invisibility = INVISIBILITY_LEVEL_TWO
+	for(var/atom/movable/invisible_object as anything in view(scan_range, get_turf(src)))
+		if(!(istype(invisible_object, /obj/structure/closet/cardboard/agent/) || isliving(invisible_object)))
+			continue
+		if(!(invisible_object.alpha < 255 || invisible_object.invisibility == INVISIBILITY_LEVEL_TWO))
+			continue
+		var/image/I = new(loc = get_turf(invisible_object))
+		var/mutable_appearance/MA = new(invisible_object)
+		MA.alpha = 255
+		MA.dir = invisible_object.dir
+		if(MA.layer < TURF_LAYER)
+			MA.layer += TRAY_SCAN_LAYER_OFFSET
+		MA.plane = GAME_PLANE
+		I.appearance = MA
+		t_ray_images += I
+		alert_searchers(invisible_object)
+
+	if(length(t_ray_images))
+		flick_overlay(t_ray_images, list(viewer.client), pulse_duration)
 
 /obj/item/t_scanner/security/proc/alert_searchers(mob/living/found_mob)
 	var/list/alerted = viewers(7, found_mob)
 	if(alerted && !was_alerted)
 		for(var/mob/living/alerted_mob in alerted)
 			if(!alerted_mob.stat)
-				alerted_mob.do_alert_animation(alerted_mob)
+				do_alert_animation(alerted_mob)
 				alerted_mob.playsound_local(alerted, 'sound/machines/chime.ogg', 15, 0)
 		was_alerted = TRUE
 		addtimer(CALLBACK(src, PROC_REF(end_alert_cd)), 1 MINUTES)
@@ -215,7 +246,7 @@ REAGENT SCANNER
 			if(H.reagents.reagent_list.len)
 				to_chat(user, "<span class='notice'>Subject contains the following reagents:</span>")
 				for(var/datum/reagent/R in H.reagents.reagent_list)
-					to_chat(user, "<span class='notice'>[R.volume]u of [R.name][R.overdosed ? "</span> - <span class = 'boldannounce'>OVERDOSING</span>" : ".</span>"]")
+					to_chat(user, "<span class='notice'>[R.volume]u of [R.name][R.overdosed ? "</span> - [span_boldannounceic("OVERDOSING")]" : ".</span>"]")
 			else
 				to_chat(user, "<span class = 'notice'>Subject contains no reagents.</span>")
 			if(H.reagents.addiction_list.len)
@@ -226,14 +257,15 @@ REAGENT SCANNER
 				to_chat(user, "<span class='notice'>Subject is not addicted to any reagents.</span>")
 
 /obj/item/healthanalyzer
-	name = "Health Analyzer"
+	name = "health analyzer"
 	icon = 'icons/obj/device.dmi'
 	icon_state = "health"
 	item_state = "healthanalyzer"
 	belt_icon = "health_analyzer"
 	desc = "Ручной сканер тела, способный определить жизненные показатели субъекта."
-	flags = CONDUCT | NOBLUDGEON
-	slot_flags = SLOT_BELT
+	flags = CONDUCT
+	item_flags = NOBLUDGEON
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 3
 	w_class = WEIGHT_CLASS_TINY
 	throw_speed = 3
@@ -255,12 +287,14 @@ REAGENT SCANNER
 
 	var/isPrinting = FALSE
 
-/obj/item/healthanalyzer/attack(mob/living/M, mob/living/user)
-//	healthscan(user, M, mode, advanced)
+
+/obj/item/healthanalyzer/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
 	add_fingerprint(user)
-	scan_title = "Сканирование: [M]"
-	scan_data = medical_scan_action(user, M, src, mode, advanced)
+	scan_title = "Сканирование: [target]"
+	scan_data = medical_scan_action(user, target, src, mode, advanced)
 	show_results(user)
+	return ATTACK_CHAIN_PROCEED_SUCCESS
+
 
 /obj/item/healthanalyzer/attack_self(mob/user)
 	if(!scan_data)
@@ -339,10 +373,9 @@ REAGENT SCANNER
 	var/datum/browser/popup = new(user, "scanner", scan_title, window_width, window_height)
 	popup.set_content("[get_header(user)]<hr>[scan_data]")
 	popup.open(no_focus = 1)
-	popup.resize(window_width,window_height)
 
 /obj/item/healthanalyzer/proc/get_header(mob/user)
-	return "<a href='?src=[src.UID()];user=[user.UID()];clear=1'>Очистить</a><a href='?src=[src.UID()];user=[user.UID()];mode=1'>Локализация</a>[advanced ? "<a href='?src=[src.UID()];user=[user.UID()];print=1'>Печать отчета</a>" : ""]"
+	return "<a href='byond://?src=[src.UID()];user=[user.UID()];clear=1'>Очистить</a><a href='byond://?src=[src.UID()];user=[user.UID()];mode=1'>Локализация</a>[advanced ? "<a href='byond://?src=[src.UID()];user=[user.UID()];print=1'>Печать отчета</a>" : ""]"
 
 /obj/item/healthanalyzer/examine(mob/user)
 	. = ..()
@@ -358,7 +391,7 @@ REAGENT SCANNER
 		return
 
 	scanner.window_height = initial(scanner.window_height)
-	if(((CLUMSY in user.mutations) || user.getBrainLoss() >= 60) && prob(50))
+	if((HAS_TRAIT(user, TRAIT_CLUMSY) || user.getBrainLoss() >= 60) && prob(50))
 		. = list()
 		user.visible_message("<span class='warning'>[user] анализирует жизненные показатели пола!</span>", "<span class='notice'>Вы по глупости анализировали жизненные показатели пола!</span>")
 		. += "Общий статус: <b>100% Здоров</b>"
@@ -375,7 +408,7 @@ REAGENT SCANNER
 		return "<span class='highlight'>[jointext(., "<br>")]</span>"
 
 	var/mob/living/carbon/human/scan_subject = null
-	if (istype(target, /mob/living/carbon/human))
+	if (ishuman(target))
 		scan_subject = target
 	else if (istype(target, /obj/structure/closet/body_bag))
 		var/obj/structure/closet/body_bag/B = target
@@ -455,7 +488,7 @@ REAGENT SCANNER
 		var/list/damaged = H.get_damaged_organs(1,1)
 		. += "Локализация повреждений, <font color='#FF8000'>Ожоги</font>/<font color='red'>Физ.</font>:"
 		if(length(damaged) > 0)
-			for(var/obj/item/organ/external/org in damaged)
+			for(var/obj/item/organ/external/org as anything in damaged)
 				. += "&emsp;<span class='info'>[capitalize(org.name)]</span>: [(org.burn_dam > 0) ? "<font color='#FF8000'>[org.burn_dam]</font>" : "<font color='#FF8000'>0</font>"] - [(org.brute_dam > 0) ? "<font color='red'>[org.brute_dam]</font>" : "<font color='red'>0</font>"]"
 /*
 	if(H.status_flags & FAKEDEATH)
@@ -471,7 +504,7 @@ REAGENT SCANNER
 			if(H.reagents.reagent_list.len)
 				. += "Обнаружены реагенты:"
 				for(var/datum/reagent/R in H.reagents.reagent_list)
-					. += "&emsp;[R.volume]u [R.name][R.overdosed ? " - <span class='boldannounce'>ПЕРЕДОЗИРОВКА</span>" : "."]"
+					. += "&emsp;[R.volume]u [R.name][R.overdosed ? " - [span_boldannounceic("ПЕРЕДОЗИРОВКА")]" : "."]"
 			else
 				. += "Реагенты не обнаружены."
 			if(H.reagents.addiction_list.len)
@@ -490,13 +523,13 @@ REAGENT SCANNER
 			. += "&emsp;Лечение: [D.cure_text]</span>"
 	if(H.undergoing_cardiac_arrest())
 		var/obj/item/organ/internal/heart/heart = H.get_int_organ(/obj/item/organ/internal/heart)
-		if(heart && !(heart.status & ORGAN_DEAD))
+		if(heart && !heart.is_dead())
 			. += "<span class='warning'><b>Внимание: Критическое состояние</b>"
 			. += "&emsp;Название: Остановка сердца"
 			. += "&emsp;Тип: Сердце пациента остановилось"
 			. += "&emsp;Стадия: 1/1"
 			. += "&emsp;Лечение: Электрический шок</span>"
-		else if(heart && (heart.status & ORGAN_DEAD))
+		else if(heart && heart.is_dead())
 			. += "<span class='alert'><b>Обнаружен некроз сердца!</b></span>"
 		else if(!heart)
 			. += "<span class='alert'><b>Сердце не обнаружено!</b></span>"
@@ -526,8 +559,9 @@ REAGENT SCANNER
 		if(!e)
 			continue
 		var/limb = e.name
-		if(e.status & ORGAN_BROKEN)
-			if((e.limb_name in list("l_arm", "r_arm", "l_hand", "r_hand", "l_leg", "r_leg", "l_foot", "r_foot")) && !(e.status & ORGAN_SPLINTED))
+		if(e.has_fracture())
+			var/list/check_list = list(BODY_ZONE_L_ARM, BODY_ZONE_R_ARM, BODY_ZONE_PRECISE_L_HAND, BODY_ZONE_PRECISE_R_HAND, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG, BODY_ZONE_PRECISE_L_FOOT, BODY_ZONE_PRECISE_R_FOOT)
+			if((e.limb_zone in check_list) && !e.is_splinted())
 				. += "<span class='warning'>Незакрепленные переломы в [limb]."
 				. += "&emsp;Рекомендуется применить шину.</span>"
 		if(e.has_infected_wound())
@@ -538,12 +572,12 @@ REAGENT SCANNER
 		var/obj/item/organ/external/e = H.bodyparts_by_name[name]
 		if(!e)
 			continue
-		if(e.status & ORGAN_BROKEN)
+		if(e.has_fracture())
 			. += "<span class='warning'>Обнаружены переломы."
 			. += "&emsp;Рекомендуется подробное сканирование.</span>"
 			break
-	for(var/obj/item/organ/external/e in H.bodyparts)
-		if(e.internal_bleeding)
+	for(var/obj/item/organ/external/e as anything in H.bodyparts)
+		if(e.has_internal_bleeding())
 			. += "<span class='warning'>Внутреннее кровотечение."
 			. += "&emsp;Рекомендуется подробное сканирование.</span>"
 			break
@@ -569,9 +603,9 @@ REAGENT SCANNER
 
 	. += "Пульс: <font color='[H.pulse == PULSE_THREADY || H.pulse == PULSE_NONE ? "red" : "#0080ff"]'>[H.get_pulse(GETPULSE_TOOL)] bpm.</font>"
 	var/list/implant_detect = list()
-	for(var/obj/item/organ/internal/cyberimp/CI in H.internal_organs)
-		if(CI.is_robotic())
-			implant_detect += "&emsp;[CI.name]"
+	for(var/obj/item/organ/internal/cyberimp/cybernetics in H.internal_organs)
+		if(cybernetics.is_robotic())
+			implant_detect += "&emsp;[cybernetics.name]"
 	if(length(implant_detect))
 		. += "Обнаружены кибернетические модификации:"
 		. += implant_detect
@@ -593,6 +627,9 @@ REAGENT SCANNER
 	set name = "Вкл/Выкл локализацию"
 	set category = "Object"
 
+	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
+		return
+
 	mode = !mode
 	switch(mode)
 		if(1)
@@ -600,26 +637,37 @@ REAGENT SCANNER
 		if(0)
 			to_chat(usr, "Сканер больше не показывает повреждения конечностей.")
 
+
+/obj/item/healthanalyzer/update_overlays()
+	. = ..()
+	if(advanced)
+		. += "advanced"
+
+
 /obj/item/healthanalyzer/attackby(obj/item/I, mob/user, params)
 	if(istype(I, /obj/item/healthupgrade))
+		add_fingerprint(user)
 		if(advanced)
-			to_chat(user, "<span class='notice'>Модуль обновления уже установлен на [src].</span>")
-		else
-			if(user.drop_transfer_item_to_loc(I, src))
-				to_chat(user, "<span class='notice'>Вы установили модуль обновления на [src].</span>")
-				add_overlay("advanced")
-				playsound(loc, I.usesound, 50, 1)
-				advanced = TRUE
-				qdel(I)
-		return
+			to_chat(user, span_warning("Продвинутый модуль сканирования уже установлен."))
+			return ATTACK_CHAIN_PROCEED
+		if(!user.drop_transfer_item_to_loc(I, src))
+			return ..()
+		to_chat(user, span_notice("Вы установили продвинутый модуль сканирования."))
+		playsound(loc, I.usesound, 50, TRUE)
+		advanced = TRUE
+		update_icon(UPDATE_OVERLAYS)
+		qdel(I)
+		return ATTACK_CHAIN_BLOCKED_ALL
+
 	return ..()
+
 
 /obj/item/healthanalyzer/advanced
 	advanced = TRUE
 
 /obj/item/healthanalyzer/advanced/Initialize(mapload)
 	. = ..()
-	add_overlay("advanced")
+	update_icon(UPDATE_OVERLAYS)
 
 
 /obj/item/healthupgrade
@@ -639,7 +687,7 @@ REAGENT SCANNER
 	item_state = "analyzer"
 	w_class = WEIGHT_CLASS_SMALL
 	flags = CONDUCT
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 5
 	throw_speed = 4
 	throw_range = 20
@@ -650,8 +698,7 @@ REAGENT SCANNER
 	var/scanning = TRUE
 	actions_types = list(/datum/action/item_action/print_report)
 
-/obj/item/reagent_scanner/afterattack(obj/O, mob/user as mob)
-	try_item_eat(O, user)
+/obj/item/reagent_scanner/afterattack(obj/O, mob/user, proximity, params)
 	if(user.stat)
 		return
 	if(!user.IsAdvancedToolUser())
@@ -712,7 +759,7 @@ REAGENT SCANNER
 	else
 		to_chat(usr, "<span class='notice'>[src]  has no logs or is already in use.</span>")
 
-/obj/item/reagent_scanner/ui_action_click()
+/obj/item/reagent_scanner/ui_action_click(mob/user, datum/action/action, leftclick)
 	print_report()
 
 /obj/item/slime_scanner
@@ -728,14 +775,15 @@ REAGENT SCANNER
 	throw_range = 7
 	materials = list(MAT_METAL=30, MAT_GLASS=20)
 
-/obj/item/slime_scanner/attack(mob/living/M, mob/living/user)
+/obj/item/slime_scanner/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
 	if(user.incapacitated() || user.AmountBlinded())
-		return
-	if(!isslime(M))
-		to_chat(user, "<span class='warning'>This device can only scan slimes!</span>")
-		return
-	var/mob/living/simple_animal/slime/T = M
-	slime_scan(T, user)
+		return .
+	if(!isslime(target))
+		to_chat(user, span_warning("This device can only scan slimes!"))
+		return .
+	. |= ATTACK_CHAIN_SUCCESS
+	slime_scan(target, user)
 
 /proc/slime_scan(mob/living/simple_animal/slime/T, mob/living/user)
 	to_chat(user, "========================")
@@ -775,9 +823,10 @@ REAGENT SCANNER
 	name = "handheld body analyzer"
 	icon = 'icons/obj/device.dmi'
 	icon_state = "bodyanalyzer_0"
+	base_icon_state = "bodyanalyzer"
 	item_state = "healthanalyser"
 	desc = "A handheld scanner capable of deep-scanning an entire body."
-	slot_flags = SLOT_BELT
+	slot_flags = ITEM_SLOT_BELT
 	throwforce = 3
 	w_class = WEIGHT_CLASS_TINY
 	throw_speed = 5
@@ -786,10 +835,16 @@ REAGENT SCANNER
 	var/obj/item/stock_parts/cell/cell
 	var/cell_type = /obj/item/stock_parts/cell/upgraded
 	var/ready = TRUE // Ready to scan
+	var/printing = FALSE
 	var/time_to_use = 0 // How much time remaining before next scan is available.
 	var/usecharge = 750
 	var/scan_time = 10 SECONDS //how long does it take to scan
 	var/scan_cd = 60 SECONDS //how long before we can scan again
+
+/obj/item/bodyanalyzer/rnd
+	icon_state = "bodyscan_0"
+	item_state = "portable_bodyscan"
+	base_icon_state = "bodyscan"
 
 /obj/item/bodyanalyzer/get_cell()
 	return cell
@@ -816,58 +871,71 @@ REAGENT SCANNER
 	playsound(src, 'sound/machines/defib_saftyon.ogg', 50, 0)
 	update_icon()
 
-/obj/item/bodyanalyzer/update_icon(printing = FALSE)
-	overlays.Cut()
-	var/percent = cell.percent()
-	if(ready)
-		icon_state = "bodyanalyzer_1"
-	else
-		icon_state = "bodyanalyzer_2"
 
-	var/overlayid = round(percent / 10)
-	overlayid = "bodyanalyzer_charge[overlayid]"
-	overlays += icon(icon, overlayid)
-
-
-/obj/item/bodyanalyzer/attack(mob/living/M, mob/living/carbon/human/user)
-	if(user.incapacitated() || !user.Adjacent(M))
+/obj/item/bodyanalyzer/update_icon_state()
+	if(!cell)
+		icon_state = "[base_icon_state]_0"
 		return
+	if(ready)
+		icon_state = "[base_icon_state]_1"
+	else
+		icon_state = "[base_icon_state]_2"
+
+
+/obj/item/bodyanalyzer/update_overlays()
+	. = ..()
+	var/percent = cell.percent()
+	var/overlayid = round(percent / 10)
+	. += "[base_icon_state]_charge[overlayid]"
+	if(printing)
+		. += "[base_icon_state]_printing"
+
+
+/obj/item/bodyanalyzer/attack(mob/living/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
+
+	if(user.incapacitated() || !user.Adjacent(target))
+		return .
 
 	if(!ready)
-		to_chat(user, "<span class='notice'>The scanner beeps angrily at you! It's currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining.</span>")
-		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, 1)
-		return
+		to_chat(user, span_notice("The scanner beeps angrily at you! It's currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining."))
+		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, TRUE)
+		return .
 
 	if(cell.charge >= usecharge)
-		mobScan(M, user)
+		. |= ATTACK_CHAIN_SUCCESS
+		mobScan(target, user)
 	else
-		to_chat(user, "<span class='notice'>The scanner beeps angrily at you! It's out of charge!</span>")
-		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, 1)
+		to_chat(user, span_notice("The scanner beeps angrily at you! It's out of charge!"))
+		playsound(user.loc, 'sound/machines/buzz-sigh.ogg', 50, TRUE)
 
-/obj/item/bodyanalyzer/borg/attack(mob/living/M, mob/living/silicon/robot/user)
-	if(user.incapacitated() || !user.Adjacent(M))
-		return
+
+/obj/item/bodyanalyzer/borg/attack(mob/living/target, mob/living/silicon/robot/user, params, def_zone, skip_attack_anim = FALSE)
+	. = ATTACK_CHAIN_PROCEED
+
+	if(user.incapacitated() || !user.Adjacent(target))
+		return .
 
 	if(!ready)
-		to_chat(user, "<span class='notice'>[src] is currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining.</span>")
-		return
+		to_chat(user, span_notice("[src] is currently recharging - [round((time_to_use - world.time) * 0.1)] seconds remaining."))
+		return .
 
 	if(user.cell.charge >= usecharge)
-		mobScan(M, user)
+		. |= ATTACK_CHAIN_SUCCESS
+		mobScan(target, user)
 	else
-		to_chat(user, "<span class='notice'>You need to recharge before you can use [src]</span>")
+		to_chat(user, span_notice("You need to recharge before you can use [src]"))
+
 
 /obj/item/bodyanalyzer/proc/mobScan(mob/living/M, mob/user)
 	if(ishuman(M))
 		var/report = generate_printing_text(M, user)
 		user.visible_message("[user] begins scanning [M] with [src].", "You begin scanning [M].")
-		if(do_after(user, scan_time, target = M))
+		if(do_after(user, scan_time, M))
 			var/obj/item/paper/printout = new(drop_location())
 			printout.info = report
 			printout.name = "Scan report - [M.name]"
 			playsound(user.loc, 'sound/goonstation/machines/printer_dotmatrix.ogg', 50, 1)
-			flick("bodyanalyzer_anim", src)
-			sleep(3 SECONDS)
 			user.put_in_hands(printout, ignore_anim = FALSE)
 			time_to_use = world.time + scan_cd
 			if(isrobot(user))
@@ -876,14 +944,16 @@ REAGENT SCANNER
 			else
 				cell.use(usecharge)
 			ready = FALSE
-			update_icon(TRUE)
+			printing = TRUE
+			update_icon()
 			addtimer(CALLBACK(src, TYPE_PROC_REF(/obj/item/bodyanalyzer, setReady)), scan_cd)
-			addtimer(CALLBACK(src, TYPE_PROC_REF(/obj/item/bodyanalyzer, update_icon)), 20)
-
+			addtimer(VARSET_CALLBACK(src, printing, FALSE), 1.4 SECONDS)
+			addtimer(CALLBACK(src, TYPE_PROC_REF(/atom, update_icon), UPDATE_OVERLAYS), 1.5 SECONDS)
 	else if(iscorgi(M) && M.stat == DEAD)
 		to_chat(user, "<span class='notice'>You wonder if [M.p_they()] was a good dog. <b>[src] tells you they were the best...</b></span>") // :'(
 		playsound(loc, 'sound/machines/ping.ogg', 50, 0)
 		ready = FALSE
+		update_icon(UPDATE_ICON_STATE)
 		addtimer(CALLBACK(src, TYPE_PROC_REF(/obj/item/bodyanalyzer, setReady)), scan_cd)
 		time_to_use = world.time + scan_cd
 	else
@@ -972,7 +1042,7 @@ REAGENT SCANNER
 	dat += "<th>Other Wounds</th>"
 	dat += "</tr>"
 
-	for(var/obj/item/organ/external/e in target.bodyparts)
+	for(var/obj/item/organ/external/e as anything in target.bodyparts)
 		dat += "<tr>"
 		var/AN = ""
 		var/open = ""
@@ -983,13 +1053,13 @@ REAGENT SCANNER
 		var/splint = ""
 		var/internal_bleeding = ""
 		var/lung_ruptured = ""
-		if(e.internal_bleeding)
+		if(e.has_internal_bleeding())
 			internal_bleeding = "<br>Internal bleeding"
 		if(istype(e, /obj/item/organ/external/chest) && target.is_lung_ruptured())
 			lung_ruptured = "Lung ruptured:"
-		if(e.status & ORGAN_SPLINTED)
+		if(e.is_splinted())
 			splint = "Splinted:"
-		if(e.status & ORGAN_BROKEN)
+		if(e.has_fracture())
 			AN = "[e.broken_description]:"
 		if(e.is_robotic())
 			robot = "Robotic:"
@@ -1011,20 +1081,16 @@ REAGENT SCANNER
 			if(INFECTION_LEVEL_THREE to INFINITY)
 				infected = "Septic:"
 
-		var/unknown_body = 0
-		for(var/I in e.embedded_objects)
-			unknown_body++
-
-		if(unknown_body || e.hidden)
+		if(LAZYLEN(e.embedded_objects) || e.hidden)
 			imp += "Unknown body present:"
 		if(!AN && !open && !infected && !imp)
 			AN = "None:"
 		dat += "<td>[e.name]</td><td>[e.burn_dam]</td><td>[e.brute_dam]</td><td>[robot][bled][AN][splint][open][infected][imp][internal_bleeding][lung_ruptured]</td>"
 		dat += "</tr>"
-	for(var/obj/item/organ/internal/i in target.internal_organs)
-		var/mech = i.desc
+	for(var/obj/item/organ/internal/organ as anything in target.internal_organs)
+		var/mech = organ.desc
 		var/infection = "None"
-		switch(i.germ_level)
+		switch(organ.germ_level)
 			if(1 to INFECTION_LEVEL_ONE + 200)
 				infection = "Mild Infection:"
 			if(INFECTION_LEVEL_ONE + 200 to INFECTION_LEVEL_ONE + 300)
@@ -1039,14 +1105,14 @@ REAGENT SCANNER
 				infection = "Acute Infection++:"
 
 		dat += "<tr>"
-		dat += "<td>[i.name]</td><td>N/A</td><td>[i.damage]</td><td>[infection]:[mech]</td><td></td>"
+		dat += "<td>[organ.name]</td><td>N/A</td><td>[organ.damage]</td><td>[infection]:[mech]</td><td></td>"
 		dat += "</tr>"
 	dat += "</table>"
-	if(BLINDNESS in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_BLIND))
 		dat += "<font color='red'>Cataracts detected.</font><BR>"
-	if(COLOURBLIND in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_COLORBLIND))
 		dat += "<font color='red'>Photoreceptor abnormalities detected.</font><BR>"
-	if(NEARSIGHTED in target.mutations)
+	if(HAS_TRAIT(target, TRAIT_NEARSIGHTED))
 		dat += "<font color='red'>Retinal misalignment detected.</font><BR>"
 
 	return dat

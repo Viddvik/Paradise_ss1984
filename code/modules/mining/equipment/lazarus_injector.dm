@@ -10,18 +10,23 @@
 	w_class = WEIGHT_CLASS_SMALL
 	throw_speed = 3
 	throw_range = 5
-	var/loaded = 1
+	var/loaded = TRUE
 	var/malfunctioning = 0
 	var/revive_type = SENTIENCE_ORGANIC //So you can't revive boss monsters or robots with it
 
-/obj/item/lazarus_injector/afterattack(atom/target, mob/user, proximity_flag)
+
+/obj/item/lazarus_injector/update_icon_state()
+	icon_state = "lazarus_[loaded ? "hypo" : "empty"]"
+
+
+/obj/item/lazarus_injector/afterattack(atom/target, mob/user, proximity_flag, params)
 	if(!loaded)
 		return
-	if(istype(target, /mob/living) && proximity_flag)
-		if(istype(target, /mob/living/simple_animal))
+	if(isliving(target) && proximity_flag)
+		if(isanimal(target))
 			var/mob/living/simple_animal/M = target
 			if(M.sentience_type != revive_type)
-				to_chat(user, "<span class='info'>[src] does not work on this sort of creature.</span>")
+				balloon_alert(user, "неподходящее животное!")
 				return
 			if(M.stat == DEAD)
 				M.faction = list("neutral")
@@ -37,23 +42,24 @@
 						add_game_logs("[user] has revived hostile mob [target] with a malfunctioning lazarus injector", user)
 					else
 						H.attack_same = 0
-				loaded = 0
+				loaded = FALSE
 				user.visible_message("<span class='notice'>[user] injects [M] with [src], reviving it.</span>")
 				playsound(src,'sound/effects/refill.ogg',50,1)
-				icon_state = "lazarus_empty"
+				update_icon(UPDATE_ICON_STATE)
 				return
 			else
-				to_chat(user, "<span class='info'>[src] is only effective on the dead.</span>")
+				balloon_alert(user, "нельзя использовать на мёртвых!")
 				return
 		else
-			to_chat(user, "<span class='info'>[src] is only effective on lesser beings.</span>")
+			balloon_alert(user, "оно слишком разумно!")
 			return
 
 /obj/item/lazarus_injector/emag_act(mob/user)
 	if(!malfunctioning)
 		add_attack_logs(user, src, "emagged")
 		malfunctioning = 1
-		to_chat(user, "<span class='notice'>You override [src]'s safety protocols.</span>")
+		if(user)
+			balloon_alert(user, "протоколы защиты сняты!")
 
 /obj/item/lazarus_injector/emp_act()
 	if(!malfunctioning)
@@ -85,11 +91,12 @@
 		QDEL_NULL(captured)
 	return ..()
 
-/obj/item/mobcapsule/attack(mob/living/simple_animal/S, mob/user, prox_flag)
-	if(istype(S) && S.sentience_type == capture_type)
-		capture(S, user)
-		return TRUE
+
+/obj/item/mobcapsule/attack(mob/living/simple_animal/target, mob/living/user, params, def_zone, skip_attack_anim = FALSE)
+	if(istype(target) && target.sentience_type == capture_type && capture(target, user))
+		return ATTACK_CHAIN_PROCEED_SUCCESS
 	return ..()
+
 
 /obj/item/mobcapsule/proc/capture(mob/living/simple_animal/S, mob/living/M)
 	if(captured)
@@ -115,9 +122,14 @@
 		captured.forceMove(get_turf(src))
 		captured = null
 
+
+/obj/item/mobcapsule/update_icon_state()
+	icon_state = "mobcap[colorindex]"
+
+
 /obj/item/mobcapsule/attack_self(mob/user)
 	colorindex += 1
 	if(colorindex >= 6)
 		colorindex = 0
-	icon_state = "mobcap[colorindex]"
-	update_icon()
+	update_icon(UPDATE_ICON_STATE)
+

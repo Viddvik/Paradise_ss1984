@@ -1,7 +1,7 @@
 /datum/action/innate/clockwork
 	icon_icon = 'icons/mob/actions/actions_clockwork.dmi'
 	background_icon_state = "bg_clockwork"
-	check_flags = AB_CHECK_RESTRAINED|AB_CHECK_STUNNED|AB_CHECK_CONSCIOUS|AB_TRANSFER_MIND
+	check_flags = AB_CHECK_HANDS_BLOCKED|AB_CHECK_CONSCIOUS|AB_CHECK_INCAPACITATED|AB_TRANSFER_MIND
 	// buttontooltipstyle = "cult"
 
 /datum/action/innate/clockwork/IsAvailable()
@@ -46,7 +46,7 @@
 		if(isclocker(M))
 			to_chat(M, my_message)
 		else if((M in GLOB.dead_mob_list) && !isnewplayer(M))
-			to_chat(M, "<span class='clockspeech'> <a href='?src=[M.UID()];follow=[user.UID()]'>(F)</a> [my_message] </span>")
+			to_chat(M, "<span class='clockspeech'> <a href='byond://?src=[M.UID()];follow=[user.UID()]'>(F)</a> [my_message] </span>")
 
 	add_say_logs(user, message, language = "CLOCKCULT")
 

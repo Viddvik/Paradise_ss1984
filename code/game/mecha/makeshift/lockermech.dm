@@ -12,64 +12,9 @@
 	max_equip = 2 //You only have two arms and the control system is shitty
 	wreckage = null
 	mech_enter_time = 20
-	var/list/cargo = list()
-	var/cargo_capacity = 5 // you can fit a few things in this locker but not much.
 
-/obj/mecha/makeshift/Topic(href, href_list)
-	..()
-	if(href_list["drop_from_cargo"])
-		var/obj/O = locate(sanitize(href_list["drop_from_cargo"]))
-		if(O && (O in cargo))
-			occupant_message("<span class='notice'>You unload [O].</span>")
-			O.forceMove(loc)
-			cargo -= O
-			log_message("Unloaded [O]. Cargo compartment capacity: [cargo_capacity - src.cargo.len]")
-	return
+	cargo_capacity = 5 // you can fit a few things in this locker but not much.
 
-/obj/mecha/makeshift/go_out()
-	..()
-	update_icon()
-
-/obj/mecha/makeshift/moved_inside(mob/living/carbon/human/H)
-	..()
-	update_icon()
-
-
-/obj/mecha/makeshift/Exit(atom/movable/O)
-	if(O in cargo)
-		return 0
-	return ..()
-
-// /obj/mecha/makeshift/contents_explosion(severity, target)
-// 	for(var/X in cargo)
-// 		var/obj/O = X
-// 		if(prob(30/severity))
-// 			cargo -= O
-// 			O.forceMove(loc)
-// 	. = ..()
-
-/obj/mecha/makeshift/get_stats_part()
-	var/output = ..()
-	output += "<b>Cargo Compartment Contents:</b><div style=\"margin-left: 15px;\">"
-	if(cargo.len)
-		for(var/obj/O in cargo)
-			output += "<a href='?src=\ref[src];drop_from_cargo=\ref[O]'>Unload</a> : [O]<br>"
-	else
-		output += "Nothing"
-	output += "</div>"
-	return output
-
-// /obj/mecha/makeshift/relay_container_resist(mob/living/user, obj/O)
-// 	to_chat(user, "<span class='notice'>You lean on the back of [O] and start pushing so it falls out of [src].</span>")
-// 	if(do_after(user, 10, target = O))//Its a fukken locker
-// 		if(!user || user.stat != CONSCIOUS || user.loc != src || O.loc != src )
-// 			return
-// 		to_chat(user, "<span class='notice'>You successfully pushed [O] out of [src]!</span>")
-// 		O.loc = loc
-// 		cargo -= O
-// 	else
-// 		if(user.loc == src) //so we don't get the message if we resisted multiple times and succeeded.
-// 			to_chat(user, "<span class='warning'>You fail to push [O] out of [src]!</span>")
 
 /obj/mecha/makeshift/Destroy()
 	new /obj/structure/closet(loc)
@@ -88,18 +33,10 @@
 	internal_damage_threshold = 30
 	deflect_chance = 20
 	force = 20
-	maint_access = 0
 	mech_enter_time = 20
 	max_equip = 4
 	wreckage = null
 
-/obj/mecha/combat/lockersyndie/go_out()
-	..()
-	update_icon()
-
-/obj/mecha/combat/lockersyndie/moved_inside(mob/living/carbon/human/H)
-	..()
-	update_icon()
 
 /obj/mecha/combat/lockersyndie/add_cell()
 	cell = new /obj/item/stock_parts/cell/high/slime(src)
@@ -116,3 +53,59 @@
 /obj/mecha/combat/lockersyndie/Destroy()
 	new /obj/structure/closet(loc)
 	return ..()
+
+/obj/effect/particle_effect/mecha_drop
+	name = "mecha drop"
+	icon_state = "dropzone_mech_loop"
+	icon = 'icons/effects/96x96.dmi'
+	pixel_x = -32
+	pixel_y = -32
+
+/obj/item/mecha_drop
+	name = "mechadrop tool"
+	desc = "Simple looking tool with only one button"
+	icon = 'icons/obj/device.dmi'
+	icon_state = "pointer"
+	item_state = "pen"
+	var/mecha_type = /obj/mecha/combat/lockersyndie/loaded
+	var/obj/mecha/summon_mecha
+	var/list/summon_sound = 'sound/items/bikehorn.ogg'
+	var/used = FALSE
+
+/obj/item/mecha_drop/New()
+	. = ..()
+	if(mecha_type)
+		summon_mecha = new mecha_type(src)
+
+/obj/item/mecha_drop/afterattack(atom/target, mob/user, proximity, params)
+	if(used)
+		return
+	if(isfloorturf(target))
+		for(var/turf/T in (RANGE_TURFS(1, target) + target))
+			if(!isfloorturf(T))
+				to_chat(user, "You need free 3x3 area for mecha summon.")
+				return
+			for(var/obj/O in T)
+				if(O.density && O.anchored)
+					to_chat(user, "You need free 3x3 area for mecha summon.")
+					return
+		used = TRUE
+		var/obj/effect/particle_effect/mecha_drop/mecha_effect = new(target)
+		flick("dropzone_mech_start", mecha_effect)
+		if(do_after(user, 2 SECONDS, user))
+			if(do_after(user, 5 SECONDS, user))
+				summon_mecha.forceMove(target)
+				new /obj/effect/particle_effect/smoke(target)
+				playsound(target, 'sound/magic/disintegrate2.ogg', 200, 1)
+				for(var/mob/M in range(6, target))
+					shake_camera(M, 2 SECONDS, 2)
+				for(var/mob/living/M in range(1, target))
+					M.apply_damage(120)
+			else
+				used = FALSE
+		else
+			used = FALSE
+		qdel(mecha_effect)
+	else
+		to_chat(user, "You can use it only on floor.")
+

@@ -10,7 +10,7 @@
 	armor = list("melee" = 0, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 0, "acid" = 0) // мех для тестов, не для боя
 	max_temperature = 15000
 	wreckage = /obj/structure/mecha_wreckage/sidewinder
-	maint_access = 1
+	maint_access = TRUE
 	mech_enter_time = 1
 	internal_damage_threshold = 100 // для тестов внутренних повреждений
 	max_equip = 40 //а хули вы хотели, 60 тонн!
@@ -62,6 +62,8 @@
 	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/carbine
 	ME.attach(src)
 	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot
+	ME.attach(src)
+	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot/riot
 	ME.attach(src)
 	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot/syndi
 	ME.attach(src)

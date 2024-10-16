@@ -22,7 +22,8 @@
 		1; /datum/disease/virus/pierrot_throat,
 		1; /datum/disease/virus/pierrot_throat/advanced,
 		1; /datum/disease/virus/tuberculosis,
-		1; /datum/disease/virus/wizarditis
+		1; /datum/disease/virus/wizarditis,
+		2; /datum/disease/virus/babylonian_fever
 	)
 	if(virus_type == /datum/disease/virus/advance)
 		//creates only contagious viruses, that are always visible in Pandemic
@@ -33,9 +34,6 @@
 
 /datum/event/disease_outbreak/announce()
 	GLOB.event_announcement.Announce("Вспышка вирусной угрозы 7-го уровня зафиксирована на борту станции [station_name()]. Всему персоналу надлежит сдержать ее распространение.", "ВНИМАНИЕ: БИОЛОГИЧЕСКАЯ УГРОЗА.", new_sound = 'sound/AI/outbreak7.ogg')
-	for(var/p in GLOB.dead_mob_list)
-		var/mob/M = p
-		to_chat(M, "<span class='deadsay'><b>[patient_zero]</b> был(а) заражён(а) <b>[D.name]</b> ([ghost_follow_link(patient_zero, M)])</span>")
 
 /datum/event/disease_outbreak/start()
 	for(var/mob/living/carbon/human/H in shuffle(GLOB.alive_mob_list))
@@ -54,4 +52,8 @@
 		if(!D.Contract(H, is_carrier = TRUE))
 			continue
 		patient_zero = H
+
+		for(var/mob/M in GLOB.dead_mob_list)
+			to_chat(M, "<span class='deadsay'><b>[patient_zero]</b> был(а) заражён(а) <b>[D.name]</b> ([ghost_follow_link(patient_zero, M)])</span>")
+
 		break

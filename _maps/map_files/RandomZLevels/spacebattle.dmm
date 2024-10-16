@@ -207,11 +207,6 @@
 /mob/living/simple_animal/hostile/syndicate/melee/autogib/spacebattle,
 /turf/simulated/floor/mineral/plastitanium/red,
 /area/awaymission/spacebattle/syndicate2)
-"aI" = (
-/turf/simulated/wall/shuttle{
-	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
-	},
-/area/awaymission/spacebattle/syndicate2)
 "aJ" = (
 /turf/simulated/wall/shuttle/nosmooth{
 	dir = 9;
@@ -1134,7 +1129,6 @@
 	broken = 1;
 	density = 0;
 	icon_state = "eng";
-	initialized = 1;
 	locked = 0;
 	opened = 1
 	},
@@ -1659,9 +1653,9 @@
 /area/awaymission/spacebattle/syndicate1)
 "fc" = (
 /obj/structure/closet/crate/freezer,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
-/obj/item/reagent_containers/food/snacks/meat/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
+/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 /obj/item/reagent_containers/food/snacks/meat/slab,
 /turf/simulated/floor/plasteel/freezer,
 /area/awaymission/spacebattle/freezing)
@@ -1709,9 +1703,7 @@
 /area/awaymission/spacebattle/engine)
 "fj" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/transit_tube{
-	icon_state = "N-S"
-	},
+/obj/structure/transit_tube,
 /turf/space,
 /area/space)
 "fk" = (
@@ -2628,16 +2620,12 @@
 /turf/simulated/floor/plating/airless,
 /area/awaymission/spacebattle/syndicate2)
 "hy" = (
-/obj/machinery/conveyor/northeast/ccw{
+/obj/machinery/conveyor/inverted{
+	dir = 10;
 	id = "cargodeliverySB"
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
-"hz" = (
-/turf/simulated/wall/shuttle{
-	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
-	},
-/area/awaymission/spacebattle/syndicate7)
 "hA" = (
 /obj/item/weldingtool/largetank,
 /turf/simulated/floor/plasteel/airless,
@@ -3587,7 +3575,7 @@
 /obj/structure/disposalpipe/trunk{
 	dir = 1
 	},
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/hallway11)
 "kj" = (
 /obj/effect/decal/cleanable/dirt,
@@ -4012,11 +4000,9 @@
 /area/space)
 "lp" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/transit_tube{
-	icon_state = "N-S"
-	},
+/obj/structure/transit_tube,
 /obj/structure/window/full/shuttle,
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/cruiser)
 "lq" = (
 /obj/machinery/light/small{
@@ -4081,7 +4067,7 @@
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
 "lD" = (
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/storage)
 "lF" = (
 /obj/effect/landmark/tiles/damageturf,
@@ -4335,8 +4321,9 @@
 	},
 /area/awaymission/spacebattle/hallway11)
 "mr" = (
-/obj/machinery/conveyor/northwest{
-	id = "cargodeliverySB"
+/obj/machinery/conveyor{
+	id = "cargodeliverySB";
+	dir = 9
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -4587,7 +4574,6 @@
 	broken = 1;
 	density = 0;
 	icon_state = "eng";
-	initialized = 1;
 	locked = 0;
 	opened = 1
 	},
@@ -4771,8 +4757,8 @@
 /obj/effect/spawner/lootdrop/maintenance,
 /obj/machinery/light/small,
 /obj/machinery/conveyor{
-	dir = 4;
-	id = "cargodeliverySB"
+	id = "cargodeliverySB";
+	dir = 4
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -5155,10 +5141,11 @@
 /turf/simulated/floor/plating/asteroid/airless,
 /area/awaymission)
 "oE" = (
-/obj/machinery/conveyor/east/ccw{
-	dir = 10
-	},
 /obj/item/stack/sheet/metal,
+/obj/machinery/conveyor/inverted{
+	id = "mining_internal";
+	dir = 5
+	},
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
 "oH" = (
@@ -5320,7 +5307,7 @@
 /turf/simulated/floor/plating/airless,
 /area/awaymission/spacebattle/syndicate2)
 "pc" = (
-/turf/simulated/wall/shuttle/nodiagonal{
+/turf/simulated/wall/shuttle{
 	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
 	},
 /area/awaymission/spacebattle/syndicate7)
@@ -6007,7 +5994,7 @@
 	d2 = 2;
 	icon_state = "0-2"
 	},
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/storage)
 "rn" = (
 /obj/machinery/door/airlock/highsecurity,
@@ -6160,9 +6147,8 @@
 /area/awaymission/spacebattle/cruiser)
 "rE" = (
 /obj/structure/closet{
-	density = 0;
 	custom_door_overlay = "yellow";
-	initialized = 1;
+	density = 0;
 	name = "Engineering gear";
 	opened = 1
 	},
@@ -6792,7 +6778,6 @@
 	broken = 1;
 	density = 0;
 	icon_state = "eng";
-	initialized = 1;
 	locked = 0;
 	opened = 1
 	},
@@ -7159,9 +7144,7 @@
 /obj/structure/chair/comfy/shuttle{
 	dir = 4
 	},
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/shuttle{
 	icon_state = "floor4"
 	},
@@ -7411,11 +7394,9 @@
 /area/awaymission/spacebattle/freezing)
 "uV" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/transit_tube{
-	icon_state = "N-S"
-	},
+/obj/structure/transit_tube,
 /obj/structure/window/full/shuttle,
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/hallway11)
 "uW" = (
 /obj/structure/window/plasmareinforced{
@@ -7754,10 +7735,10 @@
 	},
 /area/awaymission/spacebattle/syndicate4)
 "vU" = (
-/obj/machinery/conveyor/east/ccw{
-	dir = 2
-	},
 /obj/machinery/mineral/stacking_machine,
+/obj/machinery/conveyor{
+	id = "mining_internal"
+	},
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
 "vX" = (
@@ -7784,11 +7765,6 @@
 	icon_state = "neutral"
 	},
 /area/awaymission/spacebattle/hallway1)
-"wa" = (
-/turf/simulated/wall/shuttle/nodiagonal{
-	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
-	},
-/area/awaymission/spacebattle/syndicate1)
 "wb" = (
 /obj/item/spacepod_equipment/cargo/ore{
 	pixel_x = -5
@@ -7882,8 +7858,7 @@
 	master_tag = "left";
 	name = "interior access button";
 	pixel_x = -25;
-	pixel_y = 25;
-	req_access = null
+	pixel_y = 25
 	},
 /turf/simulated/floor/shuttle{
 	icon_state = "floor4"
@@ -7904,15 +7879,13 @@
 /area/awaymission/spacebattle/hallway12)
 "wn" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/transit_tube{
-	icon_state = "N-S"
-	},
+/obj/structure/transit_tube,
 /obj/machinery/constructable_frame{
 	icon = 'icons/obj/engines_and_power/singularity.dmi';
 	icon_state = "TheSingGen";
 	layer = 4
 	},
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/hallway3)
 "wo" = (
 /obj/structure/cable{
@@ -8057,8 +8030,9 @@
 /obj/item/flashlight,
 /obj/item/flashlight/emp,
 /obj/item/flashlight,
-/obj/machinery/conveyor/north{
-	id = "cargodeliverySB"
+/obj/machinery/conveyor{
+	id = "cargodeliverySB";
+	dir = 1
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -8108,8 +8082,9 @@
 /area/awaymission/spacebattle/prhallway4)
 "wM" = (
 /obj/structure/plasticflaps/mining,
-/obj/machinery/conveyor/north{
-	id = "cargodeliverySB"
+/obj/machinery/conveyor{
+	id = "cargodeliverySB";
+	dir = 1
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -8408,9 +8383,8 @@
 /area/awaymission/spacebattle/hallway1)
 "xx" = (
 /obj/structure/closet{
-	density = 0;
 	custom_door_overlay = "yellow";
-	initialized = 1;
+	density = 0;
 	name = "Engineering gear";
 	opened = 1
 	},
@@ -8698,7 +8672,6 @@
 	broken = 1;
 	density = 0;
 	icon_state = "eng";
-	initialized = 1;
 	locked = 0;
 	opened = 1
 	},
@@ -8880,11 +8853,6 @@
 /obj/effect/landmark/tiles/damageturf,
 /turf/simulated/floor/plasteel/airless,
 /area/awaymission/spacebattle/hallway11)
-"yE" = (
-/turf/simulated/wall/shuttle/nodiagonal{
-	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
-	},
-/area/awaymission/spacebattle/syndicate3)
 "yG" = (
 /obj/machinery/door/airlock/command,
 /obj/structure/cable{
@@ -9064,10 +9032,7 @@
 /area/awaymission/spacebattle/syndicate3)
 "zg" = (
 /obj/structure/table/reinforced,
-/obj/item/clothing/head/soft/yellow{
-	blood_color = "#A10808";
-	blood_overlay = "#A10808"
-	},
+/obj/item/clothing/head/soft/yellow,
 /obj/effect/decal/cleanable/dirt,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
@@ -9325,9 +9290,7 @@
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
 "zQ" = (
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway13)
 "zR" = (
@@ -10093,8 +10056,8 @@
 "BV" = (
 /obj/machinery/light/small,
 /obj/machinery/conveyor{
-	dir = 4;
-	id = "cargodeliverySB"
+	id = "cargodeliverySB";
+	dir = 4
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -10226,9 +10189,7 @@
 	d2 = 8;
 	icon_state = "1-8"
 	},
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway13)
 "Cs" = (
@@ -10270,8 +10231,8 @@
 	},
 /area/awaymission/spacebattle/syndicate1)
 "Cw" = (
-/obj/machinery/conveyor/east/ccw{
-	dir = 2
+/obj/machinery/conveyor{
+	id = "mining_internal"
 	},
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
@@ -10394,7 +10355,6 @@
 	broken = 1;
 	density = 0;
 	icon_state = "eng";
-	initialized = 1;
 	locked = 0;
 	opened = 1
 	},
@@ -10590,11 +10550,12 @@
 	},
 /area/awaymission/spacebattle/engine)
 "Du" = (
-/obj/machinery/conveyor/northwest/ccw{
-	id = "cargodeliverySB"
-	},
 /obj/machinery/light/small{
 	dir = 4
+	},
+/obj/machinery/conveyor/inverted{
+	id = "cargodeliverySB";
+	dir = 6
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -10926,8 +10887,8 @@
 /obj/item/gun/energy/laser/retro/old,
 /obj/item/gun/energy/laser/retro/old,
 /obj/machinery/conveyor{
-	dir = 4;
-	id = "cargodeliverySB"
+	id = "cargodeliverySB";
+	dir = 4
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -11062,7 +11023,7 @@
 /area/awaymission/spacebattle/syndicate3)
 "EG" = (
 /obj/structure/table,
-/obj/item/toy/cards/deck/syndicate,
+/obj/item/deck/cards/syndicate,
 /turf/simulated/floor/shuttle{
 	icon_state = "floor4"
 	},
@@ -11232,15 +11193,13 @@
 /area/awaymission/spacebattle/syndicate1)
 "Ff" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/transit_tube{
-	icon_state = "N-S"
-	},
+/obj/structure/transit_tube,
 /obj/machinery/constructable_frame{
 	icon = 'icons/obj/engines_and_power/singularity.dmi';
 	icon_state = "TheSingGen";
 	layer = 4
 	},
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/hallway11)
 "Fg" = (
 /obj/structure/cable{
@@ -11719,14 +11678,12 @@
 	icon_state = "4-8";
 	tag = ""
 	},
-/obj/effect/landmark{
-	name = "awaystart"
-	},
 /obj/structure/cable{
 	d1 = 1;
 	d2 = 8;
 	icon_state = "1-8"
 	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway8)
 "Gr" = (
@@ -12396,8 +12353,7 @@
 	master_tag = "right";
 	name = "exterior access button";
 	pixel_x = -25;
-	pixel_y = -25;
-	req_access = null
+	pixel_y = -25
 	},
 /turf/space,
 /area/awaymission/spacebattle/syndicate1)
@@ -12468,9 +12424,7 @@
 	icon_state = "4-8";
 	tag = ""
 	},
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway8)
 "IB" = (
@@ -14696,7 +14650,7 @@
 	},
 /area/awaymission/spacebattle/syndicate3)
 "OD" = (
-/turf/simulated/wall/shuttle/nodiagonal{
+/turf/simulated/wall/shuttle{
 	icon = 'icons/turf/walls/shuttle/gray_shuttle_wall.dmi'
 	},
 /area/awaymission/spacebattle/syndicate2)
@@ -15997,9 +15951,7 @@
 	icon_state = "4-8";
 	tag = ""
 	},
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway13)
 "Se" = (
@@ -16590,9 +16542,7 @@
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/hallway13)
 "TQ" = (
-/obj/effect/landmark{
-	name = "awaystart"
-	},
+/obj/effect/landmark/awaystart,
 /turf/simulated/floor/mineral/titanium,
 /area/awaymission/spacebattle/storage)
 "TR" = (
@@ -17141,7 +17091,7 @@
 	dir = 1
 	},
 /obj/structure/disposalpipe/trunk,
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/hallway3)
 "Vm" = (
 /obj/structure/cable{
@@ -17737,8 +17687,9 @@
 /turf/simulated/floor/plasteel/airless,
 /area/awaymission/spacebattle/hallway11)
 "WV" = (
-/obj/machinery/conveyor/north{
-	id = "cargodeliverySB"
+/obj/machinery/conveyor{
+	id = "cargodeliverySB";
+	dir = 1
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -17767,8 +17718,7 @@
 	master_tag = "right";
 	name = "interior access button";
 	pixel_x = 25;
-	pixel_y = 25;
-	req_access = null
+	pixel_y = 25
 	},
 /turf/simulated/floor/shuttle{
 	icon_state = "floor4"
@@ -17930,9 +17880,8 @@
 /area/awaymission/spacebattle/cruiser)
 "Xz" = (
 /obj/structure/closet{
-	density = 0;
 	custom_door_overlay = "yellow";
-	initialized = 1;
+	density = 0;
 	name = "Engineering gear";
 	opened = 1
 	},
@@ -18298,7 +18247,7 @@
 	d2 = 4;
 	icon_state = "0-4"
 	},
-/turf/simulated/floor,
+/turf/simulated/floor/plating,
 /area/awaymission/spacebattle/storage)
 "YC" = (
 /obj/effect/decal/syndie_logo{
@@ -18310,6 +18259,12 @@
 "YD" = (
 /obj/effect/turf_decal/box/corners{
 	dir = 4
+	},
+/obj/machinery/conveyor_switch/oneway{
+	id = "mining_internal";
+	name = "Smelting";
+	pixel_x = -10;
+	dir = 8
 	},
 /turf/simulated/floor/plasteel,
 /area/awaymission/spacebattle/sec_storage)
@@ -18427,8 +18382,7 @@
 	master_tag = "left";
 	name = "exterior access button";
 	pixel_x = 25;
-	pixel_y = -25;
-	req_access = null
+	pixel_y = -25
 	},
 /turf/space,
 /area/awaymission/spacebattle/syndicate1)
@@ -18524,8 +18478,8 @@
 /area/awaymission/spacebattle/sec_storage)
 "Zn" = (
 /obj/machinery/conveyor{
-	dir = 4;
-	id = "cargodeliverySB"
+	id = "cargodeliverySB";
+	dir = 4
 	},
 /turf/simulated/floor/plating,
 /area/awaymission/spacebattle/sec_storage)
@@ -36843,9 +36797,9 @@ ab
 ab
 dy
 dy
-wa
+dy
 MQ
-wa
+dy
 dy
 ab
 YT
@@ -37374,7 +37328,7 @@ dy
 Wr
 bj
 bv
-wa
+dy
 dy
 dy
 dy
@@ -38148,7 +38102,7 @@ aZ
 aZ
 aZ
 aZ
-wa
+dy
 dy
 GM
 GM
@@ -38450,7 +38404,7 @@ jo
 jo
 aZ
 vs
-wa
+dy
 Bm
 uI
 AS
@@ -39221,7 +39175,7 @@ jZ
 jZ
 aZ
 aZ
-wa
+dy
 Gl
 Ew
 eH
@@ -39947,7 +39901,7 @@ aZ
 aZ
 aZ
 aZ
-wa
+dy
 dy
 GM
 GM
@@ -40715,7 +40669,7 @@ dy
 Uw
 bj
 Gb
-wa
+dy
 dy
 dy
 dy
@@ -41212,9 +41166,9 @@ ab
 ab
 dy
 dy
-wa
+dy
 kG
-wa
+dy
 dy
 ab
 Ip
@@ -48133,9 +48087,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 OD
 oQ
 TA
@@ -48145,10 +48099,10 @@ oQ
 OD
 PG
 OD
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 ab
 ab
 ab
@@ -48389,8 +48343,8 @@ ab
 ab
 ab
 ab
-aI
-aI
+OD
+OD
 VZ
 VZ
 th
@@ -48398,16 +48352,16 @@ oQ
 YO
 as
 oQ
-aI
-aI
+OD
+OD
 ah
 ah
 ah
 bm
 bm
 bm
-aI
-aI
+OD
+OD
 bo
 ab
 ab
@@ -48646,7 +48600,7 @@ ab
 ab
 ab
 QU
-aI
+OD
 Yb
 ww
 TU
@@ -48655,7 +48609,7 @@ oQ
 An
 as
 UF
-aI
+OD
 bq
 bq
 bq
@@ -48901,9 +48855,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 aj
 aj
 VZ
@@ -48920,10 +48874,10 @@ bm
 bm
 bm
 bm
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 ab
 ab
 ab
@@ -49157,19 +49111,19 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
 Fb
-aI
-aI
-aI
+OD
+OD
+OD
 cp
 cp
-aI
-aI
+OD
+OD
 zo
 ad
 aX
@@ -49413,9 +49367,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 at
 at
 at
@@ -49669,9 +49623,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 at
 at
 at
@@ -49931,16 +49885,16 @@ DB
 PM
 at
 at
-aI
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
+OD
 at
 at
 at
-aI
+OD
 yR
 af
 aY
@@ -50188,12 +50142,12 @@ Vn
 PM
 at
 LB
-aI
+OD
 Lh
 Lh
 Lh
 Lh
-aI
+OD
 at
 at
 Ic
@@ -50205,10 +50159,10 @@ bm
 bm
 bm
 bm
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 ab
 ab
 ab
@@ -50440,9 +50394,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 at
 at
 ej
@@ -50699,18 +50653,18 @@ ab
 EW
 EW
 lm
-aI
+OD
 ae
 at
-aI
+OD
 aq
 aq
 aq
 aq
-aI
+OD
 at
 at
-aI
+OD
 bm
 bm
 bm
@@ -50719,7 +50673,7 @@ bm
 bm
 bm
 bm
-aI
+OD
 Zt
 ab
 ab
@@ -50956,26 +50910,26 @@ ab
 EW
 Jj
 sV
-aI
+OD
 at
 at
-aI
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
+OD
 at
 Qc
-aI
+OD
 jx
 pT
 jx
-aI
+OD
 KO
 sH
 zT
-aI
+OD
 Ei
 ab
 ab
@@ -51213,7 +51167,7 @@ ab
 EW
 EW
 vX
-aI
+OD
 at
 LB
 at
@@ -51224,18 +51178,18 @@ at
 at
 LB
 at
-aI
+OD
 aj
 aj
 aj
-aI
+OD
 uL
 Kt
 Ng
-aI
-aI
+OD
+OD
 LI
-aI
+OD
 ab
 ab
 ab
@@ -51468,9 +51422,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 at
 at
 at
@@ -51485,11 +51439,11 @@ Ow
 aj
 al
 zF
-aI
+OD
 KO
 Ng
 ZA
-aI
+OD
 an
 an
 LI
@@ -51725,32 +51679,32 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 Af
 Af
-aI
-aI
+OD
+OD
 AK
 AK
-aI
-aI
+OD
+OD
 at
 at
-aI
+OD
 aj
 aj
 aj
-aI
+OD
 Bi
 xQ
 ag
-aI
+OD
 aj
 aj
-aI
-aI
+OD
+OD
 ab
 ab
 ab
@@ -51984,26 +51938,26 @@ ab
 EW
 EW
 cd
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 GX
 ay
 ay
 Rc
-aI
+OD
 at
 IZ
-aI
+OD
 dT
 Hw
 cg
-aI
+OD
 Ng
 Ng
 XY
-aI
+OD
 Jx
 TD
 aL
@@ -52241,7 +52195,7 @@ ab
 EW
 Jj
 sV
-aI
+OD
 rz
 ay
 ay
@@ -52249,17 +52203,17 @@ SR
 DW
 ay
 ay
-aI
+OD
 fR
 at
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
 ge
-aI
-aI
+OD
+OD
 tt
 aj
 uO
@@ -52498,7 +52452,7 @@ ab
 EW
 EW
 vX
-aI
+OD
 ay
 DW
 DW
@@ -52506,17 +52460,17 @@ tS
 tS
 Up
 ay
-aI
+OD
 at
 at
 Hb
-aI
+OD
 yY
 WW
 Bc
 xr
 zk
-aI
+OD
 Vq
 aj
 aj
@@ -52753,9 +52707,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 ay
 tS
 tS
@@ -52763,7 +52717,7 @@ tS
 ao
 Up
 ay
-aI
+OD
 at
 at
 at
@@ -53010,9 +52964,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 Qb
 ta
 tS
@@ -53020,7 +52974,7 @@ tS
 tS
 Up
 ay
-aI
+OD
 at
 at
 at
@@ -53269,7 +53223,7 @@ ab
 EW
 EW
 cd
-aI
+OD
 ay
 WJ
 ap
@@ -53277,17 +53231,17 @@ tS
 tS
 wV
 ay
-aI
+OD
 at
 at
 Hb
-aI
+OD
 yN
 oU
 BW
 na
 aH
-aI
+OD
 Vq
 aj
 aj
@@ -53526,7 +53480,7 @@ ab
 EW
 Jj
 sV
-aI
+OD
 ay
 ay
 ay
@@ -53534,18 +53488,18 @@ ap
 ap
 ay
 ay
-aI
+OD
 at
 fX
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
 au
-aI
-aI
-aI
+OD
+OD
+OD
 aj
 TD
 aL
@@ -53783,26 +53737,26 @@ ab
 EW
 EW
 vX
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 Qa
 ay
 ay
 ay
-aI
+OD
 at
 IZ
-aI
+OD
 ar
 ZG
 IL
-aI
+OD
 NR
 em
 em
-aI
+OD
 Jx
 uO
 qh
@@ -54038,32 +53992,32 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 Af
 Af
-aI
-aI
+OD
+OD
 AK
 AK
-aI
-aI
+OD
+OD
 at
 at
-aI
+OD
 Gz
 Hc
 yC
-aI
+OD
 be
 be
 be
-aI
+OD
 aj
 aj
-aI
-aI
+OD
+OD
 ab
 ab
 ab
@@ -54295,9 +54249,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 at
 at
 at
@@ -54312,11 +54266,11 @@ bM
 Xu
 Ss
 jM
-aI
+OD
 be
 em
 xR
-aI
+OD
 KH
 an
 LI
@@ -54554,7 +54508,7 @@ ab
 EW
 EW
 cd
-aI
+OD
 at
 LB
 at
@@ -54565,18 +54519,18 @@ at
 at
 at
 LB
-aI
+OD
 Gz
 Hc
 ly
-aI
+OD
 be
 be
 be
-aI
-aI
+OD
+OD
 LI
-aI
+OD
 ab
 ab
 ab
@@ -54811,26 +54765,26 @@ ab
 EW
 Jj
 sV
-aI
+OD
 at
 at
-aI
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
+OD
 at
 at
-aI
+OD
 ar
 ye
 hs
-aI
+OD
 Ik
 yl
 Kz
-aI
+OD
 Ei
 ab
 ab
@@ -55068,18 +55022,18 @@ ab
 EW
 EW
 vX
-aI
+OD
 ae
 at
-aI
+OD
 Lh
 Lh
 Lh
 Lh
-aI
+OD
 XF
 at
-aI
+OD
 bm
 bm
 bm
@@ -55088,7 +55042,7 @@ bm
 bm
 bm
 bm
-aI
+OD
 bo
 ab
 ab
@@ -55323,9 +55277,9 @@ ab
 ab
 ab
 ab
-aI
+OD
 bm
-aI
+OD
 at
 at
 ej
@@ -55585,12 +55539,12 @@ Vn
 PM
 at
 at
-aI
+OD
 aq
 aq
 aq
 aq
-aI
+OD
 at
 at
 Ic
@@ -55603,9 +55557,9 @@ bm
 bm
 bm
 bm
-aI
-aI
-aI
+OD
+OD
+OD
 ab
 ab
 ab
@@ -55842,16 +55796,16 @@ CB
 PM
 at
 at
-aI
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
+OD
 at
 at
 at
-aI
+OD
 zo
 ad
 aX
@@ -56094,9 +56048,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 at
 LB
 at
@@ -56352,9 +56306,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 at
 at
 at
@@ -56610,19 +56564,19 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
 PP
-aI
-aI
-aI
+OD
+OD
+OD
 cp
 cp
-aI
-aI
+OD
+OD
 yR
 af
 aY
@@ -56868,9 +56822,9 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 aj
 aj
 VZ
@@ -56888,9 +56842,9 @@ bm
 bm
 bm
 bm
-aI
-aI
-aI
+OD
+OD
+OD
 ab
 ab
 ab
@@ -57127,7 +57081,7 @@ ab
 ab
 ab
 pA
-aI
+OD
 Yb
 ww
 TU
@@ -57136,7 +57090,7 @@ oQ
 YO
 HT
 UF
-aI
+OD
 bq
 bq
 bq
@@ -57384,8 +57338,8 @@ ab
 ab
 ab
 ab
-aI
-aI
+OD
+OD
 VZ
 Bz
 th
@@ -57393,16 +57347,16 @@ oQ
 YO
 as
 oQ
-aI
-aI
+OD
+OD
 ah
 ah
 ah
 bm
 bm
 bm
-aI
-aI
+OD
+OD
 Zt
 ab
 ab
@@ -57642,22 +57596,22 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
 oQ
 SV
 as
 oQ
 IH
-aI
+OD
 Ei
-aI
-aI
-aI
-aI
-aI
+OD
+OD
+OD
+OD
+OD
 ab
 ab
 ab
@@ -57900,17 +57854,17 @@ ab
 ab
 ab
 ab
-aI
-aI
-aI
+OD
+OD
+OD
 OT
 YO
 as
 oQ
 oQ
-aI
-aI
-aI
+OD
+OD
+OD
 hx
 ab
 ab
@@ -58158,16 +58112,16 @@ ab
 ab
 ab
 ab
-aI
-aI
+OD
+OD
 lV
 Gi
 Gi
 Gi
 Gi
 Ei
-aI
-aI
+OD
+OD
 ab
 ab
 ab
@@ -63312,7 +63266,7 @@ ab
 ab
 ab
 eF
-yE
+eF
 QQ
 QQ
 eF
@@ -64601,7 +64555,7 @@ eF
 zH
 zH
 eF
-yE
+eF
 ab
 ab
 ab
@@ -66230,7 +66184,7 @@ ob
 Pr
 aD
 Vy
-yE
+eF
 JQ
 ab
 ab
@@ -66397,7 +66351,7 @@ eF
 eF
 eF
 eF
-yE
+eF
 vr
 ab
 ab
@@ -66655,7 +66609,7 @@ sg
 NJ
 KF
 eF
-yE
+eF
 vr
 ab
 ab
@@ -66913,7 +66867,7 @@ cP
 ec
 jW
 eF
-yE
+eF
 kc
 kc
 eF
@@ -67001,7 +66955,7 @@ ce
 ko
 aD
 aD
-yE
+eF
 br
 ab
 ab
@@ -68712,7 +68666,7 @@ UX
 vA
 UX
 eF
-yE
+eF
 xt
 xt
 eF
@@ -68968,7 +68922,7 @@ OC
 EP
 td
 eF
-yE
+eF
 Mo
 ab
 ab
@@ -69224,7 +69178,7 @@ eF
 eF
 eF
 eF
-yE
+eF
 Mo
 ab
 ab
@@ -71026,7 +70980,7 @@ eF
 zu
 zu
 eF
-yE
+eF
 ab
 ab
 ab
@@ -72307,7 +72261,7 @@ ab
 ab
 ab
 eF
-yE
+eF
 QQ
 QQ
 eF
@@ -77536,13 +77490,13 @@ ab
 ab
 ab
 UI
-hz
+pc
 he
 he
 hL
 he
 he
-hz
+pc
 KY
 ab
 ab
@@ -77792,7 +77746,7 @@ ab
 ab
 ab
 ab
-hz
+pc
 SB
 hf
 hf
@@ -77800,7 +77754,7 @@ hM
 hf
 hf
 lS
-hz
+pc
 ab
 ab
 ab
@@ -78049,7 +78003,7 @@ ab
 ab
 ab
 gL
-hz
+pc
 SB
 hf
 hf
@@ -78057,7 +78011,7 @@ UU
 hf
 hf
 lS
-hz
+pc
 OJ
 ab
 ab
@@ -78306,15 +78260,15 @@ ab
 ab
 ab
 pc
-hz
+pc
 vz
 hN
 vz
-hz
+pc
 vz
 hN
 vz
-hz
+pc
 pc
 ab
 ab
@@ -78562,8 +78516,8 @@ ab
 ab
 ab
 ab
-hz
-hz
+pc
+pc
 Sg
 hf
 zE
@@ -78571,8 +78525,8 @@ AG
 la
 hf
 Sg
-hz
-hz
+pc
+pc
 ab
 ab
 ab
@@ -78820,7 +78774,7 @@ ab
 ab
 ab
 ab
-hz
+pc
 La
 hf
 hf
@@ -78828,7 +78782,7 @@ Yr
 hf
 hf
 jp
-hz
+pc
 ab
 ab
 ab
@@ -79077,7 +79031,7 @@ ab
 ab
 ab
 ab
-hz
+pc
 Gk
 jp
 hf
@@ -79085,7 +79039,7 @@ hf
 hf
 wS
 hf
-hz
+pc
 ab
 ab
 ab
@@ -79334,7 +79288,7 @@ uT
 ab
 ab
 ab
-hz
+pc
 jO
 hf
 hf
@@ -79342,7 +79296,7 @@ hf
 hf
 hf
 hf
-hz
+pc
 ir
 ab
 ab
@@ -79591,7 +79545,7 @@ ab
 ab
 ab
 ab
-hz
+pc
 Sg
 hf
 rQ
@@ -79599,7 +79553,7 @@ mm
 hf
 hf
 Sg
-hz
+pc
 ab
 ab
 ab
@@ -79848,15 +79802,15 @@ ab
 ab
 ab
 ab
-hz
+pc
 hg
 hg
-hz
+pc
 hN
-hz
+pc
 hg
 hg
-hz
+pc
 ab
 ab
 ab
@@ -80105,15 +80059,15 @@ ab
 ab
 ab
 ab
-hz
+pc
 hh
 hh
-hz
+pc
 ab
-hz
+pc
 hh
 hh
-hz
+pc
 ab
 ab
 ab

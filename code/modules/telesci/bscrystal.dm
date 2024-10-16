@@ -13,13 +13,16 @@
 	toolspeed = 1
 	usesound = 'sound/items/deconstruct.ogg'
 
+/obj/item/stack/ore/bluespace_crystal/attack_self_tk(mob/user)
+	return
+
 /obj/item/stack/ore/bluespace_crystal/New(loc, new_amount, merge = TRUE)
 	..()
 	pixel_x = rand(-5, 5)
 	pixel_y = rand(-5, 5)
 
 /obj/item/stack/ore/bluespace_crystal/attack_self(var/mob/user)
-	if(do_after(user, 1 SECONDS, target = user))
+	if(do_after(user, 1 SECONDS, user))
 		var/mob/living/carbon/human/bs_user = user
 		if(use(1))
 			blink_mob(bs_user)
@@ -78,7 +81,3 @@ GLOBAL_LIST_INIT(bluespace_crystal_recipes, list(new/datum/stack_recipe("Breakdo
 	. = ..()
 	recipes = GLOB.bluespace_crystal_recipes
 
-/obj/item/stack/ore/bluespace_crystal/New(loc, new_amount, merge = TRUE)
-	..()
-	pixel_x = rand(0,4)-4
-	pixel_y = rand(0,4)-4
